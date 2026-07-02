@@ -133,7 +133,7 @@ img {
   display: grid;
   justify-items: center;
   gap: 8px;
-  width: min-content;
+  width: 184px;
   max-width: 100%;
   color: var(--muted);
   font-family: system-ui, sans-serif;
@@ -157,6 +157,8 @@ img {
 .support-qr img {
   width: 184px;
   height: 184px;
+  max-width: 100%;
+  aspect-ratio: 1;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #fff;
