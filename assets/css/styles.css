@@ -133,7 +133,7 @@ img {
   display: grid;
   justify-items: center;
   gap: 8px;
-  width: 184px;
+  width: 220px;
   max-width: 100%;
   color: var(--muted);
   font-family: system-ui, sans-serif;
@@ -146,12 +146,16 @@ img {
 
 .support-qr code,
 .pix-key {
-  max-width: 184px;
-  overflow-wrap: anywhere;
+  max-width: 100%;
+  overflow-wrap: break-word;
   color: var(--gold);
   font-family: system-ui, sans-serif;
   font-size: 0.68rem;
   line-height: 1.35;
+}
+
+.support-key {
+  width: 100%;
 }
 
 .support-qr img {
@@ -403,9 +407,12 @@ h3 {
 
 .support-panel img {
   width: min(100%, 320px);
+  height: auto;
+  aspect-ratio: 1;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
+  object-fit: contain;
 }
 
 .support-panel .pix-key {
