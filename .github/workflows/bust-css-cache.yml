@@ -1,0 +1,43 @@
+name: Bust CSS cache links
+
+on:
+  push:
+    paths:
+      - '.github/workflows/bust-css-cache.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version stylesheet links
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          version = '?v=20260702-hero'
+          for path in Path('.').rglob('*.html'):
+              text = path.read_text(encoding='utf-8')
+              updated = text.replace('assets/css/styles.css?v=20260702-hero', 'assets/css/styles.css')
+              updated = updated.replace('assets/css/styles.css', 'assets/css/styles.css' + version)
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+          PY
+          rm -f .github/workflows/bust-css-cache.yml
+          git status --short
+      - name: Commit stylesheet cache bust
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Bust stylesheet cache"
+            git push
+          fi
