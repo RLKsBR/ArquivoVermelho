@@ -1,7 +1,7 @@
 :root {
   color-scheme: dark;
-  --bg: #11100f;
-  --bg-soft: #171514;
+  --bg: #100908;
+  --bg-soft: #170f0f;
   --surface: #1f1b19;
   --surface-2: #29231f;
   --text: #eee7dc;
@@ -29,8 +29,9 @@ html {
 body {
   margin: 0;
   background:
-    radial-gradient(circle at top left, rgba(184, 50, 58, 0.12), transparent 32rem),
-    linear-gradient(180deg, #151211 0%, var(--bg) 42%, #0e0d0c 100%);
+    radial-gradient(circle at top left, rgba(184, 50, 58, 0.16), transparent 32rem),
+    radial-gradient(circle at bottom right, rgba(92, 9, 12, 0.16), transparent 30rem),
+    linear-gradient(180deg, #120707 0%, var(--bg) 44%, #080606 100%);
   color: var(--text);
   font-family: Georgia, "Times New Roman", serif;
   font-size: 17px;
@@ -186,9 +187,9 @@ img {
   position: relative;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(17, 16, 15, 0.28), rgba(17, 16, 15, 0.92)),
-    linear-gradient(90deg, rgba(17, 16, 15, 0.88), rgba(17, 16, 15, 0.36)),
-    url("../img/arquivo-literario.svg") center / cover no-repeat;
+    linear-gradient(180deg, rgba(8, 3, 3, 0.4), rgba(9, 4, 4, 0.96)),
+    linear-gradient(90deg, rgba(8, 3, 3, 0.9), rgba(70, 6, 8, 0.42), rgba(7, 3, 3, 0.88)),
+    url("../img/hero-arquivo-vermelho-mobile.jpg") center / cover no-repeat;
 }
 
 .hero::after {
@@ -600,6 +601,13 @@ h3 {
   .hero-content {
     grid-template-columns: minmax(0, 1fr) 220px;
     align-items: start;
+  }
+
+  .hero {
+    background:
+      linear-gradient(180deg, rgba(8, 3, 3, 0.3), rgba(9, 4, 4, 0.92)),
+      linear-gradient(90deg, rgba(8, 3, 3, 0.92), rgba(70, 6, 8, 0.24) 48%, rgba(7, 3, 3, 0.8)),
+      url("../img/hero-arquivo-vermelho-desktop.jpg") center / cover no-repeat;
   }
 
   .works-grid {
