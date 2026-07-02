@@ -129,12 +129,28 @@ img {
   background: rgba(184, 50, 58, 0.12);
 }
 
-.header-side {
-  display: contents;
+.support-qr {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  color: var(--muted);
+  font-family: system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
 }
 
-.support-qr {
-  display: none;
+.support-qr img {
+  width: 184px;
+  height: 184px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  object-fit: contain;
 }
 
 .container {
@@ -173,6 +189,8 @@ img {
   width: min(100% - 32px, var(--max));
   margin: 0 auto;
   padding: 92px 0 80px;
+  display: grid;
+  gap: 32px;
 }
 
 .eyebrow {
@@ -532,32 +550,14 @@ h3 {
     padding: 7px 9px;
   }
 
-  .header-side {
-    display: grid;
-    justify-items: end;
-    gap: 8px;
-  }
-
   .support-qr {
-    display: grid;
-    justify-items: center;
-    gap: 5px;
-    color: var(--muted);
-    font-family: system-ui, sans-serif;
-    font-size: 0.72rem;
-    font-weight: 700;
-    line-height: 1.2;
-    text-align: center;
-    text-decoration: none;
+    justify-self: end;
+    margin-top: 20px;
   }
 
-  .support-qr img {
-    width: 92px;
-    height: 92px;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    background: #fff;
-    object-fit: contain;
+  .hero-content {
+    grid-template-columns: minmax(0, 1fr) 220px;
+    align-items: start;
   }
 
   .works-grid {
