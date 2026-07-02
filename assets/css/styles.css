@@ -86,8 +86,8 @@ img {
 }
 
 .brand-logo {
-  width: 28px;
-  height: 28px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
   flex: 0 0 auto;
 }
