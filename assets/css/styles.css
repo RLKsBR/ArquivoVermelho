@@ -129,6 +129,14 @@ img {
   background: rgba(184, 50, 58, 0.12);
 }
 
+.header-side {
+  display: contents;
+}
+
+.support-qr {
+  display: none;
+}
+
 .container {
   width: min(100% - 32px, var(--max));
   margin: 0 auto;
@@ -447,20 +455,6 @@ h3 {
   margin-top: 22px;
 }
 
-.ad-slot {
-  margin: 28px auto;
-  min-height: 92px;
-  display: grid;
-  place-items: center;
-  border: 1px dashed rgba(198, 161, 91, 0.28);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.025);
-  color: var(--faint);
-  font-family: system-ui, sans-serif;
-  font-size: 0.82rem;
-  text-align: center;
-}
-
 .reader-shell {
   width: min(100% - 32px, var(--reader));
   margin: 0 auto;
@@ -536,6 +530,34 @@ h3 {
 
   .site-nav a {
     padding: 7px 9px;
+  }
+
+  .header-side {
+    display: grid;
+    justify-items: end;
+    gap: 8px;
+  }
+
+  .support-qr {
+    display: grid;
+    justify-items: center;
+    gap: 5px;
+    color: var(--muted);
+    font-family: system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+  }
+
+  .support-qr img {
+    width: 92px;
+    height: 92px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+    object-fit: contain;
   }
 
   .works-grid {
