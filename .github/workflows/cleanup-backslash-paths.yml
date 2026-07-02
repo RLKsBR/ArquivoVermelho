@@ -20,7 +20,8 @@ jobs:
           from pathlib import Path
           import subprocess
 
-          files = subprocess.check_output(["git", "ls-files"], text=True).splitlines()
+          raw = subprocess.check_output(["git", "ls-files", "-z"])
+          files = raw.decode("utf-8", errors="surrogateescape").split("\0")
           malformed = [path for path in files if "\\" in path]
           for path in malformed:
               subprocess.run(["git", "rm", "--", path], check=True)
