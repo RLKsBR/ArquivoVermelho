@@ -733,6 +733,12 @@ h3 {
   gap: 12px 18px;
 }
 
+@media (max-width: 719px) {
+  .footer-inner {
+    padding-bottom: 72px;
+  }
+}
+
 @media (min-width: 720px) {
   .menu-toggle {
     display: none;
