@@ -10,7 +10,7 @@
   <meta property="og:type" content="article">
   <meta property="og:image" content="../assets/img/logo-arquivo-vermelho.png">
   <link rel="icon" href="../assets/img/logo-arquivo-vermelho.png" type="image/png">
-  <link rel="stylesheet" href="../assets/css/styles.css?v=20260703-cover-limit">
+  <link rel="stylesheet" href="../assets/css/styles.css?v=20260703-pdfjs-mobile">
 </head>
 <body class="reader-page">
   <header class="site-header">
@@ -52,7 +52,17 @@
           <h2>Leitor de PDF</h2>
           <a class="button secondary" href="../downloads/o-ultimo-dia/portugues/capitulo-05-dia-4.pdf" download>Baixar PDF</a>
         </div>
-        <iframe class="pdf-frame" src="../downloads/o-ultimo-dia/portugues/capitulo-05-dia-4.pdf#toolbar=1&amp;navpanes=0" title="Leitor de PDF" loading="lazy"></iframe>
+        <div class="pdf-viewer" data-pdf-viewer data-pdf-src="../downloads/o-ultimo-dia/portugues/capitulo-05-dia-4.pdf">
+          <div class="pdf-toolbar" aria-label="Navegacao do PDF">
+            <button class="button secondary" type="button" data-pdf-previous>Pagina anterior</button>
+            <span class="pdf-page-count">Pagina <span data-pdf-current>1</span> de <span data-pdf-total>...</span></span>
+            <button class="button secondary" type="button" data-pdf-next>Proxima pagina</button>
+          </div>
+          <p class="pdf-status" data-pdf-status>Carregando PDF...</p>
+          <div class="pdf-canvas-wrap">
+            <canvas class="pdf-canvas" data-pdf-canvas></canvas>
+          </div>
+        </div>
       </section>
       <section class="chapter-rating" data-chapter-rating="o-ultimo-dia-portugues-capitulo-05-dia-4" aria-labelledby="rating-o-ultimo-dia-portugues-capitulo-05-dia-4">
         <h2 id="rating-o-ultimo-dia-portugues-capitulo-05-dia-4">Avalie este capítulo</h2>
@@ -81,5 +91,6 @@
     </div>
   </footer>
   <script src="../assets/js/main.js?v=20260703-rating"></script>
+  <script type="module" src="../assets/js/pdf-reader.js?v=20260703-pdfjs"></script>
 </body>
 </html>
