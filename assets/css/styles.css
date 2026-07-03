@@ -683,6 +683,17 @@ h3 {
   gap: 10px;
 }
 
+.speech-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(198, 161, 91, 0.16);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
 .pdf-page-count {
   color: var(--muted);
   font-family: system-ui, sans-serif;
@@ -690,13 +701,19 @@ h3 {
   font-weight: 700;
 }
 
-.pdf-status {
+.pdf-status,
+.speech-status {
   min-height: 1.4em;
   margin: 0;
   color: var(--gold);
   font-family: system-ui, sans-serif;
   font-size: 0.86rem;
   font-weight: 700;
+}
+
+.speech-status {
+  flex-basis: 100%;
+  color: var(--muted);
 }
 
 .pdf-canvas-wrap {
