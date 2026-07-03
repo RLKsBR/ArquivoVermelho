@@ -633,6 +633,69 @@ h3 {
   border-top: 1px solid rgba(198, 161, 91, 0.16);
 }
 
+.chapter-rating {
+  max-width: 760px;
+  margin-top: 8px;
+  padding: 16px;
+  border: 1px solid rgba(198, 161, 91, 0.16);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(184, 50, 58, 0.08), rgba(0, 0, 0, 0.06)),
+    rgba(31, 27, 25, 0.62);
+}
+
+.chapter-rating h2 {
+  font-size: 1.15rem;
+}
+
+.chapter-rating p {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.rating-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.rating-button {
+  min-width: 44px;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--gold);
+  font: 700 1rem/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.rating-button:hover {
+  border-color: rgba(226, 74, 82, 0.7);
+  background: rgba(184, 50, 58, 0.14);
+  color: #fff5eb;
+}
+
+.rating-button.is-selected {
+  border-color: rgba(226, 74, 82, 0.8);
+  background: rgba(184, 50, 58, 0.26);
+  color: #fff5eb;
+}
+
+.rating-button:disabled {
+  cursor: default;
+  opacity: 0.64;
+}
+
+.rating-message {
+  min-height: 1.4em;
+  color: var(--gold);
+  font-family: system-ui, sans-serif;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .site-footer {
   flex-shrink: 0;
   border-top: 1px solid rgba(198, 161, 91, 0.16);

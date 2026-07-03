@@ -24,3 +24,86 @@ if (progress) {
   updateProgress();
   window.addEventListener("scroll", updateProgress, { passive: true });
 }
+
+const ratingBlocks = document.querySelectorAll("[data-chapter-rating]");
+
+if (ratingBlocks.length) {
+  const readerIdKey = "arquivoVermelho.readerId.v1";
+  const ratingsKey = "arquivoVermelho.chapterRatings.v1";
+
+  const createReaderId = () => {
+    if (window.crypto && window.crypto.randomUUID) {
+      return window.crypto.randomUUID();
+    }
+
+    return `reader-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  };
+
+  let readerId = localStorage.getItem(readerIdKey);
+  if (!readerId) {
+    readerId = createReaderId();
+    localStorage.setItem(readerIdKey, readerId);
+  }
+
+  const readRatings = () => {
+    try {
+      return JSON.parse(localStorage.getItem(ratingsKey)) || {};
+    } catch {
+      return {};
+    }
+  };
+
+  const writeRatings = (ratings) => {
+    localStorage.setItem(ratingsKey, JSON.stringify(ratings));
+  };
+
+  const renderSavedState = (block, rating) => {
+    const buttons = block.querySelectorAll("[data-rating-value]");
+    const message = block.querySelector("[data-rating-message]");
+
+    buttons.forEach((button) => {
+      const value = Number(button.dataset.ratingValue);
+      button.disabled = true;
+      button.setAttribute("aria-pressed", String(value === rating));
+      button.classList.toggle("is-selected", value === rating);
+    });
+
+    if (message) {
+      const label = rating === 0 ? "0 estrela" : `${rating} ${rating === 1 ? "estrela" : "estrelas"}`;
+      message.textContent = `Sua nota (${label}) foi salva neste dispositivo.`;
+    }
+  };
+
+  ratingBlocks.forEach((block) => {
+    const chapterId = block.dataset.chapterRating || window.location.pathname;
+    const buttons = block.querySelectorAll("[data-rating-value]");
+    const ratings = readRatings();
+    const saved = ratings[chapterId];
+
+    if (saved && saved.readerId === readerId) {
+      renderSavedState(block, Number(saved.rating));
+      return;
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const rating = Number(button.dataset.ratingValue);
+        const currentRatings = readRatings();
+
+        if (currentRatings[chapterId] && currentRatings[chapterId].readerId === readerId) {
+          renderSavedState(block, Number(currentRatings[chapterId].rating));
+          return;
+        }
+
+        currentRatings[chapterId] = {
+          rating,
+          readerId,
+          ratedAt: new Date().toISOString()
+        };
+
+        writeRatings(currentRatings);
+        renderSavedState(block, rating);
+      });
+    });
+  });
+}
