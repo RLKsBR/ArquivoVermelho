@@ -138,6 +138,11 @@ img {
   background: rgba(184, 50, 58, 0.12);
 }
 
+.site-nav .mobile-app-link {
+  color: var(--text);
+  background: rgba(184, 50, 58, 0.16);
+}
+
 .support-qr {
   display: grid;
   justify-items: center;
@@ -734,6 +739,10 @@ h3 {
 
   .site-nav a {
     padding: 7px 9px;
+  }
+
+  .site-nav .mobile-app-link {
+    display: none;
   }
 
   .support-qr {
