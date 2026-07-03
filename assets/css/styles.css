@@ -24,10 +24,12 @@
 
 html {
   scroll-behavior: smooth;
+  min-height: 100%;
 }
 
 body {
   margin: 0;
+  min-height: 100svh;
   background:
     radial-gradient(circle at top left, rgba(184, 50, 58, 0.16), transparent 32rem),
     radial-gradient(circle at bottom right, rgba(92, 9, 12, 0.16), transparent 30rem),
@@ -36,10 +38,16 @@ body {
   font-family: Georgia, "Times New Roman", serif;
   font-size: 17px;
   line-height: 1.7;
+  display: flex;
+  flex-direction: column;
 }
 
 body.reader-page {
   background: #12100f;
+}
+
+main {
+  flex: 1 0 auto;
 }
 
 a {
@@ -68,9 +76,9 @@ img {
 }
 
 .header-inner {
-  width: min(100% - 32px, var(--max));
+  width: 100%;
   margin: 0 auto;
-  padding: 14px 0;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -554,7 +562,79 @@ h3 {
   margin: 0 0 1.35em;
 }
 
+.reader {
+  width: min(100% - 32px, var(--max));
+  margin: 0 auto;
+  padding: 48px 0 78px;
+  display: grid;
+  gap: 24px;
+}
+
+.reader-header,
+.reader-body,
+.chapter-nav {
+  min-width: 0;
+}
+
+.reader-header {
+  display: grid;
+  gap: 14px;
+}
+
+.reader-header h1 {
+  font-size: clamp(2.7rem, 12vw, 5.2rem);
+}
+
+.reader-header .lead {
+  margin-top: 0;
+}
+
+.reader-cover-panel {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: 12px;
+  border: 1px solid rgba(198, 161, 91, 0.18);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(184, 50, 58, 0.09), rgba(0, 0, 0, 0.08)),
+    rgba(31, 27, 25, 0.58);
+  box-shadow: var(--shadow);
+}
+
+.reader-cover-panel img {
+  width: 100%;
+  max-height: 420px;
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  border: 1px solid rgba(198, 161, 91, 0.2);
+  object-fit: cover;
+}
+
+.reader-cover-panel span {
+  color: var(--muted);
+  font-family: system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.reader-body {
+  max-width: 760px;
+  padding-top: 6px;
+  color: #f0e8dc;
+}
+
+.reader .chapter-nav {
+  max-width: 760px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(198, 161, 91, 0.16);
+}
+
 .site-footer {
+  flex-shrink: 0;
   border-top: 1px solid rgba(198, 161, 91, 0.16);
   background: #0f0e0d;
 }
@@ -621,6 +701,18 @@ h3 {
 
   .work-hero-grid {
     grid-template-columns: minmax(0, 1fr) 220px;
+  }
+
+  .reader {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    align-items: start;
+  }
+
+  .reader-cover-panel {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    position: sticky;
+    top: 94px;
   }
 
   .footer-inner {
