@@ -142,7 +142,7 @@ img {
   display: grid;
   justify-items: center;
   gap: 8px;
-  width: 220px;
+  width: 286px;
   max-width: 100%;
   color: var(--muted);
   font-family: system-ui, sans-serif;
@@ -168,8 +168,8 @@ img {
 }
 
 .support-qr img {
-  width: 184px;
-  height: 184px;
+  width: 239px;
+  height: 239px;
   max-width: 100%;
   aspect-ratio: 1;
   border: 1px solid var(--line);
@@ -679,7 +679,7 @@ h3 {
   }
 
   .hero-content {
-    grid-template-columns: minmax(0, 1fr) 220px;
+    grid-template-columns: minmax(0, 1fr) 286px;
     align-items: start;
   }
 
