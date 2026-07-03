@@ -143,6 +143,16 @@ img {
   background: rgba(184, 50, 58, 0.16);
 }
 
+@media (max-width: 719px) {
+  .header-inner {
+    padding-top: 22px;
+  }
+
+  .site-nav {
+    inset: 69px 16px auto 16px;
+  }
+}
+
 .support-qr {
   display: grid;
   justify-items: center;
