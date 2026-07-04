@@ -28,6 +28,7 @@ const renderViewer = async (viewer) => {
   let speechIndex = 0;
   let currentUtterance = null;
   let speechRunId = 0;
+  let zoom = 1;
 
   const setStatus = (message) => {
     if (status) {
@@ -77,6 +78,72 @@ const renderViewer = async (viewer) => {
     `;
 
     viewer.insertBefore(controls, viewer.firstChild);
+  };
+
+  const createReaderControls = () => {
+    const toolbar = viewer.querySelector(".pdf-toolbar");
+    const panel = viewer.closest(".pdf-reader-panel") || viewer;
+
+    if (!toolbar || toolbar.querySelector("[data-pdf-zoom-in]")) {
+      return;
+    }
+
+    const zoomOutButton = document.createElement("button");
+    zoomOutButton.className = "button secondary";
+    zoomOutButton.type = "button";
+    zoomOutButton.dataset.pdfZoomOut = "";
+    zoomOutButton.textContent = "Diminuir";
+
+    const zoomInButton = document.createElement("button");
+    zoomInButton.className = "button secondary";
+    zoomInButton.type = "button";
+    zoomInButton.dataset.pdfZoomIn = "";
+    zoomInButton.textContent = "Ampliar";
+
+    const fullscreenButton = document.createElement("button");
+    fullscreenButton.className = "button secondary";
+    fullscreenButton.type = "button";
+    fullscreenButton.dataset.pdfFullscreen = "";
+    fullscreenButton.textContent = "Tela cheia";
+
+    toolbar.append(zoomOutButton, zoomInButton, fullscreenButton);
+
+    zoomOutButton.addEventListener("click", () => {
+      zoom = Math.max(0.75, Number((zoom - 0.15).toFixed(2)));
+      queueRender(pageNumber);
+    });
+
+    zoomInButton.addEventListener("click", () => {
+      zoom = Math.min(2.4, Number((zoom + 0.15).toFixed(2)));
+      queueRender(pageNumber);
+    });
+
+    fullscreenButton.addEventListener("click", async () => {
+      try {
+        if (!panel.requestFullscreen) {
+          panel.classList.toggle("is-fullscreen");
+          fullscreenButton.textContent = panel.classList.contains("is-fullscreen") ? "Sair da tela cheia" : "Tela cheia";
+          queueRender(pageNumber);
+          return;
+        }
+
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+          return;
+        }
+
+        await panel.requestFullscreen();
+      } catch {
+        panel.classList.toggle("is-fullscreen");
+        fullscreenButton.textContent = panel.classList.contains("is-fullscreen") ? "Sair da tela cheia" : "Tela cheia";
+        queueRender(pageNumber);
+      }
+    });
+
+    document.addEventListener("fullscreenchange", () => {
+      fullscreenButton.textContent = document.fullscreenElement ? "Sair da tela cheia" : "Tela cheia";
+      queueRender(pageNumber);
+    });
   };
 
   const splitText = (text) => {
@@ -154,7 +221,11 @@ const renderViewer = async (viewer) => {
     const resumeButton = viewer.querySelector("[data-speech-resume]");
     const stopButton = viewer.querySelector("[data-speech-stop]");
 
-    if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+    const nativeBridge = window.ArquivoVermelhoApp;
+    const hasNativeSpeech = nativeBridge && typeof nativeBridge.speak === "function";
+    const hasWebSpeech = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+
+    if (!hasNativeSpeech && !hasWebSpeech) {
       [playButton, pauseButton, resumeButton, stopButton].forEach((button) => {
         if (button) {
           button.disabled = true;
@@ -168,7 +239,12 @@ const renderViewer = async (viewer) => {
       playButton.addEventListener("click", async () => {
         speechRunId += 1;
         const runId = speechRunId;
-        window.speechSynthesis.cancel();
+        if (hasNativeSpeech && typeof nativeBridge.stop === "function") {
+          nativeBridge.stop();
+        }
+        if (hasWebSpeech) {
+          window.speechSynthesis.cancel();
+        }
         speechIndex = 0;
         await extractPdfText();
 
@@ -181,20 +257,42 @@ const renderViewer = async (viewer) => {
           return;
         }
 
+        if (hasNativeSpeech) {
+          nativeBridge.speak(JSON.stringify(speechChunks));
+          setSpeechStatus(`Leitura enviada ao app: ${speechChunks.length} partes.`);
+          return;
+        }
+
         speakChunk(runId);
       });
     }
 
     if (pauseButton) {
       pauseButton.addEventListener("click", () => {
-        window.speechSynthesis.pause();
+        if (hasNativeSpeech && typeof nativeBridge.pause === "function") {
+          nativeBridge.pause();
+          setSpeechStatus("Leitura pausada no app.");
+          return;
+        }
+
+        if (hasWebSpeech) {
+          window.speechSynthesis.pause();
+        }
         setSpeechStatus("Leitura pausada.");
       });
     }
 
     if (resumeButton) {
       resumeButton.addEventListener("click", () => {
-        window.speechSynthesis.resume();
+        if (hasNativeSpeech && typeof nativeBridge.resume === "function") {
+          nativeBridge.resume();
+          setSpeechStatus("Leitura retomada no app.");
+          return;
+        }
+
+        if (hasWebSpeech) {
+          window.speechSynthesis.resume();
+        }
         setSpeechStatus("Leitura retomada.");
       });
     }
@@ -202,7 +300,16 @@ const renderViewer = async (viewer) => {
     if (stopButton) {
       stopButton.addEventListener("click", () => {
         speechRunId += 1;
-        window.speechSynthesis.cancel();
+        if (hasNativeSpeech && typeof nativeBridge.stop === "function") {
+          nativeBridge.stop();
+          currentUtterance = null;
+          setSpeechStatus("Leitura parada no app.");
+          return;
+        }
+
+        if (hasWebSpeech) {
+          window.speechSynthesis.cancel();
+        }
         currentUtterance = null;
         setSpeechStatus("Leitura parada.");
       });
@@ -210,7 +317,12 @@ const renderViewer = async (viewer) => {
 
     window.addEventListener("beforeunload", () => {
       speechRunId += 1;
-      window.speechSynthesis.cancel();
+      if (hasNativeSpeech && typeof nativeBridge.stop === "function") {
+        nativeBridge.stop();
+      }
+      if (hasWebSpeech) {
+        window.speechSynthesis.cancel();
+      }
     });
   };
 
@@ -233,7 +345,7 @@ const renderViewer = async (viewer) => {
     const baseViewport = page.getViewport({ scale: 1 });
     const canvasWrap = viewer.querySelector(".pdf-canvas-wrap") || viewer;
     const availableWidth = Math.max(280, canvasWrap.clientWidth - 2);
-    const cssScale = availableWidth / baseViewport.width;
+    const cssScale = (availableWidth / baseViewport.width) * zoom;
     const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
     const viewport = page.getViewport({ scale: cssScale });
 
@@ -264,6 +376,7 @@ const renderViewer = async (viewer) => {
     setStatus("Carregando PDF...");
     pdf = await pdfjsLib.getDocument(source).promise;
     setControls();
+    createReaderControls();
     setupSpeech();
     await renderPage(pageNumber);
 

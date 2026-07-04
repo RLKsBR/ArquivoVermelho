@@ -733,6 +733,27 @@ h3 {
   background: #f6f3ee;
 }
 
+.pdf-reader-panel:fullscreen,
+.pdf-reader-panel.is-fullscreen {
+  width: 100%;
+  max-width: none;
+  height: 100svh;
+  overflow: auto;
+  border-radius: 0;
+  background: #120d0c;
+}
+
+.pdf-reader-panel.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+.pdf-reader-panel:fullscreen .pdf-canvas-wrap,
+.pdf-reader-panel.is-fullscreen .pdf-canvas-wrap {
+  max-height: calc(100svh - 210px);
+}
+
 .reader .chapter-nav {
   max-width: 760px;
   padding-top: 22px;
