@@ -1,6 +1,7 @@
 {
-  "versionCode": 7,
-  "versionName": "1.6",
-  "apkUrl": "https://rlksbr.github.io/ArquivoVermelho/downloads/app/arquivo-vermelho-1.6.apk",
-  "notes": "Adiciona controle de velocidade da leitura em voz alta."
+  "versionCode": 8,
+  "versionName": "1.6.1-teste",
+  "apkUrl": "",
+  "downloadPageUrl": "https://rlksbr.github.io/ArquivoVermelho/",
+  "notes": "Versao de teste sem instalador interno de APK. O download abre pelo navegador externo."
 }
