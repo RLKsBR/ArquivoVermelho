@@ -13,6 +13,24 @@ if (year) {
   year.textContent = new Date().getFullYear();
 }
 
+const nativeApp = window.ArquivoVermelhoApp;
+
+if (nativeApp && typeof nativeApp.checkForUpdates === "function") {
+  document.documentElement.classList.add("is-native-app");
+
+  document.querySelectorAll(".mobile-app-link").forEach((link) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `${link.className} app-update-button`;
+    button.textContent = "Verificar atualizações";
+    button.addEventListener("click", () => {
+      nativeApp.checkForUpdates();
+    });
+
+    link.replaceWith(button);
+  });
+}
+
 const progress = document.querySelector("[data-reading-progress]");
 if (progress) {
   const updateProgress = () => {
