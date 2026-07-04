@@ -30,6 +30,11 @@ const renderViewer = async (viewer) => {
   let speechRunId = 0;
   let speechTimer = null;
   let zoom = 1;
+  const speechRateBase = 1.25;
+  const speechRateStep = 0.1;
+  const speechRateMin = 0.5;
+  const speechRateMax = 2;
+  let speechRateMultiplier = 1;
 
   const setStatus = (message) => {
     if (status) {
@@ -62,6 +67,34 @@ const renderViewer = async (viewer) => {
     }
   };
 
+  const getActualSpeechRate = () => Number((speechRateBase * speechRateMultiplier).toFixed(2));
+
+  const getScaledPause = (pause) => {
+    if (!pause) {
+      return 0;
+    }
+
+    return Math.max(0, Math.round(pause / speechRateMultiplier));
+  };
+
+  const updateSpeechRateDisplay = () => {
+    const rateValue = viewer.querySelector("[data-speech-rate-value]");
+    const slowerButton = viewer.querySelector("[data-speech-slower]");
+    const fasterButton = viewer.querySelector("[data-speech-faster]");
+
+    if (rateValue) {
+      rateValue.textContent = `${speechRateMultiplier.toFixed(1)}x`;
+    }
+
+    if (slowerButton) {
+      slowerButton.disabled = speechRateMultiplier <= speechRateMin;
+    }
+
+    if (fasterButton) {
+      fasterButton.disabled = speechRateMultiplier >= speechRateMax;
+    }
+  };
+
   const createSpeechControls = () => {
     if (viewer.querySelector("[data-speech-controls]")) {
       return;
@@ -75,10 +108,16 @@ const renderViewer = async (viewer) => {
       <button class="button secondary" type="button" data-speech-pause>Pausar</button>
       <button class="button secondary" type="button" data-speech-resume>Continuar</button>
       <button class="button secondary" type="button" data-speech-stop>Parar</button>
+      <div class="speech-rate" aria-label="Velocidade da leitura">
+        <button class="button secondary" type="button" data-speech-slower>Desacelerar</button>
+        <span>Velocidade <strong data-speech-rate-value>1.0x</strong></span>
+        <button class="button secondary" type="button" data-speech-faster>Acelerar</button>
+      </div>
       <p class="speech-status" data-speech-status>O áudio usa a voz disponível no seu navegador ou celular.</p>
     `;
 
     viewer.insertBefore(controls, viewer.firstChild);
+    updateSpeechRateDisplay();
   };
 
   const createReaderControls = () => {
@@ -288,7 +327,7 @@ const renderViewer = async (viewer) => {
     const chunk = speechChunks[speechIndex];
     currentUtterance = new SpeechSynthesisUtterance(chunk.text);
     currentUtterance.lang = document.documentElement.lang || "pt-BR";
-    currentUtterance.rate = 0.95;
+    currentUtterance.rate = getActualSpeechRate();
     currentUtterance.pitch = 1;
 
     currentUtterance.onend = () => {
@@ -298,7 +337,7 @@ const renderViewer = async (viewer) => {
 
       speechIndex += 1;
       setSpeechStatus(`Lendo parte ${Math.min(speechIndex + 1, speechChunks.length)} de ${speechChunks.length}.`);
-      speechTimer = window.setTimeout(() => speakChunk(runId), chunk.pause || 0);
+      speechTimer = window.setTimeout(() => speakChunk(runId), getScaledPause(chunk.pause));
     };
 
     currentUtterance.onerror = () => {
@@ -316,13 +355,33 @@ const renderViewer = async (viewer) => {
     const pauseButton = viewer.querySelector("[data-speech-pause]");
     const resumeButton = viewer.querySelector("[data-speech-resume]");
     const stopButton = viewer.querySelector("[data-speech-stop]");
+    const slowerButton = viewer.querySelector("[data-speech-slower]");
+    const fasterButton = viewer.querySelector("[data-speech-faster]");
 
     const nativeBridge = window.ArquivoVermelhoApp;
     const hasNativeSpeech = nativeBridge && typeof nativeBridge.speak === "function";
+    const hasNativeRateControl = nativeBridge && typeof nativeBridge.setSpeechRate === "function";
     const hasWebSpeech = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 
+    const applyNativeSpeechRate = () => {
+      if (hasNativeRateControl) {
+        nativeBridge.setSpeechRate(getActualSpeechRate());
+      }
+    };
+
+    const changeSpeechRate = (direction) => {
+      const nextRate = Number((speechRateMultiplier + (direction * speechRateStep)).toFixed(1));
+      speechRateMultiplier = Math.min(speechRateMax, Math.max(speechRateMin, nextRate));
+      updateSpeechRateDisplay();
+      applyNativeSpeechRate();
+      setSpeechStatus(`Velocidade ajustada para ${speechRateMultiplier.toFixed(1)}x.`);
+    };
+
+    updateSpeechRateDisplay();
+    applyNativeSpeechRate();
+
     if (!hasNativeSpeech && !hasWebSpeech) {
-      [playButton, pauseButton, resumeButton, stopButton].forEach((button) => {
+      [playButton, pauseButton, resumeButton, stopButton, slowerButton, fasterButton].forEach((button) => {
         if (button) {
           button.disabled = true;
         }
@@ -355,6 +414,7 @@ const renderViewer = async (viewer) => {
         }
 
         if (hasNativeSpeech) {
+          applyNativeSpeechRate();
           nativeBridge.speak(JSON.stringify(speechChunks));
           setSpeechStatus(`Leitura enviada ao app: ${speechChunks.length} partes.`);
           return;
@@ -412,6 +472,14 @@ const renderViewer = async (viewer) => {
         currentUtterance = null;
         setSpeechStatus("Leitura parada.");
       });
+    }
+
+    if (slowerButton) {
+      slowerButton.addEventListener("click", () => changeSpeechRate(-1));
+    }
+
+    if (fasterButton) {
+      fasterButton.addEventListener("click", () => changeSpeechRate(1));
     }
 
     window.addEventListener("beforeunload", () => {

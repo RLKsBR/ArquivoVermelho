@@ -723,6 +723,21 @@ h3 {
   background: rgba(0, 0, 0, 0.12);
 }
 
+.speech-rate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-family: system-ui, sans-serif;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.speech-rate strong {
+  color: var(--gold);
+}
+
 .pdf-page-count {
   color: var(--muted);
   font-family: system-ui, sans-serif;
