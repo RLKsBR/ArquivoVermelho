@@ -75,6 +75,41 @@ if (ratingBlocks.length) {
     localStorage.setItem(ratingsKey, JSON.stringify(ratings));
   };
 
+  const formatRatingLabel = (rating) => {
+    return rating === 0 ? "0 estrela" : `${rating} ${rating === 1 ? "estrela" : "estrelas"}`;
+  };
+
+  const getRatingSummary = (block) => {
+    let summary = block.querySelector("[data-rating-summary]");
+
+    if (!summary) {
+      summary = document.createElement("p");
+      summary.className = "rating-summary";
+      summary.dataset.ratingSummary = "";
+
+      const controls = block.querySelector(".rating-controls");
+      if (controls) {
+        controls.insertAdjacentElement("afterend", summary);
+      } else {
+        block.append(summary);
+      }
+    }
+
+    return summary;
+  };
+
+  const renderRatingSummary = (block, rating, count = 1) => {
+    const summary = getRatingSummary(block);
+
+    if (Number.isFinite(rating)) {
+      const countLabel = count === 1 ? "1 avaliação" : `${count} avaliações`;
+      summary.textContent = `Média geral: ${formatRatingLabel(rating)} (${countLabel}).`;
+      return;
+    }
+
+    summary.textContent = "Média geral: ainda sem avaliações.";
+  };
+
   const renderSavedState = (block, rating) => {
     const buttons = block.querySelectorAll("[data-rating-value]");
     const message = block.querySelector("[data-rating-message]");
@@ -87,9 +122,11 @@ if (ratingBlocks.length) {
     });
 
     if (message) {
-      const label = rating === 0 ? "0 estrela" : `${rating} ${rating === 1 ? "estrela" : "estrelas"}`;
+      const label = formatRatingLabel(rating);
       message.textContent = `Sua nota (${label}) foi salva neste dispositivo.`;
     }
+
+    renderRatingSummary(block, rating);
   };
 
   ratingBlocks.forEach((block) => {
@@ -102,6 +139,8 @@ if (ratingBlocks.length) {
       renderSavedState(block, Number(saved.rating));
       return;
     }
+
+    renderRatingSummary(block, Number.NaN);
 
     buttons.forEach((button) => {
       button.addEventListener("click", () => {

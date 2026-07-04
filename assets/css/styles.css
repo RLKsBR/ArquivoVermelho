@@ -860,6 +860,13 @@ h3 {
   font-weight: 700;
 }
 
+.rating-summary {
+  color: var(--accent-strong);
+  font-family: system-ui, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
 .site-footer {
   flex-shrink: 0;
   border-top: 1px solid rgba(198, 161, 91, 0.16);
