@@ -1,6 +1,6 @@
 {
-  "versionCode": 5,
-  "versionName": "1.4",
-  "apkUrl": "https://rlksbr.github.io/ArquivoVermelho/downloads/app/arquivo-vermelho-1.4.apk",
-  "notes": "Melhora o ritmo da leitura em voz alta, com pausas por linha e pontuacao."
+  "versionCode": 6,
+  "versionName": "1.5",
+  "apkUrl": "https://rlksbr.github.io/ArquivoVermelho/downloads/app/arquivo-vermelho-1.5.apk",
+  "notes": "Abre o instalador automaticamente depois de baixar a atualizacao."
 }
