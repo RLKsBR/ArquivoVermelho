@@ -28,6 +28,7 @@ const renderViewer = async (viewer) => {
   let speechIndex = 0;
   let currentUtterance = null;
   let speechRunId = 0;
+  let speechTimer = null;
   let zoom = 1;
 
   const setStatus = (message) => {
@@ -70,11 +71,11 @@ const renderViewer = async (viewer) => {
     controls.className = "speech-controls";
     controls.dataset.speechControls = "";
     controls.innerHTML = `
-      <button class="button" type="button" data-speech-play>Ouvir capitulo</button>
+      <button class="button" type="button" data-speech-play>Ouvir capítulo</button>
       <button class="button secondary" type="button" data-speech-pause>Pausar</button>
       <button class="button secondary" type="button" data-speech-resume>Continuar</button>
       <button class="button secondary" type="button" data-speech-stop>Parar</button>
-      <p class="speech-status" data-speech-status>O audio usa a voz disponivel no seu navegador ou celular.</p>
+      <p class="speech-status" data-speech-status>O áudio usa a voz disponível no seu navegador ou celular.</p>
     `;
 
     viewer.insertBefore(controls, viewer.firstChild);
@@ -146,10 +147,106 @@ const renderViewer = async (viewer) => {
     });
   };
 
-  const splitText = (text) => {
+  const getPauseAfterSegment = (segment, isEndOfLine) => {
+    const trimmed = segment.trim();
+    let pause = isEndOfLine ? 420 : 0;
+
+    if (/[.!?]$/.test(trimmed)) {
+      pause = Math.max(pause, 430);
+    } else if (/[:;]$/.test(trimmed)) {
+      pause = Math.max(pause, 340);
+    } else if (/[,—–-]$/.test(trimmed)) {
+      pause = Math.max(pause, 210);
+    }
+
+    return pause;
+  };
+
+  const pushSpeechSegment = (chunks, text, pause) => {
     const cleanText = text.replace(/\s+/g, " ").trim();
-    const parts = cleanText.match(/.{1,2400}(?:[.!?;:]|\s|$)/g) || [];
-    return parts.map((part) => part.trim()).filter(Boolean);
+
+    if (!cleanText) {
+      if (chunks.length) {
+        chunks[chunks.length - 1].pause = Math.max(chunks[chunks.length - 1].pause, pause);
+      }
+      return;
+    }
+
+    if (cleanText.length <= 1400) {
+      chunks.push({ text: cleanText, pause });
+      return;
+    }
+
+    const words = cleanText.split(" ");
+    let current = "";
+
+    words.forEach((word) => {
+      const next = current ? `${current} ${word}` : word;
+      if (next.length > 1200) {
+        chunks.push({ text: current, pause: 180 });
+        current = word;
+        return;
+      }
+
+      current = next;
+    });
+
+    if (current) {
+      chunks.push({ text: current, pause });
+    }
+  };
+
+  const splitText = (text) => {
+    const chunks = [];
+    const lines = text.replace(/\r/g, "").split("\n");
+
+    lines.forEach((line) => {
+      const cleanLine = line.trim();
+
+      if (!cleanLine) {
+        if (chunks.length) {
+          chunks[chunks.length - 1].pause = Math.max(chunks[chunks.length - 1].pause, 780);
+        }
+        return;
+      }
+
+      const segments = cleanLine.match(/[^,;.!?:—–-]+[,;.!?:—–-]?/g) || [cleanLine];
+      segments.forEach((segment, index) => {
+        pushSpeechSegment(chunks, segment, getPauseAfterSegment(segment, index === segments.length - 1));
+      });
+    });
+
+    return chunks;
+  };
+
+  const getPageText = (items) => {
+    const lines = [];
+    let currentLine = [];
+    let currentY = null;
+
+    items.forEach((item) => {
+      const text = String(item.str || "").trim();
+      if (!text) {
+        return;
+      }
+
+      const transform = item.transform || [];
+      const y = Number(transform[5] || 0);
+
+      if (currentY !== null && Math.abs(y - currentY) > 5) {
+        lines.push(currentLine.join(" ").replace(/\s+/g, " ").trim());
+        currentLine = [];
+      }
+
+      currentY = y;
+      currentLine.push(text);
+    });
+
+    if (currentLine.length) {
+      lines.push(currentLine.join(" ").replace(/\s+/g, " ").trim());
+    }
+
+    return lines.filter(Boolean).join("\n");
   };
 
   const extractPdfText = async () => {
@@ -157,17 +254,13 @@ const renderViewer = async (viewer) => {
       return extractedText;
     }
 
-    setSpeechStatus("Preparando texto do capitulo...");
+    setSpeechStatus("Preparando texto do capítulo...");
     const pages = [];
 
     for (let i = 1; i <= pdf.numPages; i += 1) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      const pageText = content.items
-        .map((item) => item.str)
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim();
+      const pageText = getPageText(content.items);
 
       if (pageText) {
         pages.push(pageText);
@@ -180,17 +273,20 @@ const renderViewer = async (viewer) => {
   };
 
   const speakChunk = (runId) => {
+    window.clearTimeout(speechTimer);
+
     if (runId !== speechRunId) {
       return;
     }
 
     if (!speechChunks.length || speechIndex >= speechChunks.length) {
       currentUtterance = null;
-      setSpeechStatus("Leitura concluida.");
+      setSpeechStatus("Leitura concluída.");
       return;
     }
 
-    currentUtterance = new SpeechSynthesisUtterance(speechChunks[speechIndex]);
+    const chunk = speechChunks[speechIndex];
+    currentUtterance = new SpeechSynthesisUtterance(chunk.text);
     currentUtterance.lang = document.documentElement.lang || "pt-BR";
     currentUtterance.rate = 0.95;
     currentUtterance.pitch = 1;
@@ -202,11 +298,11 @@ const renderViewer = async (viewer) => {
 
       speechIndex += 1;
       setSpeechStatus(`Lendo parte ${Math.min(speechIndex + 1, speechChunks.length)} de ${speechChunks.length}.`);
-      speakChunk(runId);
+      speechTimer = window.setTimeout(() => speakChunk(runId), chunk.pause || 0);
     };
 
     currentUtterance.onerror = () => {
-      setSpeechStatus("Nao foi possivel continuar a leitura em voz alta neste dispositivo.");
+      setSpeechStatus("Não foi possível continuar a leitura em voz alta neste dispositivo.");
     };
 
     setSpeechStatus(`Lendo parte ${speechIndex + 1} de ${speechChunks.length}.`);
@@ -231,7 +327,7 @@ const renderViewer = async (viewer) => {
           button.disabled = true;
         }
       });
-      setSpeechStatus("Este navegador nao oferece leitura em voz alta.");
+      setSpeechStatus("Este navegador não oferece leitura em voz alta.");
       return;
     }
 
@@ -239,6 +335,7 @@ const renderViewer = async (viewer) => {
       playButton.addEventListener("click", async () => {
         speechRunId += 1;
         const runId = speechRunId;
+        window.clearTimeout(speechTimer);
         if (hasNativeSpeech && typeof nativeBridge.stop === "function") {
           nativeBridge.stop();
         }
@@ -253,7 +350,7 @@ const renderViewer = async (viewer) => {
         }
 
         if (!speechChunks.length) {
-          setSpeechStatus("Nao encontrei texto selecionavel neste PDF.");
+          setSpeechStatus("Não encontrei texto selecionável neste PDF.");
           return;
         }
 
@@ -269,6 +366,7 @@ const renderViewer = async (viewer) => {
 
     if (pauseButton) {
       pauseButton.addEventListener("click", () => {
+        window.clearTimeout(speechTimer);
         if (hasNativeSpeech && typeof nativeBridge.pause === "function") {
           nativeBridge.pause();
           setSpeechStatus("Leitura pausada no app.");
@@ -300,6 +398,7 @@ const renderViewer = async (viewer) => {
     if (stopButton) {
       stopButton.addEventListener("click", () => {
         speechRunId += 1;
+        window.clearTimeout(speechTimer);
         if (hasNativeSpeech && typeof nativeBridge.stop === "function") {
           nativeBridge.stop();
           currentUtterance = null;
@@ -317,6 +416,7 @@ const renderViewer = async (viewer) => {
 
     window.addEventListener("beforeunload", () => {
       speechRunId += 1;
+      window.clearTimeout(speechTimer);
       if (hasNativeSpeech && typeof nativeBridge.stop === "function") {
         nativeBridge.stop();
       }
@@ -339,7 +439,7 @@ const renderViewer = async (viewer) => {
     rendering = true;
     pageNumber = nextPage;
     setControls();
-    setStatus("Carregando pagina...");
+    setStatus("Carregando página...");
 
     const page = await pdf.getPage(pageNumber);
     const baseViewport = page.getViewport({ scale: 1 });
@@ -402,7 +502,7 @@ const renderViewer = async (viewer) => {
       resizeTimer = setTimeout(() => queueRender(pageNumber), 180);
     });
   } catch {
-    setStatus("Nao foi possivel carregar o PDF dentro da pagina neste dispositivo. Use o botao Baixar PDF.");
+    setStatus("Não foi possível carregar o PDF dentro da página neste dispositivo. Use o botão Baixar PDF.");
   }
 };
 
