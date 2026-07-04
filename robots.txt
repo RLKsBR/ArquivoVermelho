@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://seu-dominio.com.br/sitemap.xml
+Sitemap: https://RLKsBR.github.io/ArquivoVermelho/sitemap.xml

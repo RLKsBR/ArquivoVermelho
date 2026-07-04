@@ -13,6 +13,20 @@ if (year) {
   year.textContent = new Date().getFullYear();
 }
 
+document.querySelectorAll("[data-character-count]").forEach((field) => {
+  const counter = document.getElementById(field.dataset.characterCount);
+  if (!counter) {
+    return;
+  }
+
+  const updateCounter = () => {
+    counter.textContent = String(field.value.length);
+  };
+
+  updateCounter();
+  field.addEventListener("input", updateCounter);
+});
+
 const nativeApp = window.ArquivoVermelhoApp;
 
 if (nativeApp && typeof nativeApp.checkForUpdates === "function") {
