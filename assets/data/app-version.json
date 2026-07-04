@@ -1,7 +1,7 @@
 {
-  "versionCode": 8,
-  "versionName": "1.6.1-teste",
+  "versionCode": 9,
+  "versionName": "1.6.2-teste",
   "apkUrl": "",
-  "downloadPageUrl": "https://rlksbr.github.io/ArquivoVermelho/",
-  "notes": "Versao de teste sem instalador interno de APK. O download abre pelo navegador externo."
+  "downloadPageUrl": "https://rlksbr.github.io/ArquivoVermelho/downloads/app/arquivo-vermelho-1.6.2-teste.apk",
+  "notes": "Versao de teste: o app verifica a atualizacao, mas o download e a instalacao ficam com o Chrome/Android."
 }
