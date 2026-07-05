@@ -45,6 +45,149 @@ if (nativeApp && typeof nativeApp.checkForUpdates === "function") {
   });
 }
 
+if (!nativeApp) {
+  const mainScript = document.currentScript || document.querySelector('script[src*="assets/js/main.js"]');
+  const siteRoot = mainScript ? new URL("../../", mainScript.src) : new URL("./", window.location.href);
+  const toUrl = (path) => new URL(path, siteRoot).toString();
+  const currentPath = window.location.pathname.replace(/\/+$/, "");
+
+  const libraryWorks = [
+    {
+      title: "A Hora Vermelha",
+      href: "obras/a-hora-vermelha/",
+      chapters: [
+        ["Capítulo 1: GAIA", "capitulos/a-hora-vermelha-capitulo-01.html"],
+        ["Capítulo 2: E AGORA", "capitulos/a-hora-vermelha-capitulo-02-e-agora.html"],
+        ["Capítulo 3: Cadê a Arma", "capitulos/a-hora-vermelha-capitulo-03-cade-a-arma.html"],
+        ["Capítulo 4: Um Não Vinte", "capitulos/a-hora-vermelha-capitulo-04-um-nao-vinte.html"],
+        ["Capítulo 5: Me Destranca", "capitulos/a-hora-vermelha-capitulo-05-me-destranca.html"]
+      ]
+    },
+    {
+      title: "O Último Dia",
+      href: "obras/o-ultimo-dia/",
+      groups: [
+        {
+          label: "Original multilíngue",
+          chapters: [
+            ["Capítulo 1: Dias de Treinamento", "capitulos/o-ultimo-dia-capitulo-01-dias-de-treinamento.html"],
+            ["Capítulo 2: Dia 1", "capitulos/o-ultimo-dia-capitulo-02-dia-1.html"],
+            ["Capítulo 3: Dia 2", "capitulos/o-ultimo-dia-capitulo-03-dia-2.html"],
+            ["Capítulo 4: Dia 3", "capitulos/o-ultimo-dia-capitulo-04-dia-3.html"],
+            ["Capítulo 5: Dia 4", "capitulos/o-ultimo-dia-capitulo-05-dia-4.html"]
+          ]
+        },
+        {
+          label: "100% português",
+          chapters: [
+            ["Capítulo 1: Dias de Treinamento", "capitulos/o-ultimo-dia-portugues-capitulo-01-dias-de-treinamento.html"],
+            ["Capítulo 2: Dia 1", "capitulos/o-ultimo-dia-portugues-capitulo-02-dia-1.html"],
+            ["Capítulo 3: Dia 2", "capitulos/o-ultimo-dia-portugues-capitulo-03-dia-2.html"],
+            ["Capítulo 4: Dia 3", "capitulos/o-ultimo-dia-portugues-capitulo-04-dia-3.html"],
+            ["Capítulo 5: Dia 4", "capitulos/o-ultimo-dia-portugues-capitulo-05-dia-4.html"]
+          ]
+        }
+      ]
+    },
+    {
+      title: "Crônicas",
+      href: "obras/cronicas/",
+      chapters: [
+        ["Crônica I: A Orbe de Uriel", "capitulos/cronicas-cronica-01.html"],
+        ["Crônica II: O Rei que Mandou os Outros Morrerem", "capitulos/cronicas-cronica-02-o-rei-que-mandou-os-outros-morrerem.html"],
+        ["Crônica III: A Coroa Livre", "capitulos/cronicas-cronica-03-a-coroa-livre.html"]
+      ]
+    },
+    {
+      title: "Checkpoint Zumbi",
+      href: "obras/checkpoint-zumbi/",
+      chapters: [
+        ["Capítulo 1: Prólogo", "capitulos/checkpoint-zumbi-capitulo-01-prologo.html"],
+        ["Capítulo 2: Carlos e a Ligação do Coronel", "capitulos/checkpoint-zumbi-capitulo-02-carlos-e-a-ligacao-do-coronel.html"],
+        ["Capítulo 3: Cigarros, Magão, Dona Célia e João", "capitulos/checkpoint-zumbi-capitulo-03-cigarros-magao-dona-celia-e-joao.html"],
+        ["Capítulo 4: Cristina Sem Internet e Sem Plano", "capitulos/checkpoint-zumbi-capitulo-04-cristina-sem-internet-e-sem-plano.html"]
+      ]
+    }
+  ];
+
+  const isCurrent = (href) => {
+    const linkPath = new URL(href, siteRoot).pathname.replace(/\/+$/, "");
+    return currentPath === linkPath;
+  };
+
+  const createChapterList = (chapters) => {
+    const list = document.createElement("ol");
+    list.className = "library-chapter-list";
+
+    chapters.forEach(([label, href]) => {
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = toUrl(href);
+      link.textContent = label;
+
+      if (isCurrent(href)) {
+        link.setAttribute("aria-current", "page");
+      }
+
+      item.append(link);
+      list.append(item);
+    });
+
+    return list;
+  };
+
+  const sidebar = document.createElement("nav");
+  sidebar.className = "desktop-library-sidebar";
+  sidebar.setAttribute("aria-label", "Navegação das obras");
+  sidebar.innerHTML = '<p class="library-sidebar-title">Obras</p>';
+
+  libraryWorks.forEach((work) => {
+    const details = document.createElement("details");
+    details.className = "library-work";
+
+    const workPaths = [work.href];
+    if (work.chapters) {
+      work.chapters.forEach(([, href]) => workPaths.push(href));
+    }
+    if (work.groups) {
+      work.groups.forEach((group) => group.chapters.forEach(([, href]) => workPaths.push(href)));
+    }
+    details.open = workPaths.some(isCurrent);
+
+    const summary = document.createElement("summary");
+    summary.textContent = work.title;
+    details.append(summary);
+
+    const workLink = document.createElement("a");
+    workLink.className = "library-work-link";
+    workLink.href = toUrl(work.href);
+    workLink.textContent = "Página da obra";
+    if (isCurrent(work.href)) {
+      workLink.setAttribute("aria-current", "page");
+    }
+    details.append(workLink);
+
+    if (work.chapters) {
+      details.append(createChapterList(work.chapters));
+    }
+
+    if (work.groups) {
+      work.groups.forEach((group) => {
+        const groupTitle = document.createElement("p");
+        groupTitle.className = "library-group-title";
+        groupTitle.textContent = group.label;
+        details.append(groupTitle);
+        details.append(createChapterList(group.chapters));
+      });
+    }
+
+    sidebar.append(details);
+  });
+
+  document.body.prepend(sidebar);
+  document.body.classList.add("has-library-sidebar");
+}
+
 const progress = document.querySelector("[data-reading-progress]");
 if (progress) {
   const updateProgress = () => {
