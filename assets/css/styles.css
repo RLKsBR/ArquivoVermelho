@@ -718,22 +718,22 @@ h3 {
 
 .pdf-toolbar [data-pdf-previous] {
   border-color: #2f5f73;
-  background: #2f5f73;
+  background: #1f3238;
 }
 
 .pdf-toolbar [data-pdf-previous]:hover {
   border-color: #3a7188;
-  background: #3a7188;
+  background: #263d45;
 }
 
 .pdf-toolbar [data-pdf-next] {
   border-color: #5f7f2a;
-  background: #5f7f2a;
+  background: #2d371d;
 }
 
 .pdf-toolbar [data-pdf-next]:hover {
   border-color: #739936;
-  background: #739936;
+  background: #374624;
 }
 
 .reader-inline-nav {
@@ -751,32 +751,32 @@ h3 {
 
 .chapter-nav .chapter-button-previous {
   border-color: #3b5267;
-  background: #3b5267;
+  background: #232c35;
 }
 
 .chapter-nav .chapter-button-previous:hover {
   border-color: #4a6680;
-  background: #4a6680;
+  background: #2c3945;
 }
 
 .chapter-nav .chapter-button-back {
   border-color: #594338;
-  background: #594338;
+  background: #332720;
 }
 
 .chapter-nav .chapter-button-back:hover {
   border-color: #6c5144;
-  background: #6c5144;
+  background: #3d2e26;
 }
 
 .chapter-nav .chapter-button-next {
   border-color: #8f2f3d;
-  background: #8f2f3d;
+  background: #3a1d22;
 }
 
 .chapter-nav .chapter-button-next:hover {
   border-color: #aa3a49;
-  background: #aa3a49;
+  background: #4a252b;
 }
 
 .chapter-nav .button.disabled,
@@ -813,62 +813,62 @@ h3 {
 
 .speech-controls .speech-button-play {
   border-color: #C8323D;
-  background: #C8323D;
+  background: #4a2025;
 }
 
 .speech-controls .speech-button-play:hover {
   border-color: #D9434E;
-  background: #D9434E;
+  background: #5a262c;
 }
 
 .speech-controls .speech-button-pause {
   border-color: #B26A1E;
-  background: #B26A1E;
+  background: #463018;
 }
 
 .speech-controls .speech-button-pause:hover {
   border-color: #C77A28;
-  background: #C77A28;
+  background: #573a1d;
 }
 
 .speech-controls .speech-button-resume {
   border-color: #2E7D57;
-  background: #2E7D57;
+  background: #203b2f;
 }
 
 .speech-controls .speech-button-resume:hover {
   border-color: #39966A;
-  background: #39966A;
+  background: #294d3d;
 }
 
 .speech-controls .speech-button-stop {
   border-color: #7A1F24;
-  background: #7A1F24;
+  background: #32181b;
 }
 
 .speech-controls .speech-button-stop:hover {
   border-color: #932932;
-  background: #932932;
+  background: #432025;
 }
 
 .speech-controls .speech-button-slower {
   border-color: #2F5F73;
-  background: #2F5F73;
+  background: #1f3238;
 }
 
 .speech-controls .speech-button-slower:hover {
   border-color: #3A7188;
-  background: #3A7188;
+  background: #263d45;
 }
 
 .speech-controls .speech-button-faster {
   border-color: #5F7F2A;
-  background: #5F7F2A;
+  background: #2d371d;
 }
 
 .speech-controls .speech-button-faster:hover {
   border-color: #739936;
-  background: #739936;
+  background: #374624;
 }
 
 .speech-rate {
