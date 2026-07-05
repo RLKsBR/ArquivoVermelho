@@ -200,7 +200,14 @@ if (!nativeApp) {
   const sidebar = document.createElement("nav");
   sidebar.className = "desktop-library-sidebar";
   sidebar.setAttribute("aria-label", "Navegação das obras");
-  sidebar.innerHTML = '<p class="library-sidebar-title">Obras</p>';
+  const headerBrand = document.querySelector(".site-header .brand");
+  if (headerBrand) {
+    const sidebarBrand = headerBrand.cloneNode(true);
+    sidebarBrand.classList.add("library-sidebar-brand");
+    sidebar.append(sidebarBrand);
+  }
+
+  sidebar.insertAdjacentHTML("beforeend", '<p class="library-sidebar-title">Obras</p>');
 
   libraryWorks.forEach((work) => {
     const details = document.createElement("details");

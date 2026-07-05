@@ -1239,23 +1239,14 @@ h3 {
     padding-left: 0;
   }
 
-  body.has-library-sidebar .site-header .brand {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 24;
-    width: 286px;
-    min-height: 77px;
-    padding: 9px 14px;
-    border-right: 1px solid rgba(198, 161, 91, 0.16);
-    border-bottom: 1px solid rgba(198, 161, 91, 0.16);
-    background: rgba(17, 16, 15, 0.92);
-    backdrop-filter: blur(14px);
+  body.has-library-sidebar .site-header .header-inner > .brand {
+    display: none;
   }
 
   body.has-library-sidebar .header-inner {
     min-height: 77px;
     padding-left: 0;
+    justify-content: flex-end;
   }
 
   body.has-library-sidebar .site-nav {
@@ -1264,11 +1255,11 @@ h3 {
 
   .desktop-library-sidebar {
     position: fixed;
-    inset: 77px auto 0 0;
+    inset: 0 auto 0 0;
     z-index: 16;
     display: block;
     width: 286px;
-    padding: 18px 14px 24px;
+    padding: 0 14px 24px;
     overflow-y: auto;
     border-right: 1px solid rgba(198, 161, 91, 0.16);
     background:
@@ -1281,8 +1272,22 @@ h3 {
     display: none;
   }
 
+  .library-sidebar-brand {
+    min-height: 77px;
+    margin: 0 -14px 0;
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(198, 161, 91, 0.16);
+    background: rgba(17, 16, 15, 0.92);
+    backdrop-filter: blur(14px);
+  }
+
+  .library-sidebar-brand .brand-logo {
+    width: 56px;
+    height: 56px;
+  }
+
   .library-sidebar-title {
-    margin: 0 0 14px;
+    margin: 18px 0 14px;
     color: var(--gold);
     font-family: system-ui, sans-serif;
     font-size: 0.72rem;
