@@ -841,12 +841,12 @@ h3 {
   background: #294d3d;
 }
 
-.speech-controls .speech-button-stop {
+.speech-controls .speech-button-continue-saved {
   border-color: #7A1F24;
   background: #32181b;
 }
 
-.speech-controls .speech-button-stop:hover {
+.speech-controls .speech-button-continue-saved:hover {
   border-color: #932932;
   background: #432025;
 }

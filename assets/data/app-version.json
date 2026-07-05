@@ -1,7 +1,7 @@
 {
-  "versionCode": 12,
-  "versionName": "1.7.2",
-  "apkUrl": "https://rlksbr.github.io/ArquivoVermelho/downloads/app/arquivo-vermelho-1.7.2.apk",
-  "downloadPageUrl": "https://rlksbr.github.io/ArquivoVermelho/downloads/app/arquivo-vermelho-1.7.2.apk",
-  "notes": "Melhora o fluxo de atualizacao: depois do download, o app tenta abrir o instalador automaticamente."
+  "versionCode": 13,
+  "versionName": "1.7.3",
+  "apkUrl": "https://rlksbr.github.io/ArquivoVermelho/downloads/app/arquivo-vermelho-1.7.3.apk",
+  "downloadPageUrl": "https://rlksbr.github.io/ArquivoVermelho/downloads/app/arquivo-vermelho-1.7.3.apk",
+  "notes": "Adiciona retomada da leitura em voz por capítulo e remove o botão Parar."
 }
