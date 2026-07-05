@@ -723,6 +723,80 @@ h3 {
   background: rgba(0, 0, 0, 0.12);
 }
 
+.speech-controls .button {
+  border-color: #3A2925;
+  background: #211715;
+  color: #FFF3E6;
+}
+
+.speech-controls .button:hover {
+  background: #2B1D1A;
+}
+
+.speech-controls .button:disabled {
+  opacity: 0.56;
+}
+
+.speech-controls .speech-button-play {
+  border-color: #C8323D;
+  background: #C8323D;
+}
+
+.speech-controls .speech-button-play:hover {
+  border-color: #D9434E;
+  background: #D9434E;
+}
+
+.speech-controls .speech-button-pause {
+  border-color: #B26A1E;
+  background: #B26A1E;
+}
+
+.speech-controls .speech-button-pause:hover {
+  border-color: #C77A28;
+  background: #C77A28;
+}
+
+.speech-controls .speech-button-resume {
+  border-color: #2E7D57;
+  background: #2E7D57;
+}
+
+.speech-controls .speech-button-resume:hover {
+  border-color: #39966A;
+  background: #39966A;
+}
+
+.speech-controls .speech-button-stop {
+  border-color: #7A1F24;
+  background: #7A1F24;
+}
+
+.speech-controls .speech-button-stop:hover {
+  border-color: #932932;
+  background: #932932;
+}
+
+.speech-controls .speech-button-slower {
+  border-color: #2F5F73;
+  background: #2F5F73;
+}
+
+.speech-controls .speech-button-slower:hover {
+  border-color: #3A7188;
+  background: #3A7188;
+}
+
+.speech-controls .speech-button-faster {
+  border-color: #5F7F2A;
+  background: #5F7F2A;
+}
+
+.speech-controls .speech-button-faster:hover {
+  border-color: #739936;
+  background: #739936;
+}
+
 .speech-rate {
   display: flex;
   flex-wrap: wrap;

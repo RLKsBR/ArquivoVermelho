@@ -104,14 +104,14 @@ const renderViewer = async (viewer) => {
     controls.className = "speech-controls";
     controls.dataset.speechControls = "";
     controls.innerHTML = `
-      <button class="button" type="button" data-speech-play>Ouvir capítulo</button>
-      <button class="button secondary" type="button" data-speech-pause>Pausar</button>
-      <button class="button secondary" type="button" data-speech-resume>Continuar</button>
-      <button class="button secondary" type="button" data-speech-stop>Parar</button>
+      <button class="button speech-button speech-button-play" type="button" data-speech-play>Ouvir capítulo</button>
+      <button class="button speech-button speech-button-pause" type="button" data-speech-pause>Pausar</button>
+      <button class="button speech-button speech-button-resume" type="button" data-speech-resume>Continuar</button>
+      <button class="button speech-button speech-button-stop" type="button" data-speech-stop>Parar</button>
       <div class="speech-rate" aria-label="Velocidade da leitura">
-        <button class="button secondary" type="button" data-speech-slower>Desacelerar</button>
+        <button class="button speech-button speech-button-slower" type="button" data-speech-slower>Desacelerar</button>
         <span>Velocidade <strong data-speech-rate-value>1.0x</strong></span>
-        <button class="button secondary" type="button" data-speech-faster>Acelerar</button>
+        <button class="button speech-button speech-button-faster" type="button" data-speech-faster>Acelerar</button>
       </div>
       <p class="speech-status" data-speech-status>O áudio usa a voz disponível no seu navegador ou celular.</p>
     `;
