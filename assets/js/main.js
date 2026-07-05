@@ -27,6 +27,67 @@ document.querySelectorAll("[data-character-count]").forEach((field) => {
   field.addEventListener("input", updateCounter);
 });
 
+document.querySelectorAll("[data-contact-form]").forEach((form) => {
+  const status = form.querySelector("[data-form-status]");
+  const submitButton = form.querySelector('button[type="submit"]');
+  const successUrl = form.dataset.successUrl || "mensagem-enviada.html";
+  const fallbackEmail = form.dataset.fallbackEmail || "arquivovermelhoofc@gmail.com";
+
+  const setFormStatus = (message, type = "") => {
+    if (!status) {
+      return;
+    }
+
+    status.textContent = message;
+    status.classList.toggle("is-error", type === "error");
+    status.classList.toggle("is-success", type === "success");
+  };
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Enviando...";
+    }
+
+    setFormStatus("Enviando mensagem...", "success");
+
+    try {
+      const response = await fetch(form.action, {
+        method: "POST",
+        headers: {
+          Accept: "application/json"
+        },
+        body: new FormData(form)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Falha no envio: ${response.status}`);
+      }
+
+      window.location.assign(successUrl);
+    } catch (error) {
+      const fallbackLink = `mailto:${fallbackEmail}`;
+      setFormStatus(`Não foi possível enviar pelo formulário agora. Tente novamente ou envie pelo e-mail oficial: ${fallbackEmail}`, "error");
+
+      if (status && !form.querySelector("[data-form-fallback]")) {
+        const link = document.createElement("a");
+        link.href = fallbackLink;
+        link.dataset.formFallback = "";
+        link.textContent = "Abrir e-mail oficial";
+        link.className = "form-fallback-link";
+        status.insertAdjacentElement("afterend", link);
+      }
+
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = "Enviar mensagem";
+      }
+    }
+  });
+});
+
 const nativeApp = window.ArquivoVermelhoApp;
 
 if (nativeApp && typeof nativeApp.checkForUpdates === "function") {
