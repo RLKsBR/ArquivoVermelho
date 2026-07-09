@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import http.server
 import base64
+from datetime import datetime, timezone
 import json
 import threading
 import tkinter as tk
@@ -29,6 +30,9 @@ class PanelRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self._send_text(self._site_path(values.get("path", [""])[0]).read_text(encoding="utf-8"))
             except (OSError, ValueError) as error:
                 self.send_error(400, str(error))
+            return
+        if request.path == "/api/analytics":
+            self._send_json(self._analytics())
             return
         super().do_GET()
 
@@ -71,6 +75,53 @@ class PanelRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _send_json(self, data: dict) -> None:
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _analytics(self) -> dict:
+        downloads = ROOT / "downloads"
+        groups = {
+            "a-hora-vermelha": {"label": "A Hora Vermelha", "files": 0, "bytes": 0},
+            "cronicas": {"label": "Crônicas", "files": 0, "bytes": 0},
+            "checkpoint-zumbi": {"label": "Checkpoint Zumbi", "files": 0, "bytes": 0},
+            "o-ultimo-dia": {"label": "O Último Dia - Original", "files": 0, "bytes": 0},
+            "o-ultimo-dia-portugues": {"label": "O Último Dia - 100% português", "files": 0, "bytes": 0},
+        }
+        files = []
+
+        for pdf in downloads.rglob("*.pdf"):
+            relative = pdf.relative_to(ROOT).as_posix()
+            stat = pdf.stat()
+            parts = pdf.relative_to(downloads).parts
+            group_key = parts[0] if parts else ""
+            if group_key == "o-ultimo-dia" and len(parts) > 1 and parts[1] == "portugues":
+                group_key = "o-ultimo-dia-portugues"
+            if group_key not in groups:
+                continue
+            groups[group_key]["files"] += 1
+            groups[group_key]["bytes"] += stat.st_size
+            files.append(
+                {
+                    "path": relative,
+                    "name": pdf.name,
+                    "bytes": stat.st_size,
+                    "updated": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+                }
+            )
+
+        files.sort(key=lambda item: item["updated"], reverse=True)
+        return {
+            "total_files": len(files),
+            "total_bytes": sum(item["bytes"] for item in files),
+            "groups": list(groups.values()),
+            "recent": files[:8],
+        }
 
     def log_message(self, format: str, *args) -> None:
         return

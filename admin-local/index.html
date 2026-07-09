@@ -22,7 +22,13 @@
       <span>O painel usa automaticamente a pasta do site onde o arquivo abrir_painel.py está localizado.</span>
     </section>
 
-    <section class="grid">
+    <nav class="panel-tabs" aria-label="Seções do painel">
+      <button class="tab-button is-active" type="button" data-panel-tab="publication" aria-selected="true">Publicação</button>
+      <button class="tab-button" type="button" data-panel-tab="analytics" aria-selected="false">Analytics</button>
+    </nav>
+
+    <section class="admin-view" data-admin-view="publication">
+      <section class="grid">
       <form class="panel" data-admin-form>
         <h2>Publicação</h2>
 
@@ -94,11 +100,32 @@
           <p>Preencha os dados e clique em "Gerar prévia".</p>
         </div>
       </aside>
+      </section>
+
+      <section class="panel">
+        <h2>Registro</h2>
+        <ol class="log" data-log></ol>
+      </section>
     </section>
 
-    <section class="panel">
-      <h2>Registro</h2>
-      <ol class="log" data-log></ol>
+    <section class="admin-view" data-admin-view="analytics" hidden>
+      <section class="analytics-hero panel">
+        <div>
+          <p class="eyebrow">Tráfego e catálogo</p>
+          <h2>Analytics</h2>
+          <p>O resumo abaixo acompanha os PDFs publicados. Os acessos, capítulos mais lidos e eventos de leitura ficam no Google Analytics do Arquivo Vermelho.</p>
+        </div>
+        <a class="button" href="https://analytics.google.com/" target="_blank" rel="noopener">Abrir Google Analytics</a>
+      </section>
+
+      <section class="analytics-summary" data-analytics-summary>
+        <p>Carregando resumo do catálogo...</p>
+      </section>
+
+      <section class="panel analytics-recent">
+        <h2>PDFs atualizados recentemente</h2>
+        <div data-analytics-recent></div>
+      </section>
     </section>
   </main>
 

@@ -88,6 +88,10 @@ const modeSelect = $("[data-mode]");
 const addFields = $("[data-add-fields]");
 const replaceFields = $("[data-replace-fields]");
 const addOptions = $("[data-add-options]");
+const tabButtons = document.querySelectorAll("[data-panel-tab]");
+const panelViews = document.querySelectorAll("[data-admin-view]");
+const analyticsSummary = $("[data-analytics-summary]");
+const analyticsRecent = $("[data-analytics-recent]");
 
 function log(message, type = "ok") {
   const item = document.createElement("li");
@@ -149,6 +153,68 @@ async function readText(path) {
     throw new Error(await response.text());
   }
   return response.text();
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.round(bytes / 1024)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function formatDate(value) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short"
+  }).format(new Date(value));
+}
+
+async function loadAnalytics() {
+  analyticsSummary.innerHTML = "<p>Carregando resumo do catálogo...</p>";
+  analyticsRecent.innerHTML = "";
+
+  try {
+    const response = await fetch("/api/analytics");
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+    const data = await response.json();
+    const totals = [
+      { value: data.total_files, label: "PDFs publicados" },
+      { value: formatBytes(data.total_bytes), label: "Espaço ocupado" },
+      { value: data.groups.reduce((count, group) => count + Number(group.files > 0), 0), label: "Catálogos ativos" }
+    ];
+    const groupCards = data.groups
+      .filter((group) => group.files > 0)
+      .map((group) => ({ value: `${group.files} PDF${group.files === 1 ? "" : "s"}`, label: `${group.label} · ${formatBytes(group.bytes)}` }));
+
+    analyticsSummary.innerHTML = [...totals, ...groupCards]
+      .map((card) => `<article class="analytics-card"><strong>${escapeHtml(card.value)}</strong><span>${escapeHtml(card.label)}</span></article>`)
+      .join("");
+
+    analyticsRecent.innerHTML = `<div class="analytics-list">${data.recent.map((file) => `
+      <article>
+        <div><strong>${escapeHtml(file.name)}</strong><span>${escapeHtml(file.path)}</span></div>
+        <span>${escapeHtml(formatBytes(file.bytes))}<br>${escapeHtml(formatDate(file.updated))}</span>
+      </article>
+    `).join("")}</div>`;
+  } catch (error) {
+    analyticsSummary.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+function selectPanelTab(name) {
+  tabButtons.forEach((button) => {
+    const active = button.dataset.panelTab === name;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  panelViews.forEach((view) => {
+    view.hidden = view.dataset.adminView !== name;
+  });
+  if (name === "analytics") {
+    loadAnalytics();
+  }
 }
 
 async function writeText(path, text) {
@@ -600,6 +666,9 @@ updateMode();
 
 workSelect.addEventListener("change", updateFormForWork);
 modeSelect.addEventListener("change", updateMode);
+tabButtons.forEach((button) => {
+  button.addEventListener("click", () => selectPanelTab(button.dataset.panelTab));
+});
 
 $("[data-preview]").addEventListener("click", () => {
   try {
