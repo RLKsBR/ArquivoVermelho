@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /admin-local/
 
 Sitemap: https://RLKsBR.github.io/ArquivoVermelho/sitemap.xml
