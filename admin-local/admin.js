@@ -73,7 +73,6 @@ const WORKS = {
 };
 
 const state = {
-  root: null,
   preview: null
 };
 
@@ -144,33 +143,40 @@ function pathJoin(parts) {
   return parts.filter(Boolean).join("/");
 }
 
-async function getFileHandle(path, create = false) {
-  const parts = path.split("/").filter(Boolean);
-  const fileName = parts.pop();
-  let dir = state.root;
-  for (const part of parts) {
-    dir = await dir.getDirectoryHandle(part, { create });
-  }
-  return dir.getFileHandle(fileName, { create });
-}
-
 async function readText(path) {
-  const handle = await getFileHandle(path);
-  return await (await handle.getFile()).text();
+  const response = await fetch(`/api/read?path=${encodeURIComponent(path)}`);
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return response.text();
 }
 
 async function writeText(path, text) {
-  const handle = await getFileHandle(path, true);
-  const writable = await handle.createWritable();
-  await writable.write(new Blob([text], { type: "text/plain;charset=utf-8" }));
-  await writable.close();
+  const response = await fetch("/api/write-text", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, text })
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
 }
 
 async function writeBinary(path, file) {
-  const handle = await getFileHandle(path, true);
-  const writable = await handle.createWritable();
-  await writable.write(file);
-  await writable.close();
+  const content = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",", 2)[1]);
+    reader.onerror = () => reject(new Error("Nao foi possivel ler o PDF selecionado."));
+    reader.readAsDataURL(file);
+  });
+  const response = await fetch("/api/write-binary", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, content })
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
 }
 
 function selectedWorkConfig() {
@@ -201,10 +207,6 @@ function buildPublicationData() {
   const mode = data.get("mode");
   const pdf = data.get("pdf");
   const { work, config } = selectedWorkConfig();
-
-  if (!state.root) {
-    throw new Error("Selecione a pasta do site antes de aplicar.");
-  }
 
   if (!pdf || !pdf.name) {
     throw new Error("Selecione um arquivo PDF.");
@@ -598,17 +600,6 @@ updateMode();
 
 workSelect.addEventListener("change", updateFormForWork);
 modeSelect.addEventListener("change", updateMode);
-
-$("[data-pick-root]").addEventListener("click", async () => {
-  if (!window.showDirectoryPicker) {
-    setStatus("Navegador sem suporte.", "Use Chrome ou Edge atualizado. Se abrir por arquivo e não funcionar, rode um servidor local.");
-    return;
-  }
-
-  state.root = await window.showDirectoryPicker({ mode: "readwrite" });
-  setStatus("Pasta selecionada.", state.root.name);
-  log(`Pasta do site selecionada: <code>${escapeHtml(state.root.name)}</code>.`);
-});
 
 $("[data-preview]").addEventListener("click", () => {
   try {

@@ -4,26 +4,14 @@ Este painel é uma ferramenta privada para manutenção do site. Ele roda no seu
 
 ## Como usar
 
-1. Abra `admin-local/index.html` no Chrome ou Edge.
-2. Clique em `Selecionar pasta do site`.
-3. Escolha a pasta raiz do repositório, onde ficam `index.html`, `assets`, `capitulos`, `downloads` e `obras`.
-4. Escolha a obra, informe número, título e selecione o PDF.
-5. Clique em `Gerar prévia`.
-6. Clique em `Aplicar no repositório`.
-7. Revise o site local.
-8. Faça commit e push.
+1. Dê dois cliques em `abrir_painel.py`, na raiz do repositório.
+2. Escolha a obra, informe número, título e selecione o PDF.
+3. Clique em `Gerar prévia`.
+4. Clique em `Aplicar no repositório`.
+5. Revise o site local.
+6. Faça commit e push.
 
-Se o navegador bloquear o acesso à pasta ao abrir direto pelo arquivo, rode um servidor local na raiz do repositório:
-
-```powershell
-python -m http.server 8080
-```
-
-Depois abra:
-
-```text
-http://localhost:8080/admin-local/
-```
+O painel usa automaticamente a pasta do repositório onde `abrir_painel.py` está localizado. Não é preciso selecionar a pasta do site no navegador.
 
 ## O que ele atualiza ao adicionar PDF
 
@@ -50,4 +38,4 @@ O painel troca apenas o arquivo PDF. Ele não altera páginas HTML nessa ação.
 - O painel não publica no GitHub sozinho.
 - O painel não usa login.
 - O painel não expõe token.
-- Se o navegador bloquear acesso a arquivos ao abrir direto pelo `file://`, rode um servidor local e abra pelo `localhost`.
+- Abra o painel pelo `abrir_painel.py`; não abra `admin-local/index.html` diretamente pelo `file://`.

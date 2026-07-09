@@ -58,7 +58,7 @@ O painel não publica no GitHub sozinho. Depois de usar, revise o site localment
 
 ### Abrir sem PowerShell
 
-Com Python instalado, dê dois cliques em `abrir_painel.py`, na raiz do repositório. Ele abre uma pequena janela, inicia o servidor local e abre o painel no navegador automaticamente. Mantenha essa janela aberta enquanto usar o painel; fechá-la encerra o servidor local.
+Com Python instalado, dê dois cliques em `abrir_painel.py`, na raiz do repositório. Ele abre uma pequena janela, inicia o servidor local e abre o painel no navegador automaticamente. Mantenha essa janela aberta enquanto usar o painel; fechá-la encerra o servidor local. O painel já sabe qual é a pasta do site, então não pede para selecionar diretório no navegador.
 
 ## Como adicionar um capitulo
 

@@ -3,34 +3,95 @@
 from __future__ import annotations
 
 import http.server
-import socketserver
+import base64
+import json
 import threading
 import tkinter as tk
 import webbrowser
 from pathlib import Path
 from tkinter import messagebox
+from urllib.parse import parse_qs, urlparse
 
 
 ROOT = Path(__file__).resolve().parent
 PANEL_PATH = "/admin-local/"
 
 
+class PanelRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, directory=str(ROOT), **kwargs)
+
+    def do_GET(self) -> None:
+        request = urlparse(self.path)
+        if request.path == "/api/read":
+            values = parse_qs(request.query)
+            try:
+                self._send_text(self._site_path(values.get("path", [""])[0]).read_text(encoding="utf-8"))
+            except (OSError, ValueError) as error:
+                self.send_error(400, str(error))
+            return
+        super().do_GET()
+
+    def do_POST(self) -> None:
+        if self.path not in {"/api/write-text", "/api/write-binary"}:
+            self.send_error(404, "Rota nao encontrada.")
+            return
+
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if length <= 0 or length > 50 * 1024 * 1024:
+                raise ValueError("Arquivo invalido ou maior que 50 MB.")
+            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            path = self._site_path(str(payload.get("path", "")))
+            path.parent.mkdir(parents=True, exist_ok=True)
+
+            if self.path == "/api/write-text":
+                path.write_text(str(payload.get("text", "")), encoding="utf-8", newline="")
+            else:
+                content = str(payload.get("content", ""))
+                path.write_bytes(base64.b64decode(content, validate=True))
+        except (OSError, ValueError, json.JSONDecodeError) as error:
+            self.send_error(400, str(error))
+            return
+
+        self._send_text("OK")
+
+    def _site_path(self, value: str) -> Path:
+        if not value or Path(value).is_absolute():
+            raise ValueError("Caminho invalido.")
+        path = (ROOT / value).resolve()
+        if ROOT not in path.parents:
+            raise ValueError("Caminho fora da pasta do site.")
+        return path
+
+    def _send_text(self, text: str) -> None:
+        body = text.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, format: str, *args) -> None:
+        return
+
+
+class LocalHttpServer(http.server.ThreadingHTTPServer):
+    allow_reuse_address = True
+
+
 class LocalServer:
     def __init__(self) -> None:
-        self.server: socketserver.TCPServer | None = None
+        self.server: LocalHttpServer | None = None
         self.url: str | None = None
 
     def start(self) -> str:
         if self.server and self.url:
             return self.url
 
-        handler = lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(
-            *args, directory=str(ROOT), **kwargs
-        )
-
         for port in range(8080, 8091):
             try:
-                self.server = socketserver.TCPServer(("127.0.0.1", port), handler)
+                self.server = LocalHttpServer(("127.0.0.1", port), PanelRequestHandler)
                 break
             except OSError:
                 continue
