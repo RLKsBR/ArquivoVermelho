@@ -844,16 +844,6 @@ h3 {
   background: #573a1d;
 }
 
-.speech-controls .speech-button-resume {
-  border-color: #2E7D57;
-  background: #203b2f;
-}
-
-.speech-controls .speech-button-resume:hover {
-  border-color: #39966A;
-  background: #294d3d;
-}
-
 .speech-controls .speech-button-continue-saved {
   border-color: #7A1F24;
   background: #32181b;
@@ -904,6 +894,33 @@ h3 {
   font-family: system-ui, sans-serif;
   font-size: 0.9rem;
   font-weight: 700;
+}
+
+.pdf-page-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-family: system-ui, sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.pdf-page-picker input {
+  width: 5.5rem;
+  min-height: 2.55rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #3a2925;
+  border-radius: 6px;
+  background: #211715;
+  color: #fff3e6;
+  font: inherit;
+}
+
+.pdf-page-picker input:focus {
+  outline: none;
+  border-color: #c6a15b;
+  background: #2b1d1a;
 }
 
 .pdf-status,

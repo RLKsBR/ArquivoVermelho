@@ -61,6 +61,11 @@ const renderViewer = async (viewer) => {
     if (nextButton) {
       nextButton.disabled = !pdf || pageNumber >= pdf.numPages || rendering;
     }
+
+    const pagePicker = viewer.querySelector("[data-pdf-page-picker]");
+    if (pagePicker && document.activeElement !== pagePicker) {
+      pagePicker.value = String(pageNumber);
+    }
   };
 
   const setSpeechStatus = (message) => {
@@ -143,7 +148,6 @@ const renderViewer = async (viewer) => {
     controls.innerHTML = `
       <button class="button speech-button speech-button-play" type="button" data-speech-play>Ouvir capítulo</button>
       <button class="button speech-button speech-button-pause" type="button" data-speech-pause>Pausar</button>
-      <button class="button speech-button speech-button-resume" type="button" data-speech-resume>Continuar</button>
       <button class="button speech-button speech-button-continue-saved" type="button" data-speech-continue-saved>Continuar de onde parou</button>
       <div class="speech-rate" aria-label="Velocidade da leitura">
         <button class="button speech-button speech-button-slower" type="button" data-speech-slower>Desacelerar</button>
@@ -169,7 +173,39 @@ const renderViewer = async (viewer) => {
     const pageCounter = toolbar.querySelector(".pdf-page-count");
     const pageNavigation = document.createElement("div");
     pageNavigation.className = "pdf-page-navigation";
-    pageNavigation.append(previousButton, pageCounter, nextButton);
+    const pageListId = `pdf-page-options-${Math.random().toString(36).slice(2)}`;
+    const pagePicker = document.createElement("label");
+    pagePicker.className = "pdf-page-picker";
+    pagePicker.innerHTML = `Ir para página <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" list="${pageListId}" data-pdf-page-picker aria-label="Ir para página" value="${pageNumber}"><datalist id="${pageListId}"></datalist>`;
+    const pagePickerInput = pagePicker.querySelector("[data-pdf-page-picker]");
+    const pageOptions = pagePicker.querySelector("datalist");
+
+    for (let page = 1; page <= pdf.numPages; page += 1) {
+      const option = document.createElement("option");
+      option.value = String(page);
+      pageOptions.append(option);
+    }
+
+    const goToPickedPage = () => {
+      const nextPage = Number(pagePickerInput.value);
+      if (!Number.isInteger(nextPage) || nextPage < 1 || nextPage > pdf.numPages) {
+        pagePickerInput.value = String(pageNumber);
+        setStatus(`Escolha uma página entre 1 e ${pdf.numPages}.`);
+        return;
+      }
+
+      queueRender(nextPage);
+    };
+
+    pagePickerInput.addEventListener("change", goToPickedPage);
+    pagePickerInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        goToPickedPage();
+      }
+    });
+
+    pageNavigation.append(previousButton, pageCounter, nextButton, pagePicker);
 
     const zoomControls = document.createElement("div");
     zoomControls.className = "pdf-zoom-controls";
@@ -507,7 +543,6 @@ const renderViewer = async (viewer) => {
 
     const playButton = viewer.querySelector("[data-speech-play]");
     const pauseButton = viewer.querySelector("[data-speech-pause]");
-    const resumeButton = viewer.querySelector("[data-speech-resume]");
     const continueSavedButton = viewer.querySelector("[data-speech-continue-saved]");
     const slowerButton = viewer.querySelector("[data-speech-slower]");
     const fasterButton = viewer.querySelector("[data-speech-faster]");
@@ -576,7 +611,7 @@ const renderViewer = async (viewer) => {
     applyNativeSpeechRate();
 
     if (!hasNativeSpeech && !hasWebSpeech) {
-      [playButton, pauseButton, resumeButton, continueSavedButton, slowerButton, fasterButton].forEach((button) => {
+      [playButton, pauseButton, continueSavedButton, slowerButton, fasterButton].forEach((button) => {
         if (button) {
           button.disabled = true;
         }
@@ -631,21 +666,6 @@ const renderViewer = async (viewer) => {
           window.speechSynthesis.pause();
         }
         setSpeechStatus("Leitura pausada.");
-      });
-    }
-
-    if (resumeButton) {
-      resumeButton.addEventListener("click", () => {
-        if (hasNativeSpeech && typeof nativeBridge.resume === "function") {
-          nativeBridge.resume();
-          setSpeechStatus("Leitura retomada no app.");
-          return;
-        }
-
-        if (hasWebSpeech) {
-          window.speechSynthesis.resume();
-        }
-        setSpeechStatus("Leitura retomada.");
       });
     }
 
