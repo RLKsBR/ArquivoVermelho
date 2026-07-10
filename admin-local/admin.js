@@ -464,7 +464,7 @@ function chapterPageTemplate(data, previous, next) {
       <div class="footer-links"><a href="../termos.html">Termos</a><a href="../politica-de-privacidade.html">Privacidade</a><a href="../contato.html">Contato</a><a href="../fale-conosco.html">Fale conosco</a><a href="https://www.instagram.com/arquivovermelho599/" target="_blank" rel="noopener">Instagram</a></div>
     </div>
   </footer>
-  <script src="../assets/js/main.js?v=20260705-sidebar-brand"></script>
+  <script src="../assets/js/main.js?v=20260710-ratings-v2"></script>
   <script type="module" src="../assets/js/pdf-reader.js?v=20260705-speech-progress"></script>
 </body>
 </html>
@@ -507,7 +507,7 @@ function extractChaptersFromHtml(html, pagePrefix) {
 
 function insertChapterInWorkPage(html, data) {
   if (html.includes(`href="../../${data.htmlPath}"`)) {
-    throw new Error("A página da obra já contém esse capítulo.");
+    return { html, changed: false };
   }
 
   const article = `${chapterArticle(data)}\n`;
@@ -516,10 +516,13 @@ function insertChapterInWorkPage(html, data) {
 
   if (previous) {
     const previousRegex = new RegExp(`(\\s*<article class="chapter-item">[\\s\\S]*?href="../../${previous.href.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[\\s\\S]*?</article>)`);
-    return html.replace(previousRegex, `$1\n${article}`);
+    return { html: html.replace(previousRegex, `$1\n${article}`), changed: true };
   }
 
-  return html.replace(/(\s*<article class="chapter-item">\s*<span class="meta">Em breve<\/span>)/, `\n${article}$1`);
+  return {
+    html: html.replace(/(\s*<article class="chapter-item">\s*<span class="meta">Em breve<\/span>)/, `\n${article}$1`),
+    changed: true
+  };
 }
 
 function replaceHomeUpdate(html, data) {
@@ -584,16 +587,33 @@ async function applyAdd(data) {
   const previous = [...existingChapters].reverse().find((chapter) => chapter.number < data.number);
   const next = existingChapters.find((chapter) => chapter.number > data.number);
 
-  await writeBinary(data.pdfPath, data.pdf);
-  log(`PDF salvo em <code>${data.pdfPath}</code>.`);
+  let chapterPageExists = false;
+  try {
+    await readText(data.htmlPath);
+    chapterPageExists = true;
+  } catch (_error) {
+    // A página ainda não existe e será criada abaixo.
+  }
 
-  await writeText(data.htmlPath, chapterPageTemplate(data, previous, next));
-  log(`Página criada em <code>${data.htmlPath}</code>.`);
+  await writeBinary(data.pdfPath, data.pdf);
+  log(`PDF salvo ou substituído em <code>${data.pdfPath}</code>.`);
+
+  if (chapterPageExists) {
+    log(`Página já existente mantida em <code>${data.htmlPath}</code>.`);
+  } else {
+    await writeText(data.htmlPath, chapterPageTemplate(data, previous, next));
+    log(`Página criada em <code>${data.htmlPath}</code>.`);
+  }
 
   if (data.options.updateWorkPage) {
-    workHtml = insertChapterInWorkPage(workHtml, data);
-    await writeText(workPath, workHtml);
-    log(`Página da obra atualizada: <code>${workPath}</code>.`);
+    const workUpdate = insertChapterInWorkPage(workHtml, data);
+    workHtml = workUpdate.html;
+    if (workUpdate.changed) {
+      await writeText(workPath, workHtml);
+      log(`Página da obra atualizada: <code>${workPath}</code>.`);
+    } else {
+      log("Página da obra já tinha este capítulo; segui com as demais atualizações.");
+    }
   }
 
   if (data.options.updateHome) {

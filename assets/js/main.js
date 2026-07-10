@@ -141,7 +141,8 @@ if (!nativeApp) {
         ['Capítulo 2: E AGORA', 'capitulos/a-hora-vermelha-capitulo-02-e-agora.html'],
         ['Capítulo 3: Cadê a Arma', 'capitulos/a-hora-vermelha-capitulo-03-cade-a-arma.html'],
         ['Capítulo 4: Um Não Vinte', 'capitulos/a-hora-vermelha-capitulo-04-um-nao-vinte.html'],
-        ['Capítulo 5: Me Destranca', 'capitulos/a-hora-vermelha-capitulo-05-me-destranca.html']
+        ['Capítulo 5: Me Destranca', 'capitulos/a-hora-vermelha-capitulo-05-me-destranca.html'],
+        ['Capítulo 6: Sem Café', 'capitulos/a-hora-vermelha-capitulo-06-sem-cafe.html']
       ]
     },
     {
