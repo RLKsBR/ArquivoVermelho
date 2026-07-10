@@ -36,7 +36,7 @@ const renderViewer = async (viewer) => {
   const speechRateBase = 1.25;
   const speechRateStep = 0.1;
   const speechRateMin = 0.5;
-  const speechRateMax = 2;
+  const speechRateMax = 3;
   let speechRateMultiplier = 1;
 
   const setStatus = (message) => {
@@ -237,9 +237,9 @@ const renderViewer = async (viewer) => {
     });
   };
 
-  const getPauseAfterSegment = (segment, isEndOfLine) => {
+  const getPauseAfterSegment = (segment, isEndOfParagraph) => {
     const trimmed = segment.trim();
-    let pause = isEndOfLine ? 420 : 0;
+    let pause = isEndOfParagraph ? 420 : 0;
 
     if (/[.!?]$/.test(trimmed)) {
       pause = Math.max(pause, 430);
@@ -286,21 +286,20 @@ const renderViewer = async (viewer) => {
     }
   };
 
-  const splitText = (text, page) => {
+  const splitText = (paragraphs, page) => {
     const chunks = [];
-    const lines = text.replace(/\r/g, "").split("\n");
 
-    lines.forEach((line) => {
-      const cleanLine = line.trim();
+    paragraphs.forEach((paragraph) => {
+      const cleanParagraph = paragraph.trim();
 
-      if (!cleanLine) {
+      if (!cleanParagraph) {
         if (chunks.length) {
           chunks[chunks.length - 1].pause = Math.max(chunks[chunks.length - 1].pause, 780);
         }
         return;
       }
 
-      const segments = cleanLine.match(/[^,;.!?:—–-]+[,;.!?:—–-]?/g) || [cleanLine];
+      const segments = cleanParagraph.match(/[^,;.!?:—–-]+[,;.!?:—–-]?/g) || [cleanParagraph];
       segments.forEach((segment, index) => {
         pushSpeechSegment(chunks, segment, getPauseAfterSegment(segment, index === segments.length - 1), page);
       });
@@ -309,10 +308,31 @@ const renderViewer = async (viewer) => {
     return chunks;
   };
 
-  const getPageText = (items) => {
+  const joinPdfLines = (previous, next) => {
+    if (!previous) {
+      return next;
+    }
+
+    return /[\u2010-\u2015-]$/.test(previous) ? `${previous}${next}` : `${previous} ${next}`;
+  };
+
+  const getPageParagraphs = (items) => {
     const lines = [];
     let currentLine = [];
     let currentY = null;
+    let currentX = null;
+    let currentHeight = 0;
+
+    const pushCurrentLine = () => {
+      const text = currentLine.join(" ").replace(/\s+/g, " ").trim();
+      if (text) {
+        lines.push({ text, y: currentY, x: currentX, height: currentHeight });
+      }
+      currentLine = [];
+      currentY = null;
+      currentX = null;
+      currentHeight = 0;
+    };
 
     items.forEach((item) => {
       const text = String(item.str || "").trim();
@@ -322,25 +342,67 @@ const renderViewer = async (viewer) => {
 
       const transform = item.transform || [];
       const y = Number(transform[5] || 0);
+      const x = Number(transform[4] || 0);
+      const height = Number(item.height || Math.abs(transform[3]) || 0);
 
       if (currentY !== null && Math.abs(y - currentY) > 5) {
-        lines.push(currentLine.join(" ").replace(/\s+/g, " ").trim());
-        currentLine = [];
+        pushCurrentLine();
       }
 
       currentY = y;
+      currentX = currentX === null ? x : Math.min(currentX, x);
+      currentHeight = Math.max(currentHeight, height);
       currentLine.push(text);
     });
 
-    if (currentLine.length) {
-      lines.push(currentLine.join(" ").replace(/\s+/g, " ").trim());
-    }
+    pushCurrentLine();
 
-    return lines.filter(Boolean).filter((line) => {
-      const compact = line.replace(/\s+/g, " ").trim();
+    const readableLines = lines.filter((line) => {
+      const compact = line.text.replace(/\s+/g, " ").trim();
       const pageMarker = /(?:p[aá]g(?:ina)?\.?|page)\s*\d+/i;
       return !(pageMarker.test(compact) && compact.length <= 180);
-    }).join("\n");
+    });
+
+    if (!readableLines.length) {
+      return [];
+    }
+
+    const gaps = readableLines
+      .slice(1)
+      .map((line, index) => Math.abs(line.y - readableLines[index].y))
+      .filter((gap) => gap > 0)
+      .sort((a, b) => a - b);
+    // O quartil inferior representa a cadência das linhas que pertencem ao
+    // mesmo parágrafo; os espaços maiores ficam reservados para parágrafos.
+    const typicalGap = gaps.length ? gaps[Math.floor(gaps.length * 0.25)] : 0;
+    const heights = readableLines
+      .map((line) => line.height)
+      .filter((height) => height > 0)
+      .sort((a, b) => a - b);
+    const typicalHeight = heights.length ? heights[Math.floor(heights.length / 2)] : 0;
+    const paragraphGap = Math.max(typicalGap * 1.5, typicalHeight * 1.65, 16);
+    const paragraphs = [];
+    let paragraph = "";
+    let previousLine = null;
+
+    readableLines.forEach((line) => {
+      const gap = previousLine ? Math.abs(previousLine.y - line.y) : 0;
+      const startsNewParagraph = previousLine && gap > paragraphGap;
+
+      if (startsNewParagraph && paragraph) {
+        paragraphs.push(paragraph);
+        paragraph = "";
+      }
+
+      paragraph = joinPdfLines(paragraph, line.text);
+      previousLine = line;
+    });
+
+    if (paragraph) {
+      paragraphs.push(paragraph);
+    }
+
+    return paragraphs;
   };
 
   const extractPdfText = async () => {
@@ -354,15 +416,15 @@ const renderViewer = async (viewer) => {
     for (let i = 1; i <= pdf.numPages; i += 1) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      const pageText = getPageText(content.items);
+      const paragraphs = getPageParagraphs(content.items);
 
-      if (pageText) {
-        pages.push({ number: i, text: pageText });
+      if (paragraphs.length) {
+        pages.push({ number: i, paragraphs });
       }
     }
 
-    extractedText = pages.map((page) => page.text).join("\n\n");
-    speechChunks = pages.flatMap((page) => splitText(page.text, page.number));
+    extractedText = pages.map((page) => page.paragraphs.join("\n\n")).join("\n\n");
+    speechChunks = pages.flatMap((page) => splitText(page.paragraphs, page.number));
     return extractedText;
   };
 
