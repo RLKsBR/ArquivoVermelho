@@ -177,7 +177,8 @@ if (!nativeApp) {
       chapters: [
         ['Crônica I: A Orbe de Uriel', 'capitulos/cronicas-cronica-01.html'],
         ['Crônica II: O Rei que Mandou os Outros Morrerem', 'capitulos/cronicas-cronica-02-o-rei-que-mandou-os-outros-morrerem.html'],
-        ['Crônica III: A Coroa Livre', 'capitulos/cronicas-cronica-03-a-coroa-livre.html']
+        ['Crônica III: A Coroa Livre', 'capitulos/cronicas-cronica-03-a-coroa-livre.html'],
+        ['Crônica IV: Crônica IV', 'capitulos/cronicas-cronica-04-cronica-iv.html']
       ]
     },
     {

@@ -365,12 +365,16 @@ function chapterPageTemplate(data, previous, next) {
   const rootPrefix = "../";
   const pdfHref = `${rootPrefix}${data.pdfPath}`;
   const backHref = `${rootPrefix}${data.config.workHref}`;
+  const usesFeminineUnit = data.config.unit === "Crônica";
+  const nextLabel = `${usesFeminineUnit ? "Próxima" : "Próximo"} ${data.config.unit.toLowerCase()}`;
+  const ratingArticle = usesFeminineUnit ? "esta" : "este";
+  const ratingPreposition = usesFeminineUnit ? "da" : "do";
   const prevControl = previous
     ? `<a class="button chapter-button chapter-button-previous" href="${rootPrefix}${previous.href}">${escapeHtml(data.config.unit)} anterior</a>`
     : `<span class="button chapter-button chapter-button-previous disabled">${escapeHtml(data.config.unit)} anterior</span>`;
   const nextControl = next
-    ? `<a class="button chapter-button chapter-button-next" href="${rootPrefix}${next.href}">Próximo ${data.config.unit.toLowerCase()}</a>`
-    : `<span class="button chapter-button chapter-button-next disabled">Próximo ${data.config.unit.toLowerCase()} em breve</span>`;
+    ? `<a class="button chapter-button chapter-button-next" href="${rootPrefix}${next.href}">${nextLabel}</a>`
+    : `<span class="button chapter-button chapter-button-next disabled">${nextLabel} em breve</span>`;
   const versionTitle = data.config.versionLabel ? ` | ${data.config.versionLabel}` : "";
 
   return `<!doctype html>
@@ -444,9 +448,9 @@ function chapterPageTemplate(data, previous, next) {
         </div>
       </section>
       <section class="chapter-rating" data-chapter-rating="${escapeHtml(data.ratingId)}" aria-labelledby="rating-${escapeHtml(data.ratingId)}">
-        <h2 id="rating-${escapeHtml(data.ratingId)}">Avalie este ${escapeHtml(data.config.unit.toLowerCase())}</h2>
+        <h2 id="rating-${escapeHtml(data.ratingId)}">Avalie ${ratingArticle} ${escapeHtml(data.config.unit.toLowerCase())}</h2>
         <p>Escolha uma nota de 0 a 5 estrelas. A avaliação fica salva neste dispositivo.</p>
-        <div class="rating-controls" role="group" aria-label="Nota do ${escapeHtml(data.config.unit.toLowerCase())}">
+        <div class="rating-controls" role="group" aria-label="Nota ${ratingPreposition} ${escapeHtml(data.config.unit.toLowerCase())}">
           <button class="rating-button" type="button" data-rating-value="0" aria-pressed="false">0</button>
           <button class="rating-button" type="button" data-rating-value="1" aria-pressed="false">★</button>
           <button class="rating-button" type="button" data-rating-value="2" aria-pressed="false">★★</button>
@@ -454,7 +458,7 @@ function chapterPageTemplate(data, previous, next) {
           <button class="rating-button" type="button" data-rating-value="4" aria-pressed="false">★★★★</button>
           <button class="rating-button" type="button" data-rating-value="5" aria-pressed="false">★★★★★</button>
         </div>
-        <p class="rating-message" data-rating-message>Você ainda não avaliou este ${escapeHtml(data.config.unit.toLowerCase())} neste dispositivo.</p>
+        <p class="rating-message" data-rating-message>Você ainda não avaliou ${ratingArticle} ${escapeHtml(data.config.unit.toLowerCase())} neste dispositivo.</p>
       </section>
     </article>
   </main>
@@ -537,13 +541,14 @@ function replaceHomeUpdate(html, data) {
 }
 
 function updateSidebar(html, data) {
-  if (html.includes(`"${data.htmlPath}"`)) {
+  if (html.includes(data.htmlPath)) {
     return html;
   }
 
   const entry = `        ["${data.fullTitle}", "${data.htmlPath}"]`;
   const titleAnchor = data.work.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const sectionStart = html.indexOf(`title: "${titleAnchor}"`);
+  const titleMatch = html.match(new RegExp(`title:\\s*["']${titleAnchor}["']`));
+  const sectionStart = titleMatch ? titleMatch.index : -1;
   if (sectionStart === -1) {
     throw new Error("Não encontrei a obra na barra lateral.");
   }
@@ -572,10 +577,11 @@ function updateSitemap(html, data) {
 }
 
 function updatePreviousChapter(html, data) {
-  const nextLabel = `Próximo ${data.config.unit.toLowerCase()}`;
+  const nextPrefix = data.config.unit === "Crônica" ? "Próxima" : "Próximo";
+  const nextLabel = `${nextPrefix} ${data.config.unit.toLowerCase()}`;
   const nextLink = `<a class="button chapter-button chapter-button-next" href="../${data.htmlPath}">${nextLabel}</a>`;
   return html.replace(
-    /<span class="button chapter-button chapter-button-next disabled">Próximo [^<]+ em breve<\/span>/,
+    /<span class="button chapter-button chapter-button-next disabled">Próxim[oa] [^<]+ em breve<\/span>/,
     nextLink
   );
 }
