@@ -430,7 +430,8 @@ function chapterPageTemplate(data, previous, next) {
   <meta property="og:title" content="${escapeHtml(data.config.label)} | ${escapeHtml(data.fullTitle)}">
   <meta property="og:description" content="${escapeHtml(data.fullTitle)} disponível em PDF gratuito no Arquivo Vermelho.">
   <meta property="og:type" content="article">
-  <meta property="og:image" content="../assets/img/logo-arquivo-vermelho.png">
+  <meta property="og:url" content="https://rlksbr.github.io/ArquivoVermelho/${escapeHtml(data.htmlPath)}">
+  <meta property="og:image" content="https://rlksbr.github.io/ArquivoVermelho/assets/img/logo-arquivo-vermelho.png">
   <link rel="icon" href="../assets/img/logo-arquivo-vermelho.png" type="image/png">
   <link rel="stylesheet" href="../assets/css/styles.css?v=20260706-sidebar-align">
 </head>
@@ -442,7 +443,9 @@ function chapterPageTemplate(data, previous, next) {
       <nav class="site-nav" id="site-nav" data-site-nav aria-label="Menu principal">
         <a href="../index.html">Início</a>
         <a href="../sobre.html">Sobre</a>
-        <a href="../contato.html">Contato</a><a href="../apoie.html">Apoie</a><a href="../fale-conosco.html">Fale conosco</a>
+        <a href="../apoie.html">Apoie</a>
+        <a href="../contato.html">Contato</a>
+        <a href="../fale-conosco.html">Mensagem anônima</a>
         <a href="../politica-de-privacidade.html">Privacidade</a>
         <a class="mobile-app-link" href="../downloads/app/arquivo-vermelho-1.7.3.apk" download>Baixar app</a>
       </nav>
@@ -508,7 +511,7 @@ function chapterPageTemplate(data, previous, next) {
   <footer class="site-footer">
     <div class="footer-inner">
       <p>&copy; <span data-year></span> Arquivo Vermelho. Ficção independente gratuita.</p>
-      <div class="footer-links"><a href="../termos.html">Termos</a><a href="../politica-de-privacidade.html">Privacidade</a><a href="../contato.html">Contato</a><a href="../fale-conosco.html">Fale conosco</a><a href="https://www.instagram.com/arquivovermelho599/" target="_blank" rel="noopener">Instagram</a></div>
+      <div class="footer-links"><a href="../termos.html">Termos</a><a href="../politica-de-privacidade.html">Privacidade</a><a href="../contato.html">Contato</a><a href="../fale-conosco.html">Mensagem anônima</a><a href="https://www.instagram.com/arquivovermelho599/" target="_blank" rel="noopener">Instagram</a></div>
     </div>
   </footer>
   <script src="../assets/js/main.js?v=20260710-ratings-v2"></script>
