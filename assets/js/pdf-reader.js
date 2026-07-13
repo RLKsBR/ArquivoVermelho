@@ -32,6 +32,7 @@ const renderViewer = async (viewer) => {
   let nextChapterTimer = null;
   let speechFinished = false;
   let zoom = 1;
+  let fullscreenScrollPosition = null;
   const speechProgressKey = `arquivoVermelho.speechProgress.v1:${new URL(source, window.location.href).pathname}`;
   const speechRateBase = 1.25;
   const speechRateStep = 0.1;
@@ -232,6 +233,7 @@ const renderViewer = async (viewer) => {
     fullscreenButton.type = "button";
     fullscreenButton.dataset.pdfFullscreen = "";
     fullscreenButton.textContent = "Tela cheia";
+    fullscreenButton.setAttribute("aria-pressed", "false");
 
     zoomControls.append(zoomOutButton, zoomInButton, fullscreenButton);
 
@@ -245,31 +247,72 @@ const renderViewer = async (viewer) => {
       queueRender(pageNumber);
     });
 
+    const readReaderPosition = () => {
+      const canvasWrap = viewer.querySelector(".pdf-canvas-wrap");
+      return {
+        page: pageNumber,
+        scrollTop: canvasWrap?.scrollTop || 0,
+        scrollLeft: canvasWrap?.scrollLeft || 0
+      };
+    };
+
+    const setFullscreenUi = (active) => {
+      panel.classList.toggle("is-fullscreen", active);
+      document.body.classList.toggle("pdf-reader-fullscreen-active", active);
+      fullscreenButton.textContent = active ? "Sair da tela cheia" : "Tela cheia";
+      fullscreenButton.setAttribute("aria-pressed", String(active));
+      fullscreenButton.setAttribute("aria-label", active ? "Sair da tela cheia" : "Abrir leitor em tela cheia");
+    };
+
+    const exitReaderFullscreen = async () => {
+      if (document.fullscreenElement === panel) {
+        await document.exitFullscreen();
+        return;
+      }
+
+      if (panel.classList.contains("is-fullscreen")) {
+        fullscreenScrollPosition = readReaderPosition();
+        setFullscreenUi(false);
+        queueRender(pageNumber);
+      }
+    };
+
     fullscreenButton.addEventListener("click", async () => {
+      if (document.fullscreenElement === panel || panel.classList.contains("is-fullscreen")) {
+        await exitReaderFullscreen();
+        return;
+      }
+
+      fullscreenScrollPosition = readReaderPosition();
+
       try {
-        if (!panel.requestFullscreen) {
-          panel.classList.toggle("is-fullscreen");
-          fullscreenButton.textContent = panel.classList.contains("is-fullscreen") ? "Sair da tela cheia" : "Tela cheia";
-          queueRender(pageNumber);
-          return;
+        if (typeof panel.requestFullscreen !== "function") {
+          throw new Error("Fullscreen API indisponível");
         }
 
-        if (document.fullscreenElement) {
-          await document.exitFullscreen();
-          return;
-        }
-
-        await panel.requestFullscreen();
+        await panel.requestFullscreen({ navigationUI: "hide" });
       } catch {
-        panel.classList.toggle("is-fullscreen");
-        fullscreenButton.textContent = panel.classList.contains("is-fullscreen") ? "Sair da tela cheia" : "Tela cheia";
+        setFullscreenUi(true);
         queueRender(pageNumber);
       }
     });
 
     document.addEventListener("fullscreenchange", () => {
-      fullscreenButton.textContent = document.fullscreenElement ? "Sair da tela cheia" : "Tela cheia";
+      const isNativeFullscreen = document.fullscreenElement === panel;
+      const wasFullscreen = document.body.classList.contains("pdf-reader-fullscreen-active");
+
+      if (!isNativeFullscreen && wasFullscreen) {
+        fullscreenScrollPosition = readReaderPosition();
+      }
+
+      setFullscreenUi(isNativeFullscreen);
       queueRender(pageNumber);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && (document.fullscreenElement === panel || panel.classList.contains("is-fullscreen"))) {
+        exitReaderFullscreen();
+      }
     });
   };
 
@@ -755,6 +798,18 @@ const renderViewer = async (viewer) => {
     rendering = false;
     setStatus("");
     setControls();
+
+    if (fullscreenScrollPosition) {
+      const savedPosition = fullscreenScrollPosition;
+      fullscreenScrollPosition = null;
+      requestAnimationFrame(() => {
+        const currentCanvasWrap = viewer.querySelector(".pdf-canvas-wrap");
+        if (currentCanvasWrap && savedPosition.page === pageNumber) {
+          currentCanvasWrap.scrollTop = savedPosition.scrollTop;
+          currentCanvasWrap.scrollLeft = savedPosition.scrollLeft;
+        }
+      });
+    }
 
     if (pendingPage !== null) {
       const queuedPage = pendingPage;
