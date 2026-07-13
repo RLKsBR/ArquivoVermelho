@@ -193,6 +193,14 @@ if (!nativeApp) {
         ['Capítulo 3: Cigarros, Magão, Dona Célia e João', 'capitulos/checkpoint-zumbi-capitulo-03-cigarros-magao-dona-celia-e-joao.html'],
         ['Capítulo 4: Cristina Sem Internet e Sem Plano', 'capitulos/checkpoint-zumbi-capitulo-04-cristina-sem-internet-e-sem-plano.html'],
         ["Capítulo 5: A Casa De Seu Augusto", "capitulos/checkpoint-zumbi-capitulo-05-a-casa-de-seu-augusto.html"]]
+    },
+    {
+      title: 'Espaço Mortal',
+      href: 'obras/espaco-mortal/',
+      chapters: [
+        ['Capítulo 1: A Ideia de Íris', 'capitulos/espaco-mortal-capitulo-01-a-ideia-de-iris.html'],
+        ['Capítulo 2: A Sábia Preto', 'capitulos/espaco-mortal-capitulo-02-a-sabia-preto.html']
+      ]
     }
   ];
 
@@ -309,6 +317,7 @@ if (ratingBlocks.length) {
     'a-hora-vermelha': 'A Hora Vermelha',
     'cronicas': 'Crônicas',
     'checkpoint-zumbi': 'Checkpoint Zumbi',
+    'espaco-mortal': 'Espaço Mortal',
     'o-ultimo-dia-original': 'O Último Dia — Original multilíngue',
     'o-ultimo-dia-portugues': 'O Último Dia — 100% Português'
   };
@@ -362,6 +371,10 @@ if (ratingBlocks.length) {
 
     if (ratingId.startsWith('checkpoint-zumbi-')) {
       return 'checkpoint-zumbi';
+    }
+
+    if (ratingId.startsWith('espaco-mortal-')) {
+      return 'espaco-mortal';
     }
 
     return ratingId;

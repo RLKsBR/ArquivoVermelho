@@ -42,6 +42,20 @@ const WORKS = {
     updateVerb: "já está disponível em PDF.",
     ratingPrefix: "checkpoint-zumbi-capitulo"
   },
+  "espaco-mortal": {
+    label: "Espaço Mortal",
+    meta: "Espaço Mortal",
+    unit: "Capítulo",
+    pagePrefix: "espaco-mortal-capitulo",
+    pdfPrefix: "capitulo",
+    downloads: ["downloads", "espaco-mortal"],
+    workPage: ["obras", "espaco-mortal", "index.html"],
+    workHref: "obras/espaco-mortal/",
+    cover: "capa-espaco-mortal.jpg",
+    notice: "Conteúdo adulto: linguagem forte, uso de drogas, violência e temas sensíveis.",
+    updateVerb: "já pode ser lido ou baixado em PDF.",
+    ratingPrefix: "espaco-mortal-capitulo"
+  },
   "o-ultimo-dia": {
     label: "O Último Dia",
     meta: "O Último Dia",
@@ -514,7 +528,7 @@ function chapterPageTemplate(data, previous, next) {
       <div class="footer-links"><a href="../termos.html">Termos</a><a href="../politica-de-privacidade.html">Privacidade</a><a href="../contato.html">Contato</a><a href="../fale-conosco.html">Mensagem anônima</a><a href="https://www.instagram.com/arquivovermelho599/" target="_blank" rel="noopener">Instagram</a></div>
     </div>
   </footer>
-  <script src="../assets/js/main.js?v=20260710-ratings-v2"></script>
+  <script src="../assets/js/main.js?v=20260713-espaco-mortal"></script>
   <script type="module" src="../assets/js/pdf-reader.js?v=20260713-fullscreen"></script>
 </body>
 </html>

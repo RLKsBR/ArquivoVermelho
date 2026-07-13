@@ -444,6 +444,10 @@ h3 {
   --cover: url("../img/capa-checkpoint-zumbi.png");
 }
 
+.cover-espaco-mortal {
+  --cover: url("../img/capa-espaco-mortal.jpg");
+}
+
 .work-card small,
 .meta {
   color: var(--gold);
@@ -1311,6 +1315,12 @@ body.pdf-reader-fullscreen-active .reader > :not(.pdf-reader-panel) {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .work-card--centered {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc((100% - 16px) / 2);
+  }
+
   .two-col,
   .work-layout {
     grid-template-columns: minmax(0, 1fr) 310px;
@@ -1346,6 +1356,10 @@ body.pdf-reader-fullscreen-active .reader > :not(.pdf-reader-panel) {
 @media (min-width: 1040px) {
   .works-grid {
     grid-template-columns: repeat(4, 1fr);
+  }
+
+  .work-card--centered {
+    grid-column: 2 / span 2;
   }
 }
 
