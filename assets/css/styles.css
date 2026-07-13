@@ -1025,21 +1025,32 @@ body.pdf-reader-fullscreen-active .reader > :not(.pdf-reader-panel) {
 .pdf-reader-panel.is-fullscreen .pdf-viewer {
   height: 100%;
   min-height: 0;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 8px;
 }
 
 .pdf-reader-panel:fullscreen .speech-controls,
-.pdf-reader-panel.is-fullscreen .speech-controls {
-  gap: 6px;
-  padding: 6px;
+.pdf-reader-panel.is-fullscreen .speech-controls,
+.pdf-reader-panel:fullscreen .pdf-page-navigation,
+.pdf-reader-panel.is-fullscreen .pdf-page-navigation,
+.pdf-reader-panel:fullscreen .reader-inline-nav,
+.pdf-reader-panel.is-fullscreen .reader-inline-nav,
+.pdf-reader-panel:fullscreen .pdf-status,
+.pdf-reader-panel.is-fullscreen .pdf-status {
+  display: none;
 }
 
 .pdf-reader-panel:fullscreen .pdf-toolbar,
 .pdf-reader-panel.is-fullscreen .pdf-toolbar {
   min-height: 0;
   gap: 6px;
-  overflow-y: auto;
+  overflow: visible;
+  justify-content: flex-start;
+}
+
+.pdf-reader-panel:fullscreen .pdf-zoom-controls,
+.pdf-reader-panel.is-fullscreen .pdf-zoom-controls {
+  flex-basis: auto;
 }
 
 .pdf-reader-panel:fullscreen .pdf-toolbar .button,
