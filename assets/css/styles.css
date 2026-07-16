@@ -146,6 +146,7 @@ img {
 }
 
 .site-nav .mobile-app-link,
+.site-nav .mobile-games-link,
 .site-nav .app-update-button {
   color: var(--text);
   background: rgba(184, 50, 58, 0.16);
@@ -1278,6 +1279,10 @@ body.pdf-reader-fullscreen-active .reader > :not(.pdf-reader-panel) {
   }
 
   .site-nav .mobile-app-link {
+    display: none;
+  }
+
+  .site-nav .mobile-games-link {
     display: none;
   }
 

@@ -112,6 +112,18 @@ document.querySelectorAll('[data-contact-form]').forEach((form) => {
 
 const nativeApp = window.ArquivoVermelhoApp;
 
+const appMainScript = document.currentScript || document.querySelector('script[src*="assets/js/main.js"]');
+const appSiteRoot = appMainScript ? new URL('../../', appMainScript.src) : new URL('./', window.location.href);
+
+if (siteNav && !siteNav.querySelector('.mobile-games-link')) {
+  const gamesLink = document.createElement('a');
+  gamesLink.className = 'mobile-games-link';
+  gamesLink.href = new URL('jogos/', appSiteRoot).pathname;
+  gamesLink.textContent = 'Jogos';
+  const appLink = siteNav.querySelector('.mobile-app-link');
+  siteNav.insertBefore(gamesLink, appLink || null);
+}
+
 if (nativeApp && typeof nativeApp.checkForUpdates === 'function') {
   document.documentElement.classList.add('is-native-app');
 
