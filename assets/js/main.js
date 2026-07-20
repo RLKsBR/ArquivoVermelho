@@ -193,8 +193,8 @@ if (!nativeApp) {
         ['Crônica I: A Orbe de Uriel', 'capitulos/cronicas-cronica-01.html'],
         ['Crônica II: O Rei que Mandou os Outros Morrerem', 'capitulos/cronicas-cronica-02-o-rei-que-mandou-os-outros-morrerem.html'],
         ['Crônica III: A Coroa Livre', 'capitulos/cronicas-cronica-03-a-coroa-livre.html'],
-        ['Crônica IV: Crônica IV', 'capitulos/cronicas-cronica-04-cronica-iv.html']
-      ]
+        ['Crônica IV: Crônica IV', 'capitulos/cronicas-cronica-04-cronica-iv.html'],
+        ["Crônica V: A União Livre", "capitulos/cronicas-cronica-05-a-uniao-livre.html"]]
     },
     {
       title: 'Checkpoint Zumbi',
