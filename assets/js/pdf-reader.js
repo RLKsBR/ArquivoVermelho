@@ -63,6 +63,27 @@ const renderViewer = async (viewer) => {
       nextButton.disabled = !pdf || pageNumber >= pdf.numPages || rendering;
     }
 
+    const fullscreenPreviousButton = viewer.querySelector("[data-pdf-fullscreen-previous]");
+    const fullscreenNextButton = viewer.querySelector("[data-pdf-fullscreen-next]");
+    const fullscreenCurrent = viewer.querySelector("[data-pdf-fullscreen-current]");
+    const fullscreenTotal = viewer.querySelector("[data-pdf-fullscreen-total]");
+
+    if (fullscreenPreviousButton) {
+      fullscreenPreviousButton.disabled = !pdf || pageNumber <= 1 || rendering;
+    }
+
+    if (fullscreenNextButton) {
+      fullscreenNextButton.disabled = !pdf || pageNumber >= pdf.numPages || rendering;
+    }
+
+    if (fullscreenCurrent) {
+      fullscreenCurrent.textContent = String(pageNumber);
+    }
+
+    if (fullscreenTotal && pdf) {
+      fullscreenTotal.textContent = String(pdf.numPages);
+    }
+
     const pagePicker = viewer.querySelector("[data-pdf-page-picker]");
     if (pagePicker && document.activeElement !== pagePicker) {
       pagePicker.value = String(pageNumber);
@@ -211,10 +232,34 @@ const renderViewer = async (viewer) => {
     const zoomControls = document.createElement("div");
     zoomControls.className = "pdf-zoom-controls";
 
+    const fullscreenNavigation = document.createElement("div");
+    fullscreenNavigation.className = "pdf-fullscreen-navigation";
+    fullscreenNavigation.setAttribute("aria-label", "Navegação de páginas em tela cheia");
+
+    const fullscreenPreviousButton = document.createElement("button");
+    fullscreenPreviousButton.className = "button secondary pdf-fullscreen-page-button";
+    fullscreenPreviousButton.type = "button";
+    fullscreenPreviousButton.dataset.pdfFullscreenPrevious = "";
+    fullscreenPreviousButton.textContent = "←";
+    fullscreenPreviousButton.setAttribute("aria-label", "Página anterior");
+
+    const fullscreenPageCount = document.createElement("span");
+    fullscreenPageCount.className = "pdf-fullscreen-page-count";
+    fullscreenPageCount.innerHTML = '<span data-pdf-fullscreen-current>1</span> / <span data-pdf-fullscreen-total>...</span>';
+
+    const fullscreenNextButton = document.createElement("button");
+    fullscreenNextButton.className = "button secondary pdf-fullscreen-page-button";
+    fullscreenNextButton.type = "button";
+    fullscreenNextButton.dataset.pdfFullscreenNext = "";
+    fullscreenNextButton.textContent = "→";
+    fullscreenNextButton.setAttribute("aria-label", "Próxima página");
+
+    fullscreenNavigation.append(fullscreenPreviousButton, fullscreenPageCount, fullscreenNextButton);
+
     if (chapterNavigation) {
       toolbar.prepend(chapterNavigation);
     }
-    toolbar.append(pageNavigation, zoomControls);
+    toolbar.append(pageNavigation, fullscreenNavigation, zoomControls);
 
     const zoomOutButton = document.createElement("button");
     zoomOutButton.className = "button secondary";
@@ -236,6 +281,18 @@ const renderViewer = async (viewer) => {
     fullscreenButton.setAttribute("aria-pressed", "false");
 
     zoomControls.append(zoomOutButton, zoomInButton, fullscreenButton);
+
+    fullscreenPreviousButton.addEventListener("click", () => {
+      if (pageNumber > 1) {
+        queueRender(pageNumber - 1);
+      }
+    });
+
+    fullscreenNextButton.addEventListener("click", () => {
+      if (pdf && pageNumber < pdf.numPages) {
+        queueRender(pageNumber + 1);
+      }
+    });
 
     zoomOutButton.addEventListener("click", () => {
       zoom = Math.max(0.75, Number((zoom - 0.15).toFixed(2)));
@@ -310,10 +367,62 @@ const renderViewer = async (viewer) => {
     });
 
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && (document.fullscreenElement === panel || panel.classList.contains("is-fullscreen"))) {
+      const fullscreenActive = document.fullscreenElement === panel || panel.classList.contains("is-fullscreen");
+
+      if (!fullscreenActive || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (event.key === "Escape") {
         exitReaderFullscreen();
+      } else if (event.key === "ArrowRight" && pdf && pageNumber < pdf.numPages) {
+        event.preventDefault();
+        queueRender(pageNumber + 1);
+      } else if (event.key === "ArrowLeft" && pageNumber > 1) {
+        event.preventDefault();
+        queueRender(pageNumber - 1);
       }
     });
+
+    let touchStartX = null;
+    let touchStartY = null;
+
+    panel.addEventListener("touchstart", (event) => {
+      const fullscreenActive = document.fullscreenElement === panel || panel.classList.contains("is-fullscreen");
+      const touch = event.touches[0];
+
+      const interactiveTarget = event.target instanceof Element && event.target.closest("button, a, input");
+      if (!fullscreenActive || !touch || interactiveTarget) {
+        touchStartX = null;
+        touchStartY = null;
+        return;
+      }
+
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+    }, { passive: true });
+
+    panel.addEventListener("touchend", (event) => {
+      const touch = event.changedTouches[0];
+      if (touchStartX === null || touchStartY === null || !touch) {
+        return;
+      }
+
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      touchStartX = null;
+      touchStartY = null;
+
+      if (Math.abs(deltaX) < 60 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) {
+        return;
+      }
+
+      if (deltaX < 0 && pdf && pageNumber < pdf.numPages) {
+        queueRender(pageNumber + 1);
+      } else if (deltaX > 0 && pageNumber > 1) {
+        queueRender(pageNumber - 1);
+      }
+    }, { passive: true });
   };
 
   const getPauseAfterSegment = (segment, isEndOfParagraph) => {
@@ -774,6 +883,7 @@ const renderViewer = async (viewer) => {
   };
 
   const renderPage = async (nextPage) => {
+    const previousPageNumber = pageNumber;
     rendering = true;
     pageNumber = nextPage;
     setControls();
@@ -798,6 +908,11 @@ const renderViewer = async (viewer) => {
     rendering = false;
     setStatus("");
     setControls();
+
+    if (previousPageNumber !== pageNumber && !fullscreenScrollPosition) {
+      canvasWrap.scrollTop = 0;
+      canvasWrap.scrollLeft = 0;
+    }
 
     if (fullscreenScrollPosition) {
       const savedPosition = fullscreenScrollPosition;

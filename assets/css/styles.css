@@ -989,6 +989,10 @@ h3 {
   background: #f6f3ee;
 }
 
+.pdf-fullscreen-navigation {
+  display: none;
+}
+
 .pdf-reader-panel:fullscreen,
 .pdf-reader-panel.is-fullscreen {
   box-sizing: border-box;
@@ -1056,6 +1060,29 @@ body.pdf-reader-fullscreen-active .reader > :not(.pdf-reader-panel) {
 .pdf-reader-panel:fullscreen .pdf-zoom-controls,
 .pdf-reader-panel.is-fullscreen .pdf-zoom-controls {
   flex-basis: auto;
+}
+
+.pdf-reader-panel:fullscreen .pdf-fullscreen-navigation,
+.pdf-reader-panel.is-fullscreen .pdf-fullscreen-navigation {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pdf-fullscreen-page-count {
+  min-width: 3.75rem;
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.pdf-reader-panel:fullscreen .pdf-fullscreen-page-button,
+.pdf-reader-panel.is-fullscreen .pdf-fullscreen-page-button {
+  width: 2.25rem;
+  min-width: 2.25rem;
+  padding-inline: 0;
+  font-size: 1.15rem;
 }
 
 .pdf-reader-panel:fullscreen .pdf-toolbar .button,

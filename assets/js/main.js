@@ -139,50 +139,66 @@ if (!nativeApp) {
       title: 'A Hora Vermelha',
       href: 'obras/a-hora-vermelha/',
       chapters: [
-        ['Capítulo 1: GAIA', 'capitulos/a-hora-vermelha-capitulo-01.html'],
-        ['Capítulo 2: E AGORA', 'capitulos/a-hora-vermelha-capitulo-02-e-agora.html'],
+        ['Capítulo 1: Gaia', 'capitulos/a-hora-vermelha-capitulo-01.html'],
+        ['Capítulo 2: E Agora', 'capitulos/a-hora-vermelha-capitulo-02-e-agora.html'],
         ['Capítulo 3: Cadê a Arma', 'capitulos/a-hora-vermelha-capitulo-03-cade-a-arma.html'],
         ['Capítulo 4: Um Não Vinte', 'capitulos/a-hora-vermelha-capitulo-04-um-nao-vinte.html'],
         ['Capítulo 5: Me Destranca', 'capitulos/a-hora-vermelha-capitulo-05-me-destranca.html'],
-        ['Capítulo 6: Sem Café', 'capitulos/a-hora-vermelha-capitulo-06-sem-cafe.html']
+        ['Capítulo 6: Sem Café', 'capitulos/a-hora-vermelha-capitulo-06-sem-cafe.html'],
+        ['Capítulo 7: O Dia de Paz', 'capitulos/a-hora-vermelha-capitulo-07-o-dia-de-paz.html'],
+        ['Capítulo 8: Paz Esquisita', 'capitulos/a-hora-vermelha-capitulo-08-paz-esquisita.html'],
+        ['Capítulo 9: Manhã Normal', 'capitulos/a-hora-vermelha-capitulo-09-manha-normal.html'],
+        ['Capítulo 10: Cerveja Quente', 'capitulos/a-hora-vermelha-capitulo-10-cerveja-quente.html'],
+        ['Capítulo 11: Renan', 'capitulos/a-hora-vermelha-capitulo-11-renan.html'],
+        ['Capítulo 12: Bia', 'capitulos/a-hora-vermelha-capitulo-12-bia.html'],
+        ['Capítulo 13: Duas Latas', 'capitulos/a-hora-vermelha-capitulo-13-duas-latas.html'],
+        ['Capítulo 14: Hoje Não', 'capitulos/a-hora-vermelha-capitulo-14-hoje-nao.html'],
+        ['Capítulo 15: Magrão', 'capitulos/a-hora-vermelha-capitulo-15-magrao.html'],
+        ['Capítulo 16: Pelo Menos Um Dia de Paz', 'capitulos/a-hora-vermelha-capitulo-16-pelo-menos-um-dia-de-paz.html'],
+        ['Capítulo 17: Bar que Ninguém Conhece', 'capitulos/a-hora-vermelha-capitulo-17-bar-que-ninguem-conhece.html'],
+        ['Capítulo 18: Trégua Gordurosa', 'capitulos/a-hora-vermelha-capitulo-18-tregua-gordurosa.html'],
+        ['Capítulo 19: Mais Difícil de Pagar', 'capitulos/a-hora-vermelha-capitulo-19-mais-dificil-de-pagar.html'],
+        ['Capítulo 20: Agnóstico Ateísta', 'capitulos/a-hora-vermelha-capitulo-20-agnostico-ateista.html'],
+        ['Capítulo 21: Três Missões', 'capitulos/a-hora-vermelha-capitulo-21-tres-missoes.html'],
+        ['Capítulo 22: A Casa que Acabou', 'capitulos/a-hora-vermelha-capitulo-22-a-casa-que-acabou.html'],
+        ['Capítulo 23: A Poltrona Vazia', 'capitulos/a-hora-vermelha-capitulo-23-a-poltrona-vazia.html'],
+        ['Capítulo 24: Notícia Ruim Corre de Moto', 'capitulos/a-hora-vermelha-capitulo-24-noticia-ruim-corre-de-moto.html'],
+        ['Capítulo 25: Motel', 'capitulos/a-hora-vermelha-capitulo-25-motel.html'],
+        ['Capítulo 26: Último Olhar', 'capitulos/a-hora-vermelha-capitulo-26-ultimo-olhar.html'],
+        ['Capítulo 27: Bia', 'capitulos/a-hora-vermelha-capitulo-27-bia.html'],
+        ['Capítulo 28: Rumo Daquele Dia', 'capitulos/a-hora-vermelha-capitulo-28-rumo-daquele-dia.html'],
+        ['Capítulo 29: Controle Incalculável', 'capitulos/a-hora-vermelha-capitulo-29-controle-incalculavel.html'],
+        ['Capítulo 30: Ninguém Daqui', 'capitulos/a-hora-vermelha-capitulo-30-ninguem-daqui.html'],
+        ['Capítulo 31: Sem Escada', 'capitulos/a-hora-vermelha-capitulo-31-sem-escada.html'],
+        ['Capítulo 32: Guia Dois', 'capitulos/a-hora-vermelha-capitulo-32-guia-dois.html'],
+        ['Capítulo 33: Gaia', 'capitulos/a-hora-vermelha-capitulo-33-gaia.html']
       ]
     },
     {
       title: 'O Último Dia',
       href: 'obras/o-ultimo-dia/',
       groups: [
-        {
-          label: 'Original multilíngue',
-          chapters: [
-            ['Capítulo 1: Dias de Treinamento', 'capitulos/o-ultimo-dia-capitulo-01-dias-de-treinamento.html'],
-            ['Capítulo 2: Dia 1', 'capitulos/o-ultimo-dia-capitulo-02-dia-1.html'],
-            ['Capítulo 3: Dia 2', 'capitulos/o-ultimo-dia-capitulo-03-dia-2.html'],
-            ['Capítulo 4: Dia 3', 'capitulos/o-ultimo-dia-capitulo-04-dia-3.html'],
-            ['Capítulo 5: Dia 4', 'capitulos/o-ultimo-dia-capitulo-05-dia-4.html'],
-            ['Capítulo 6: Dia 5', 'capitulos/o-ultimo-dia-capitulo-06-dia-5.html']
-          ]
-        },
-        {
-          label: '100% português',
-          chapters: [
-            ['Capítulo 1: Dias de Treinamento', 'capitulos/o-ultimo-dia-portugues-capitulo-01-dias-de-treinamento.html'],
-            ['Capítulo 2: Dia 1', 'capitulos/o-ultimo-dia-portugues-capitulo-02-dia-1.html'],
-            ['Capítulo 3: Dia 2', 'capitulos/o-ultimo-dia-portugues-capitulo-03-dia-2.html'],
-            ['Capítulo 4: Dia 3', 'capitulos/o-ultimo-dia-portugues-capitulo-04-dia-3.html'],
-            ['Capítulo 5: Dia 4', 'capitulos/o-ultimo-dia-portugues-capitulo-05-dia-4.html'],
-            ["Capítulo 6: Dia 5", "capitulos/o-ultimo-dia-portugues-capitulo-06-dia-5.html"]]
-        }
+        { label: 'Original multilíngue', chapters: [
+        ['Capítulo 1: Dias de Treinamento', 'capitulos/o-ultimo-dia-capitulo-01-dias-de-treinamento.html'],
+        ['Capítulo 2: Dia 1', 'capitulos/o-ultimo-dia-capitulo-02-dia-1.html'],
+        ['Capítulo 3: Dia 2', 'capitulos/o-ultimo-dia-capitulo-03-dia-2.html'],
+        ['Capítulo 4: Dia 3', 'capitulos/o-ultimo-dia-capitulo-04-dia-3.html'],
+        ['Capítulo 5: Dia 4', 'capitulos/o-ultimo-dia-capitulo-05-dia-4.html'],
+        ['Capítulo 6: Dia 5', 'capitulos/o-ultimo-dia-capitulo-06-dia-5.html'],
+        ['Capítulo 7: Dia 6', 'capitulos/o-ultimo-dia-capitulo-07-dia-6.html'],
+        ['Capítulo 8: Dia 7', 'capitulos/o-ultimo-dia-capitulo-08-dia-7.html'],
+        ['Capítulo 9: Dia 8', 'capitulos/o-ultimo-dia-capitulo-09-dia-8.html'],
+        ['Capítulo 10: Dia 9', 'capitulos/o-ultimo-dia-capitulo-10-dia-9.html']
+      ] },
+        { label: '100% português', chapters: [
+        ['Capítulo 1: Dias de Treinamento', 'capitulos/o-ultimo-dia-portugues-capitulo-01-dias-de-treinamento.html'],
+        ['Capítulo 2: Dia 1', 'capitulos/o-ultimo-dia-portugues-capitulo-02-dia-1.html'],
+        ['Capítulo 3: Dia 2', 'capitulos/o-ultimo-dia-portugues-capitulo-03-dia-2.html'],
+        ['Capítulo 4: Dia 3', 'capitulos/o-ultimo-dia-portugues-capitulo-04-dia-3.html'],
+        ['Capítulo 5: Dia 4', 'capitulos/o-ultimo-dia-portugues-capitulo-05-dia-4.html'],
+        ['Capítulo 6: Dia 5', 'capitulos/o-ultimo-dia-portugues-capitulo-06-dia-5.html']
+      ] }
       ]
-    },
-    {
-      title: 'Crônicas',
-      href: 'obras/cronicas/',
-      chapters: [
-        ['Crônica I: A Orbe de Uriel', 'capitulos/cronicas-cronica-01.html'],
-        ['Crônica II: O Rei que Mandou os Outros Morrerem', 'capitulos/cronicas-cronica-02-o-rei-que-mandou-os-outros-morrerem.html'],
-        ['Crônica III: A Coroa Livre', 'capitulos/cronicas-cronica-03-a-coroa-livre.html'],
-        ['Crônica IV: Crônica IV', 'capitulos/cronicas-cronica-04-cronica-iv.html'],
-        ["Crônica V: A União Livre", "capitulos/cronicas-cronica-05-a-uniao-livre.html"]]
     },
     {
       title: 'Checkpoint Zumbi',
@@ -192,7 +208,31 @@ if (!nativeApp) {
         ['Capítulo 2: Carlos e a Ligação do Coronel', 'capitulos/checkpoint-zumbi-capitulo-02-carlos-e-a-ligacao-do-coronel.html'],
         ['Capítulo 3: Cigarros, Magão, Dona Célia e João', 'capitulos/checkpoint-zumbi-capitulo-03-cigarros-magao-dona-celia-e-joao.html'],
         ['Capítulo 4: Cristina Sem Internet e Sem Plano', 'capitulos/checkpoint-zumbi-capitulo-04-cristina-sem-internet-e-sem-plano.html'],
-        ["Capítulo 5: A Casa De Seu Augusto", "capitulos/checkpoint-zumbi-capitulo-05-a-casa-de-seu-augusto.html"]]
+        ['Capítulo 5: A Casa de Seu Augusto', 'capitulos/checkpoint-zumbi-capitulo-05-a-casa-de-seu-augusto.html'],
+        ['Capítulo 6: Duas Baterias e a Loja de Som', 'capitulos/checkpoint-zumbi-capitulo-06-duas-baterias-e-a-loja-de-som.html'],
+        ['Capítulo 7: A Viatura Tática e a Maleta', 'capitulos/checkpoint-zumbi-capitulo-07-a-viatura-tatica-e-a-maleta.html'],
+        ['Capítulo 8: Manual, Fumaça, Jornal, Mapa e Inventário', 'capitulos/checkpoint-zumbi-capitulo-08-manual-fumaca-jornal-mapa-e-inventario.html'],
+        ['Capítulo 9: Futebol, Magão no Portão e Caixa de Som', 'capitulos/checkpoint-zumbi-capitulo-09-futebol-magao-no-portao-e-caixa-de-som.html']
+      ]
+    },
+    {
+      title: 'Crônicas',
+      href: 'obras/cronicas/',
+      chapters: [
+        ['Crônica I: A Orbe de Uriel', 'capitulos/cronicas-cronica-01.html'],
+        ['Crônica II: O Rei que Mandou os Outros Morrerem', 'capitulos/cronicas-cronica-02-o-rei-que-mandou-os-outros-morrerem.html'],
+        ['Crônica III: A Coroa Livre', 'capitulos/cronicas-cronica-03-a-coroa-livre.html'],
+        ['Crônica IV: A História dos Oito', 'capitulos/cronicas-cronica-04-a-historia-dos-oito.html'],
+        ['Crônica V: A União Livre', 'capitulos/cronicas-cronica-05-a-uniao-livre.html'],
+        ['Crônica VI: O Segundo Contrato', 'capitulos/cronicas-cronica-06-o-segundo-contrato.html'],
+        ['Crônica VII: Terra Sem Lei', 'capitulos/cronicas-cronica-07-terra-sem-lei.html'],
+        ['Crônica VIII: O Treinamento de Calessa', 'capitulos/cronicas-cronica-08-o-treinamento-de-calessa.html'],
+        ['Crônica IX: A Escola Sem Pedra', 'capitulos/cronicas-cronica-09-a-escola-sem-pedra.html'],
+        ['Crônica X: A Pedra no Covil', 'capitulos/cronicas-cronica-10-a-pedra-no-covil.html'],
+        ['Crônica XI: Tempo', 'capitulos/cronicas-cronica-11-tempo.html'],
+        ['Crônica XII: O Mundo Lembra', 'capitulos/cronicas-cronica-12-o-mundo-lembra.html'],
+        ['Crônica XIII: A Porta Por Dentro', 'capitulos/cronicas-cronica-13-a-porta-por-dentro.html']
+      ]
     },
     {
       title: 'Espaço Mortal',
