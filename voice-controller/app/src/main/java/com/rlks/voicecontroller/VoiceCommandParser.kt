@@ -147,31 +147,33 @@ object VoiceCommandParser {
         while (index < tokens.size) {
             val token = tokens[index]
 
-            twoLiteralSquares.matchEntire(token)?.let {
-                squares += "${it.groupValues[1]}${it.groupValues[2]}"
-                squares += "${it.groupValues[3]}${it.groupValues[4]}"
+            val twoSquares = twoLiteralSquares.matchEntire(token)
+            if (twoSquares != null) {
+                squares += "${twoSquares.groupValues[1]}${twoSquares.groupValues[2]}"
+                squares += "${twoSquares.groupValues[3]}${twoSquares.groupValues[4]}"
                 index += 1
-                return@let
-            }?.also { continue }
+                continue
+            }
 
-            collapsedSameFile.matchEntire(token)?.let {
-                squares += "${it.groupValues[1]}${it.groupValues[2]}"
-                squares += "${it.groupValues[1]}${it.groupValues[3]}"
+            val sameFile = collapsedSameFile.matchEntire(token)
+            if (sameFile != null) {
+                squares += "${sameFile.groupValues[1]}${sameFile.groupValues[2]}"
+                squares += "${sameFile.groupValues[1]}${sameFile.groupValues[3]}"
                 index += 1
-                return@let
-            }?.also { continue }
+                continue
+            }
 
-            oneLiteralSquare.matchEntire(token)?.let {
-                squares += "${it.groupValues[1]}${it.groupValues[2]}"
+            val oneSquare = oneLiteralSquare.matchEntire(token)
+            if (oneSquare != null) {
+                squares += "${oneSquare.groupValues[1]}${oneSquare.groupValues[2]}"
                 index += 1
-                return@let
-            }?.also { continue }
+                continue
+            }
 
             val file = fileWords[token]
             if (file != null) {
                 val next = tokens.getOrNull(index + 1)
 
-                // Google sometimes turns "E seven E five" into "E 75".
                 val fusedRanks = next?.let { rankPair.matchEntire(it) }
                 if (fusedRanks != null) {
                     squares += "$file${fusedRanks.groupValues[1]}"
@@ -191,7 +193,6 @@ object VoiceCommandParser {
                         continue
                     }
 
-                    // Another common collapse: "E seven five" -> E7 E5.
                     val sameFileSecondRank = tokens.getOrNull(index + 2)?.let { numberWords[it] }
                     if (sameFileSecondRank != null) {
                         squares += "$file$rank"
