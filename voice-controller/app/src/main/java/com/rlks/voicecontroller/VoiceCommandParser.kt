@@ -18,12 +18,31 @@ sealed class VoiceCommand {
 
 object VoiceCommandParser {
     private val numberWords = mapOf(
-        "one" to "1", "two" to "2", "three" to "3", "four" to "4",
-        "five" to "5", "six" to "6", "seven" to "7", "eight" to "8",
+        "1" to "1", "2" to "2", "3" to "3", "4" to "4",
+        "5" to "5", "6" to "6", "7" to "7", "8" to "8",
+        "one" to "1", "won" to "1",
+        "two" to "2", "to" to "2", "too" to "2",
+        "three" to "3", "tree" to "3",
+        "four" to "4", "for" to "4",
+        "five" to "5", "six" to "6", "seven" to "7",
+        "eight" to "8", "ate" to "8",
         "um" to "1", "uma" to "1", "dois" to "2", "duas" to "2",
         "tres" to "3", "quatro" to "4", "cinco" to "5", "seis" to "6",
         "sete" to "7", "oito" to "8"
     )
+
+    private val fileWords = mapOf(
+        "a" to "a", "ay" to "a", "ei" to "a",
+        "b" to "b", "be" to "b", "bee" to "b", "bi" to "b",
+        "c" to "c", "ce" to "c", "see" to "c", "sea" to "c", "si" to "c",
+        "d" to "d", "de" to "d", "dee" to "d", "di" to "d",
+        "e" to "e", "ee" to "e", "i" to "e",
+        "f" to "f", "ef" to "f", "efe" to "f",
+        "g" to "g", "ge" to "g", "gee" to "g", "ji" to "g",
+        "h" to "h", "aga" to "h", "aitch" to "h", "eitch" to "h"
+    )
+
+    private val literalSquareRegex = Regex("[a-h][1-8]")
 
     fun parse(raw: String): VoiceCommand {
         val text = normalize(raw)
@@ -72,11 +91,26 @@ object VoiceCommandParser {
             }
         }
 
-        extractSquares(text).let { squares ->
-            if (squares.size >= 2) return VoiceCommand.ChessMove(squares[0], squares[1])
-        }
+        val squares = extractSquares(text)
+        if (squares.size >= 2) return VoiceCommand.ChessMove(squares[0], squares[1])
 
         return VoiceCommand.Unknown(raw)
+    }
+
+    /**
+     * Android speech recognition commonly returns several hypotheses. Short chess
+     * coordinates are especially ambiguous (for example D = "de/dee" and 2 = "to/two").
+     * Prefer the first hypothesis that actually parses into a supported command.
+     */
+    fun parseAlternatives(candidates: List<String>): Pair<String, VoiceCommand>? {
+        val cleaned = candidates.map { it.trim() }.filter { it.isNotEmpty() }
+        if (cleaned.isEmpty()) return null
+
+        for (candidate in cleaned) {
+            val command = parse(candidate)
+            if (command !is VoiceCommand.Unknown) return candidate to command
+        }
+        return cleaned.first() to VoiceCommand.Unknown(cleaned.first())
     }
 
     fun canonicalName(raw: String): String = normalize(raw)
@@ -113,12 +147,34 @@ object VoiceCommandParser {
     }
 
     private fun extractSquares(text: String): List<String> {
-        val expanded = text.split(' ').joinToString(" ") { token -> numberWords[token] ?: token }
-        val compact = expanded.replace(Regex("([a-h])\\s+([1-8])"), "$1$2")
-        return Regex("(?<![a-z0-9])[a-h][1-8](?![a-z0-9])")
-            .findAll(compact)
-            .map { it.value }
-            .toList()
+        val tokens = text.split(' ').filter { it.isNotBlank() }
+        val squares = mutableListOf<String>()
+        var index = 0
+
+        while (index < tokens.size) {
+            val token = tokens[index]
+
+            // Handles D2 D4, D2D4, B1C3 and coordinates embedded in natural phrases.
+            val literalSquares = literalSquareRegex.findAll(token).map { it.value }.toList()
+            if (literalSquares.isNotEmpty()) {
+                squares += literalSquares
+                index += 1
+                continue
+            }
+
+            // Handles "D two", "de dois", "bê um", "cê três", etc.
+            val file = fileWords[token]
+            val rank = tokens.getOrNull(index + 1)?.let { numberWords[it] }
+            if (file != null && rank != null) {
+                squares += "$file$rank"
+                index += 2
+                continue
+            }
+
+            index += 1
+        }
+
+        return squares
     }
 
     private fun normalize(raw: String): String {
