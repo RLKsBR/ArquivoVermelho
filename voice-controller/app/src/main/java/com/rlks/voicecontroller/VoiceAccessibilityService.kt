@@ -89,6 +89,13 @@ class VoiceAccessibilityService : AccessibilityService() {
                     val phrases = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
                     val selected = VoiceCommandParser.parseAlternatives(phrases)
                     if (selected != null) {
+                        val summary = commandSummary(selected.second)
+                        if (summary != null) {
+                            message("Heard: ${selected.first} → $summary")
+                        } else {
+                            val preview = phrases.take(3).joinToString(" | ")
+                            message("Heard: $preview")
+                        }
                         processCommand(selected.first, selected.second)
                     }
                 }
@@ -118,7 +125,7 @@ class VoiceAccessibilityService : AccessibilityService() {
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 10)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
             putStringArrayListExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, chessBiasingStrings())
             when (store.language) {
@@ -131,8 +138,9 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     private fun chessBiasingStrings(): ArrayList<String> {
-        val values = ArrayList<String>(70)
+        val values = ArrayList<String>(80)
         for (file in 'A'..'H') {
+            values += file.toString()
             for (rank in 1..8) {
                 values += "$file$rank"
             }
@@ -204,10 +212,6 @@ class VoiceAccessibilityService : AccessibilityService() {
         micParams = params
     }
 
-    private fun processPhrase(raw: String) {
-        processCommand(raw, VoiceCommandParser.parse(raw))
-    }
-
     private fun processCommand(raw: String, command: VoiceCommand) {
         when (command) {
             is VoiceCommand.ChessMove -> executeChessMove(command.from, command.to)
@@ -232,9 +236,22 @@ class VoiceAccessibilityService : AccessibilityService() {
             is VoiceCommand.Unknown -> {
                 val name = VoiceCommandParser.canonicalName(command.raw)
                 if (store.hasPoint(name)) tapNamedPoint(name)
-                else message("Heard: $raw. Use origin + destination for chess.")
             }
         }
+    }
+
+    private fun commandSummary(command: VoiceCommand): String? = when (command) {
+        is VoiceCommand.ChessMove -> "${command.from.uppercase()} ${command.to.uppercase()}"
+        is VoiceCommand.Castle -> if (command.kingside) "CASTLE KINGSIDE" else "CASTLE QUEENSIDE"
+        VoiceCommand.CalibrateBoard -> "CALIBRATE BOARD"
+        is VoiceCommand.SetOrientation -> if (command.whiteBottom) "WHITE ORIENTATION" else "BLACK ORIENTATION"
+        is VoiceCommand.SetPoint -> "SET ${command.name.uppercase()}"
+        is VoiceCommand.TapPoint -> "TAP ${command.name.uppercase()}"
+        is VoiceCommand.DragPoint -> "DRAG ${command.from.uppercase()} → ${command.to.uppercase()}"
+        is VoiceCommand.TapPercent -> "TAP"
+        is VoiceCommand.DragPercent -> "DRAG"
+        VoiceCommand.Help -> "HELP"
+        is VoiceCommand.Unknown -> null
     }
 
     private fun executeChessMove(from: String, to: String) {
@@ -251,7 +268,7 @@ class VoiceAccessibilityService : AccessibilityService() {
             return
         }
         tap(a) {
-            handler.postDelayed({ tap(b) }, 75)
+            handler.postDelayed({ tap(b) }, 120)
         }
     }
 
