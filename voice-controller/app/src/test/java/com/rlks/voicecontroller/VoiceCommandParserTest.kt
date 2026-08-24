@@ -16,6 +16,30 @@ class VoiceCommandParserTest {
     }
 
     @Test
+    fun parsesCompactCoordinateMove() {
+        assertEquals(VoiceCommand.ChessMove("d2", "d4"), VoiceCommandParser.parse("D2D4"))
+        assertEquals(VoiceCommand.ChessMove("b1", "c3"), VoiceCommandParser.parse("B1C3"))
+    }
+
+    @Test
+    fun parsesPortugueseSpokenLetterNames() {
+        assertEquals(VoiceCommand.ChessMove("d2", "d4"), VoiceCommandParser.parse("dê dois dê quatro"))
+        assertEquals(VoiceCommand.ChessMove("b1", "c3"), VoiceCommandParser.parse("bê um cê três"))
+    }
+
+    @Test
+    fun parsesCommonEnglishRecognitionConfusions() {
+        assertEquals(VoiceCommand.ChessMove("d2", "d4"), VoiceCommandParser.parse("dee to dee for"))
+    }
+
+    @Test
+    fun choosesParsableSpeechAlternative() {
+        val parsed = VoiceCommandParser.parseAlternatives(listOf("D two before", "D2D4", "D two D four"))
+        assertEquals("D2D4", parsed?.first)
+        assertEquals(VoiceCommand.ChessMove("d2", "d4"), parsed?.second)
+    }
+
+    @Test
     fun parsesCastle() {
         assertEquals(VoiceCommand.Castle(true), VoiceCommandParser.parse("roque pequeno"))
     }
