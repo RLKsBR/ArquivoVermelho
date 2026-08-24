@@ -35,14 +35,17 @@ object VoiceCommandParser {
         "a" to "a", "ay" to "a", "ei" to "a",
         "b" to "b", "be" to "b", "bee" to "b", "bi" to "b",
         "c" to "c", "ce" to "c", "see" to "c", "sea" to "c", "si" to "c",
-        "d" to "d", "de" to "d", "dee" to "d", "di" to "d",
-        "e" to "e", "ee" to "e", "i" to "e",
+        "d" to "d", "de" to "d", "dee" to "d", "di" to "d", "the" to "d",
+        "e" to "e", "ee" to "e", "he" to "e",
         "f" to "f", "ef" to "f", "efe" to "f",
         "g" to "g", "ge" to "g", "gee" to "g", "ji" to "g",
         "h" to "h", "aga" to "h", "aitch" to "h", "eitch" to "h"
     )
 
-    private val literalSquareRegex = Regex("[a-h][1-8]")
+    private val twoLiteralSquares = Regex("^([a-h])([1-8])([a-h])([1-8])$")
+    private val collapsedSameFile = Regex("^([a-h])([1-8])([1-8])$")
+    private val oneLiteralSquare = Regex("^([a-h])([1-8])$")
+    private val rankPair = Regex("^([1-8])([1-8])$")
 
     fun parse(raw: String): VoiceCommand {
         val text = normalize(raw)
@@ -97,15 +100,9 @@ object VoiceCommandParser {
         return VoiceCommand.Unknown(raw)
     }
 
-    /**
-     * Android speech recognition commonly returns several hypotheses. Short chess
-     * coordinates are especially ambiguous (for example D = "de/dee" and 2 = "to/two").
-     * Prefer the first hypothesis that actually parses into a supported command.
-     */
     fun parseAlternatives(candidates: List<String>): Pair<String, VoiceCommand>? {
         val cleaned = candidates.map { it.trim() }.filter { it.isNotEmpty() }
         if (cleaned.isEmpty()) return null
-
         for (candidate in cleaned) {
             val command = parse(candidate)
             if (command !is VoiceCommand.Unknown) return candidate to command
@@ -121,13 +118,9 @@ object VoiceCommandParser {
 
     private fun parseNamedDrag(text: String): VoiceCommand.DragPoint? {
         val english = Regex("^(?:drag|move) (.+?) (?:to|into) (.+)$").matchEntire(text)
-        if (english != null) {
-            return VoiceCommand.DragPoint(canonicalName(english.groupValues[1]), canonicalName(english.groupValues[2]))
-        }
+        if (english != null) return VoiceCommand.DragPoint(canonicalName(english.groupValues[1]), canonicalName(english.groupValues[2]))
         val portuguese = Regex("^(?:arrastar|mover) (.+?) (?:para|ate) (.+)$").matchEntire(text)
-        if (portuguese != null) {
-            return VoiceCommand.DragPoint(canonicalName(portuguese.groupValues[1]), canonicalName(portuguese.groupValues[2]))
-        }
+        if (portuguese != null) return VoiceCommand.DragPoint(canonicalName(portuguese.groupValues[1]), canonicalName(portuguese.groupValues[2]))
         return null
     }
 
@@ -154,21 +147,63 @@ object VoiceCommandParser {
         while (index < tokens.size) {
             val token = tokens[index]
 
-            // Handles D2 D4, D2D4, B1C3 and coordinates embedded in natural phrases.
-            val literalSquares = literalSquareRegex.findAll(token).map { it.value }.toList()
-            if (literalSquares.isNotEmpty()) {
-                squares += literalSquares
+            twoLiteralSquares.matchEntire(token)?.let {
+                squares += "${it.groupValues[1]}${it.groupValues[2]}"
+                squares += "${it.groupValues[3]}${it.groupValues[4]}"
                 index += 1
-                continue
-            }
+                return@let
+            }?.also { continue }
 
-            // Handles "D two", "de dois", "bê um", "cê três", etc.
+            collapsedSameFile.matchEntire(token)?.let {
+                squares += "${it.groupValues[1]}${it.groupValues[2]}"
+                squares += "${it.groupValues[1]}${it.groupValues[3]}"
+                index += 1
+                return@let
+            }?.also { continue }
+
+            oneLiteralSquare.matchEntire(token)?.let {
+                squares += "${it.groupValues[1]}${it.groupValues[2]}"
+                index += 1
+                return@let
+            }?.also { continue }
+
             val file = fileWords[token]
-            val rank = tokens.getOrNull(index + 1)?.let { numberWords[it] }
-            if (file != null && rank != null) {
-                squares += "$file$rank"
-                index += 2
-                continue
+            if (file != null) {
+                val next = tokens.getOrNull(index + 1)
+
+                // Google sometimes turns "E seven E five" into "E 75".
+                val fusedRanks = next?.let { rankPair.matchEntire(it) }
+                if (fusedRanks != null) {
+                    squares += "$file${fusedRanks.groupValues[1]}"
+                    squares += "$file${fusedRanks.groupValues[2]}"
+                    index += 2
+                    continue
+                }
+
+                val rank = next?.let { numberWords[it] }
+                if (rank != null) {
+                    val secondFile = tokens.getOrNull(index + 2)?.let { fileWords[it] }
+                    val secondRank = tokens.getOrNull(index + 3)?.let { numberWords[it] }
+                    if (secondFile != null && secondRank != null) {
+                        squares += "$file$rank"
+                        squares += "$secondFile$secondRank"
+                        index += 4
+                        continue
+                    }
+
+                    // Another common collapse: "E seven five" -> E7 E5.
+                    val sameFileSecondRank = tokens.getOrNull(index + 2)?.let { numberWords[it] }
+                    if (sameFileSecondRank != null) {
+                        squares += "$file$rank"
+                        squares += "$file$sameFileSecondRank"
+                        index += 3
+                        continue
+                    }
+
+                    squares += "$file$rank"
+                    index += 2
+                    continue
+                }
             }
 
             index += 1
