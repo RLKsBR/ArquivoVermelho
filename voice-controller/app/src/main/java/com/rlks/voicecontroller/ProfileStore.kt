@@ -1,6 +1,8 @@
 package com.rlks.voicecontroller
 
 import android.content.Context
+import android.content.SharedPreferences
+import kotlin.math.abs
 
 class ProfileStore(context: Context) {
     private val prefs = context.getSharedPreferences("voice_controller", Context.MODE_PRIVATE)
@@ -13,25 +15,34 @@ class ProfileStore(context: Context) {
         get() = prefs.getString(KEY_PENDING_CALIBRATION, PENDING_NONE) ?: PENDING_NONE
         set(value) = prefs.edit().putString(KEY_PENDING_CALIBRATION, value).apply()
 
+    var calibrationWizardActive: Boolean
+        get() = prefs.getBoolean(KEY_CALIBRATION_WIZARD, false)
+        set(value) = prefs.edit().putBoolean(KEY_CALIBRATION_WIZARD, value).apply()
+
+    var foregroundPackage: String
+        get() = prefs.getString(KEY_FOREGROUND_PACKAGE, "").orEmpty()
+        set(value) = prefs.edit().putString(KEY_FOREGROUND_PACKAGE, value).apply()
+
+    var lastScreenshotUri: String
+        get() = prefs.getString(KEY_LAST_SCREENSHOT_URI, "").orEmpty()
+        set(value) = prefs.edit().putString(KEY_LAST_SCREENSHOT_URI, value).apply()
+
     fun saveBoardRows(rows: Map<Int, TftRow>): Boolean {
         if ((1..4).any { rows[it] == null }) return false
         val editor = prefs.edit()
-        for (rank in 1..4) {
-            val row = rows.getValue(rank)
-            editor.putString("tft_board_${rank}_left", encodePoint(row.left))
-            editor.putString("tft_board_${rank}_right", encodePoint(row.right))
-        }
+        putBoardRows(editor, rows)
         return editor.commit()
     }
 
-    fun saveFullCalibration(calibration: TftCalibration): Boolean {
+    fun saveCoreCalibration(
+        calibration: TftCoreCalibration,
+        displayWidth: Int,
+        displayHeight: Int,
+        rotation: Int
+    ): Boolean {
         if ((1..4).any { calibration.boardRows[it] == null }) return false
         val editor = prefs.edit()
-        for (rank in 1..4) {
-            val row = calibration.boardRows.getValue(rank)
-            editor.putString("tft_board_${rank}_left", encodePoint(row.left))
-            editor.putString("tft_board_${rank}_right", encodePoint(row.right))
-        }
+        putBoardRows(editor, calibration.boardRows)
         editor.putString("${KEY_BENCH_LINE}_first", encodePoint(calibration.benchLine.first))
         editor.putString("${KEY_BENCH_LINE}_last", encodePoint(calibration.benchLine.last))
         editor.putString("${KEY_SHOP_LINE}_first", encodePoint(calibration.shopLine.first))
@@ -40,9 +51,9 @@ class ProfileStore(context: Context) {
         editor.putString("tft_point_${key(POINT_XP)}", encodePoint(calibration.xp))
         editor.putString("tft_point_${key(POINT_SHOP_TOGGLE)}", encodePoint(calibration.shopToggle))
         editor.putString("tft_point_${key(POINT_SELL)}", encodePoint(calibration.sell))
-        editor.putString("tft_region_${key(REGION_ITEMS)}", encodeRect(calibration.items))
-        editor.putString("tft_region_${key(REGION_TRAITS)}", encodeRect(calibration.traits))
-        editor.putString("tft_region_${key(REGION_CHOICES)}", encodeRect(calibration.choices))
+        editor.putInt(KEY_CALIBRATION_WIDTH, displayWidth)
+        editor.putInt(KEY_CALIBRATION_HEIGHT, displayHeight)
+        editor.putInt(KEY_CALIBRATION_ROTATION, rotation)
         return editor.commit()
     }
 
@@ -56,14 +67,9 @@ class ProfileStore(context: Context) {
         return rows
     }
 
-    fun saveBenchLine(first: NormalizedPoint, last: NormalizedPoint): Boolean =
-        saveLine(KEY_BENCH_LINE, first, last)
-
+    fun saveBenchLine(first: NormalizedPoint, last: NormalizedPoint): Boolean = saveLine(KEY_BENCH_LINE, first, last)
     fun getBenchLine(): TftLine? = getLine(KEY_BENCH_LINE)
-
-    fun saveShopLine(first: NormalizedPoint, last: NormalizedPoint): Boolean =
-        saveLine(KEY_SHOP_LINE, first, last)
-
+    fun saveShopLine(first: NormalizedPoint, last: NormalizedPoint): Boolean = saveLine(KEY_SHOP_LINE, first, last)
     fun getShopLine(): TftLine? = getLine(KEY_SHOP_LINE)
 
     fun savePoint(name: String, point: NormalizedPoint): Boolean =
@@ -75,27 +81,37 @@ class ProfileStore(context: Context) {
     fun hasPoint(name: String): Boolean = getPoint(name) != null
 
     fun saveRegion(name: String, rect: NormalizedRect): Boolean =
-        prefs.edit().putString(
-            "tft_region_${key(name)}",
-            "${rect.left},${rect.top},${rect.right},${rect.bottom}"
-        ).commit()
+        prefs.edit().putString("tft_region_${key(name)}", encodeRect(rect)).commit()
 
     fun getRegion(name: String): NormalizedRect? {
         val raw = prefs.getString("tft_region_${key(name)}", null) ?: return null
-        val p = raw.split(',').mapNotNull { it.toFloatOrNull() }
-        if (p.size != 4) return null
-        return NormalizedRect(p[0], p[1], p[2], p[3])
+        val pieces = raw.split(',').mapNotNull { it.toFloatOrNull() }
+        if (pieces.size != 4) return null
+        return NormalizedRect(pieces[0], pieces[1], pieces[2], pieces[3])
+    }
+
+    fun isCalibrationGeometryCurrent(width: Int, height: Int, rotation: Int): Boolean {
+        val storedWidth = prefs.getInt(KEY_CALIBRATION_WIDTH, 0)
+        val storedHeight = prefs.getInt(KEY_CALIBRATION_HEIGHT, 0)
+        val storedRotation = prefs.getInt(KEY_CALIBRATION_ROTATION, -1)
+        if (storedWidth <= 0 || storedHeight <= 0 || storedRotation < 0) return false
+        return abs(width - storedWidth) <= maxOf(8, storedWidth / 100) &&
+            abs(height - storedHeight) <= maxOf(8, storedHeight / 100) &&
+            rotation == storedRotation
     }
 
     fun calibrationSummary(): String {
         fun mark(ok: Boolean) = if (ok) "✓" else "—"
+        val width = prefs.getInt(KEY_CALIBRATION_WIDTH, 0)
+        val height = prefs.getInt(KEY_CALIBRATION_HEIGHT, 0)
         return buildString {
             append("${mark(getBoardRows().size == 4)} Tabuleiro A1–G4\n")
             append("${mark(getBenchLine() != null)} Banco 1–9\n")
             append("${mark(getShopLine() != null)} Loja 1–5\n")
             append("${mark(hasPoint(POINT_REROLL))} Rolar   ${mark(hasPoint(POINT_XP))} XP   ${mark(hasPoint(POINT_SHOP_TOGGLE))} Botão loja\n")
             append("${mark(hasPoint(POINT_SELL))} Venda   ${mark(getRegion(REGION_ITEMS) != null)} Itens   ${mark(getRegion(REGION_TRAITS) != null)} Sinergias\n")
-            append("${mark(getRegion(REGION_CHOICES) != null)} Escolhas/aprimoramentos")
+            append("${mark(getRegion(REGION_CHOICES) != null)} Escolhas/aprimoramentos\n")
+            append(if (width > 0 && height > 0) "✓ Tela salva: ${width}×${height}" else "— Tela/orientação ainda não registradas")
         }
     }
 
@@ -118,11 +134,17 @@ class ProfileStore(context: Context) {
         get() = prefs.getString(KEY_VISION_STATUS, "Visão ainda não testada.") ?: "Visão ainda não testada."
         set(value) = prefs.edit().putString(KEY_VISION_STATUS, value).apply()
 
+    private fun putBoardRows(editor: SharedPreferences.Editor, rows: Map<Int, TftRow>) {
+        for (rank in 1..4) {
+            val row = rows.getValue(rank)
+            editor.putString("tft_board_${rank}_left", encodePoint(row.left))
+            editor.putString("tft_board_${rank}_right", encodePoint(row.right))
+        }
+    }
+
     private fun saveLine(key: String, first: NormalizedPoint, last: NormalizedPoint): Boolean =
-        prefs.edit()
-            .putString("${key}_first", encodePoint(first))
-            .putString("${key}_last", encodePoint(last))
-            .commit()
+        prefs.edit().putString("${key}_first", encodePoint(first))
+            .putString("${key}_last", encodePoint(last)).commit()
 
     private fun getLine(key: String): TftLine? {
         val first = decodePoint(prefs.getString("${key}_first", null)) ?: return null
@@ -132,20 +154,23 @@ class ProfileStore(context: Context) {
 
     private fun addLogEntry(entry: String) {
         val existing = prefs.getString(KEY_RECOGNITION_LOG, "").orEmpty()
-            .split(LOG_SEPARATOR)
-            .filter { it.isNotBlank() }
-        prefs.edit().putString(KEY_RECOGNITION_LOG, (listOf(entry) + existing).take(12).joinToString(LOG_SEPARATOR)).apply()
+            .split(LOG_SEPARATOR).filter { it.isNotBlank() }
+        prefs.edit().putString(
+            KEY_RECOGNITION_LOG,
+            (listOf(entry) + existing).take(12).joinToString(LOG_SEPARATOR)
+        ).apply()
     }
 
     private fun encodePoint(point: NormalizedPoint) = "${point.x},${point.y}"
-
-    private fun encodeRect(rect: NormalizedRect) =
-        "${rect.left},${rect.top},${rect.right},${rect.bottom}"
+    private fun encodeRect(rect: NormalizedRect) = "${rect.left},${rect.top},${rect.right},${rect.bottom}"
 
     private fun decodePoint(raw: String?): NormalizedPoint? {
         val pieces = raw?.split(',') ?: return null
         if (pieces.size != 2) return null
-        return NormalizedPoint(pieces[0].toFloatOrNull() ?: return null, pieces[1].toFloatOrNull() ?: return null)
+        return NormalizedPoint(
+            pieces[0].toFloatOrNull() ?: return null,
+            pieces[1].toFloatOrNull() ?: return null
+        )
     }
 
     private fun key(value: String) = value.lowercase().replace(Regex("[^a-z0-9]+"), "_")
@@ -153,6 +178,7 @@ class ProfileStore(context: Context) {
     companion object {
         const val PENDING_NONE = "none"
         const val PENDING_ALL = "all"
+        const val PENDING_CORE = "core"
         const val PENDING_BOARD = "board"
         const val PENDING_BENCH = "bench"
         const val PENDING_SHOP = "shop"
@@ -169,13 +195,18 @@ class ProfileStore(context: Context) {
         const val POINT_XP = "xp"
         const val POINT_SHOP_TOGGLE = "shop_toggle"
         const val POINT_SELL = "sell"
-
         const val REGION_ITEMS = "items"
         const val REGION_TRAITS = "traits"
         const val REGION_CHOICES = "choices"
 
         private const val KEY_CONTINUOUS_MODE = "tft_continuous_mode"
         private const val KEY_PENDING_CALIBRATION = "tft_pending_calibration"
+        private const val KEY_CALIBRATION_WIZARD = "tft_calibration_wizard"
+        private const val KEY_CALIBRATION_WIDTH = "tft_calibration_width"
+        private const val KEY_CALIBRATION_HEIGHT = "tft_calibration_height"
+        private const val KEY_CALIBRATION_ROTATION = "tft_calibration_rotation"
+        private const val KEY_FOREGROUND_PACKAGE = "tft_foreground_package"
+        private const val KEY_LAST_SCREENSHOT_URI = "tft_last_screenshot_uri"
         private const val KEY_BENCH_LINE = "tft_bench_line"
         private const val KEY_SHOP_LINE = "tft_shop_line"
         private const val KEY_RECOGNITION_LOG = "recognition_log"
@@ -183,3 +214,4 @@ class ProfileStore(context: Context) {
         private const val LOG_SEPARATOR = "\n---VC-ENTRY---\n"
     }
 }
+

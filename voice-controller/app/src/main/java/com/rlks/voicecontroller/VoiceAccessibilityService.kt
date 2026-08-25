@@ -6,6 +6,7 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Path
 import android.graphics.PixelFormat
@@ -19,10 +20,13 @@ import android.speech.SpeechRecognizer
 import android.view.Display
 import android.view.Gravity
 import android.view.MotionEvent
+import android.view.Surface
 import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
+import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import kotlin.math.abs
@@ -46,7 +50,7 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     private val restartListening = Runnable {
         if (::store.isInitialized && store.continuousMode && !listening && captureOverlay == null &&
-            store.pendingCalibration == ProfileStore.PENDING_NONE) {
+            store.pendingCalibration == ProfileStore.PENDING_NONE && isTftForeground()) {
             startListening()
         }
     }
@@ -62,7 +66,10 @@ class VoiceAccessibilityService : AccessibilityService() {
         message("Voice Controller TFT pronto")
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        event?.packageName?.toString()?.let { store.foregroundPackage = it }
+    }
+
     override fun onInterrupt() = Unit
 
     override fun onDestroy() {
@@ -94,7 +101,10 @@ class VoiceAccessibilityService : AccessibilityService() {
     private fun activateController() {
         val pending = store.pendingCalibration
         if (pending != ProfileStore.PENDING_NONE) {
-            store.pendingCalibration = ProfileStore.PENDING_NONE
+            if (!isTftForeground()) {
+                message("Abra o TFT antes de iniciar esta etapa")
+                return
+            }
             performPendingCalibration(pending)
             return
         }
@@ -160,6 +170,10 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     private fun startListening() {
+        if (!isTftForeground()) {
+            message("Comandos bloqueados: o TFT não está em primeiro plano")
+            return
+        }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             message("Abra o Voice Controller e permita o microfone")
             return
@@ -192,6 +206,20 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     private fun processCommand(command: VoiceCommand) {
+        val safeOutsideGame = command == VoiceCommand.PauseControl ||
+            command == VoiceCommand.ResumeControl || command == VoiceCommand.Help
+        if (!safeOutsideGame && !isTftForeground()) {
+            message("Comando bloqueado: o TFT não está em primeiro plano")
+            return
+        }
+        val (displayWidth, displayHeight) = displaySize()
+        if (!safeOutsideGame &&
+            !store.isCalibrationGeometryCurrent(displayWidth, displayHeight, displayRotation())
+        ) {
+            message("A tela mudou de tamanho ou orientação. Recalibre antes de executar comandos")
+            return
+        }
+
         when (command) {
             is VoiceCommand.BuySlots -> {
                 val line = store.getShopLine()
@@ -278,68 +306,59 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     private fun performPendingCalibration(type: String) {
         when (type) {
-            ProfileStore.PENDING_ALL -> captureAll()
+            ProfileStore.PENDING_ALL, ProfileStore.PENDING_CORE -> captureCore()
             ProfileStore.PENDING_BOARD -> captureBoard()
             ProfileStore.PENDING_BENCH -> captureLine(
-                "Banco",
-                "Toque no CENTRO do banco 1",
-                "Agora toque no CENTRO do banco 9"
+                "Banco", "Toque no CENTRO do banco 1", "Agora toque no CENTRO do banco 9"
             ) { first, last -> store.saveBenchLine(first, last) }
             ProfileStore.PENDING_SHOP -> captureLine(
-                "Loja",
-                "Toque no CENTRO da carta 1 da loja",
-                "Agora toque no CENTRO da carta 5"
+                "Loja", "Toque no CENTRO da carta 1 da loja", "Agora toque no CENTRO da carta 5"
             ) { first, last -> store.saveShopLine(first, last) }
             ProfileStore.PENDING_REROLL -> capturePoint(ProfileStore.POINT_REROLL, "Toque no botão ROLAR")
             ProfileStore.PENDING_XP -> capturePoint(ProfileStore.POINT_XP, "Toque no botão de XP")
             ProfileStore.PENDING_SHOP_TOGGLE -> capturePoint(ProfileStore.POINT_SHOP_TOGGLE, "Toque no botão de abrir/fechar a loja")
             ProfileStore.PENDING_SELL -> capturePoint(ProfileStore.POINT_SELL, "Toque no CENTRO da área onde o campeão é solto para vender")
-            ProfileStore.PENDING_ITEMS -> captureRegion(ProfileStore.REGION_ITEMS, "itens")
-            ProfileStore.PENDING_TRAITS -> captureRegion(ProfileStore.REGION_TRAITS, "sinergias")
-            ProfileStore.PENDING_CHOICES -> captureRegion(ProfileStore.REGION_CHOICES, "escolhas/aprimoramentos")
+            ProfileStore.PENDING_ITEMS -> captureRegion(ProfileStore.REGION_ITEMS, "itens", guidedNext(type))
+            ProfileStore.PENDING_TRAITS -> captureRegion(ProfileStore.REGION_TRAITS, "sinergias", guidedNext(type))
+            ProfileStore.PENDING_CHOICES -> captureRegion(ProfileStore.REGION_CHOICES, "escolhas/aprimoramentos", guidedNext(type))
             ProfileStore.PENDING_SCREENSHOT_TEST -> testScreenshot()
+            else -> store.pendingCalibration = ProfileStore.PENDING_NONE
         }
     }
 
-    private fun captureAll() {
+    private fun captureCore() {
         removeCaptureOverlay()
         val steps = listOf(
-            "Toque no CENTRO de A1",
-            "Toque no CENTRO de G1",
-            "Toque no CENTRO de A2",
-            "Toque no CENTRO de G2",
-            "Toque no CENTRO de A3",
-            "Toque no CENTRO de G3",
-            "Toque no CENTRO de A4",
-            "Toque no CENTRO de G4",
-            "Toque no CENTRO do banco 1",
-            "Toque no CENTRO do banco 9",
-            "Toque no CENTRO da carta 1 da loja",
-            "Toque no CENTRO da carta 5 da loja",
-            "Toque no botão ROLAR",
-            "Toque no botão de XP",
-            "Toque no botão de abrir/fechar a loja",
-            "Toque no CENTRO da área de venda",
-            "Itens: toque no canto SUPERIOR ESQUERDO",
-            "Itens: toque no canto INFERIOR DIREITO",
-            "Sinergias: toque no canto SUPERIOR ESQUERDO",
-            "Sinergias: toque no canto INFERIOR DIREITO",
-            "Aprimoramentos: toque no canto SUPERIOR ESQUERDO",
-            "Aprimoramentos: toque no canto INFERIOR DIREITO"
+            "Toque no CENTRO de A1", "Toque no CENTRO de G1",
+            "Toque no CENTRO de A2", "Toque no CENTRO de G2",
+            "Toque no CENTRO de A3", "Toque no CENTRO de G3",
+            "Toque no CENTRO de A4", "Toque no CENTRO de G4",
+            "Toque no CENTRO do banco 1", "Toque no CENTRO do banco 9",
+            "Toque no CENTRO da carta 1 da loja", "Toque no CENTRO da carta 5 da loja",
+            "Toque no botão ROLAR", "Toque no botão de XP",
+            "Toque no botão de abrir/fechar a loja", "Toque no CENTRO da área de venda"
         )
         fun instruction(index: Int) = "${index + 1}/${steps.size} — ${steps[index]}"
-        fun rect(a: NormalizedPoint, b: NormalizedPoint) = NormalizedRect(
-            min(a.x, b.x),
-            min(a.y, b.y),
-            max(a.x, b.x),
-            max(a.y, b.y)
-        )
 
         val overlay = FrameLayout(this).apply { setBackgroundColor(Color.argb(28, 60, 180, 100)) }
         val hint = hintView(instruction(0))
         overlay.addView(hint, hintLayoutParams())
         AppNotifications.showCalibration(this, hint.text.toString())
         val points = mutableListOf<NormalizedPoint>()
+
+        addCalibrationControls(
+            overlay,
+            onBack = {
+                if (points.isNotEmpty()) {
+                    points.removeAt(points.lastIndex)
+                    hint.text = instruction(points.size)
+                    AppNotifications.showCalibration(this, hint.text.toString())
+                } else {
+                    Toast.makeText(this, "Você já está no primeiro passo", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onCancel = { cancelCalibration("Calibração cancelada; as coordenadas anteriores foram preservadas") }
+        )
 
         overlay.setOnTouchListener { _, event ->
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
@@ -352,22 +371,20 @@ class VoiceAccessibilityService : AccessibilityService() {
                         val index = (rank - 1) * 2
                         TftRow(points[index], points[index + 1])
                     }
-                    val calibration = TftCalibration(
-                        boardRows = boardRows,
-                        benchLine = TftLine(points[8], points[9]),
-                        shopLine = TftLine(points[10], points[11]),
-                        reroll = points[12],
-                        xp = points[13],
-                        shopToggle = points[14],
-                        sell = points[15],
-                        items = rect(points[16], points[17]),
-                        traits = rect(points[18], points[19]),
-                        choices = rect(points[20], points[21])
+                    val core = TftCoreCalibration(
+                        boardRows, TftLine(points[8], points[9]), TftLine(points[10], points[11]),
+                        points[12], points[13], points[14], points[15]
                     )
-                    val saved = store.saveFullCalibration(calibration)
+                    val (width, height) = displaySize()
+                    val saved = store.saveCoreCalibration(core, width, height, displayRotation())
+                    val next = when {
+                        !saved -> ProfileStore.PENDING_CORE
+                        store.calibrationWizardActive -> CalibrationFlow.next(ProfileStore.PENDING_CORE)
+                        else -> ProfileStore.PENDING_NONE
+                    }
                     finishCalibration(
-                        if (saved) "Calibração completa salva no app"
-                        else "Falha ao salvar a calibração completa"
+                        if (saved) "Calibração principal salva no app" else "Falha ao salvar a calibração principal",
+                        next
                     )
                 }
                 true
@@ -456,13 +473,25 @@ class VoiceAccessibilityService : AccessibilityService() {
         showCaptureOverlay(overlay)
     }
 
-    private fun captureRegion(name: String, label: String) {
+    private fun captureRegion(name: String, label: String, nextPending: String = ProfileStore.PENDING_NONE) {
         removeCaptureOverlay()
         val overlay = FrameLayout(this).apply { setBackgroundColor(Color.argb(22, 120, 80, 200)) }
-        val hint = hintView("Região de $label: toque no canto SUPERIOR ESQUERDO")
+        val firstText = "Região de $label: toque no canto SUPERIOR ESQUERDO"
+        val hint = hintView(firstText)
         overlay.addView(hint, hintLayoutParams())
         AppNotifications.showCalibration(this, hint.text.toString())
         var first: NormalizedPoint? = null
+
+        addCalibrationControls(
+            overlay,
+            onBack = {
+                first = null
+                hint.text = firstText
+                AppNotifications.showCalibration(this, hint.text.toString())
+            },
+            onCancel = { cancelCalibration("Calibração cancelada; as coordenadas anteriores foram preservadas") }
+        )
+
         overlay.setOnTouchListener { _, event ->
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                 val point = fromPixels(event.rawX, event.rawY)
@@ -471,14 +500,17 @@ class VoiceAccessibilityService : AccessibilityService() {
                     hint.text = "Agora toque no canto INFERIOR DIREITO"
                     AppNotifications.showCalibration(this, hint.text.toString())
                 } else {
-                    val a = first!!
+                    val firstPoint = first!!
                     val saved = store.saveRegion(
                         name,
-                        NormalizedRect(min(a.x, point.x), min(a.y, point.y), max(a.x, point.x), max(a.y, point.y))
+                        NormalizedRect(
+                            min(firstPoint.x, point.x), min(firstPoint.y, point.y),
+                            max(firstPoint.x, point.x), max(firstPoint.y, point.y)
+                        )
                     )
                     finishCalibration(
-                        if (saved) "Região de $label salva no app"
-                        else "Falha ao salvar a região de $label"
+                        if (saved) "Região de $label salva no app" else "Falha ao salvar a região de $label",
+                        if (saved) nextPending else store.pendingCalibration
                     )
                 }
                 true
@@ -487,37 +519,91 @@ class VoiceAccessibilityService : AccessibilityService() {
         showCaptureOverlay(overlay)
     }
 
-    private fun finishCalibration(text: String) {
+    private fun guidedNext(current: String): String =
+        if (store.calibrationWizardActive) CalibrationFlow.next(current) else ProfileStore.PENDING_NONE
+
+    private fun finishCalibration(text: String, nextPending: String = ProfileStore.PENDING_NONE) {
         handler.post {
             removeCaptureOverlay()
-            AppNotifications.clearCalibration(this)
-            message(text)
+            store.pendingCalibration = nextPending
+            if (nextPending == ProfileStore.PENDING_NONE) {
+                val completedWizard = store.calibrationWizardActive
+                store.calibrationWizardActive = false
+                AppNotifications.clearCalibration(this)
+                message(if (completedWizard) "$text. Calibração guiada concluída" else text)
+            } else {
+                message(text)
+                AppNotifications.showCalibration(this, CalibrationFlow.prompt(nextPending))
+            }
             scheduleContinuousRestart(500)
         }
     }
 
+    private fun cancelCalibration(text: String) {
+        store.pendingCalibration = ProfileStore.PENDING_NONE
+        store.calibrationWizardActive = false
+        removeCaptureOverlay()
+        AppNotifications.clearCalibration(this)
+        message(text)
+    }
+
     private fun testScreenshot() {
         AppNotifications.clearCalibration(this)
-        AppNotifications.showStatus(this, "Testando captura da tela do TFT...")
+        AppNotifications.showStatus(this, "Testando a imagem capturada do TFT...")
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            store.pendingCalibration = ProfileStore.PENDING_NONE
             store.visionStatus = "Screenshot via acessibilidade exige Android 11+."
             message(store.visionStatus)
             return
         }
 
-        store.visionStatus = "Testando captura..."
+        store.visionStatus = "Testando captura e conteúdo da imagem..."
         takeScreenshot(
             Display.DEFAULT_DISPLAY,
             mainExecutor,
             object : AccessibilityService.TakeScreenshotCallback {
                 override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
                     val buffer = screenshot.hardwareBuffer
-                    store.visionStatus = "OK: TFT capturável pela acessibilidade (${buffer.width}×${buffer.height})."
+                    val hardwareBitmap = Bitmap.wrapHardwareBuffer(buffer, screenshot.colorSpace)
+                    val bitmap = hardwareBitmap?.copy(Bitmap.Config.ARGB_8888, false)
                     buffer.close()
-                    message("Visão: captura OK")
+                    hardwareBitmap?.recycle()
+                    store.pendingCalibration = ProfileStore.PENDING_NONE
+
+                    if (bitmap == null) {
+                        store.visionStatus = "A captura chegou, mas não pôde ser convertida em imagem."
+                        message("Visão: falha ao converter a captura")
+                        return
+                    }
+
+                    val sample = Bitmap.createScaledBitmap(bitmap, 160, 90, true)
+                    val pixels = IntArray(sample.width * sample.height)
+                    sample.getPixels(pixels, 0, sample.width, 0, 0, sample.width, sample.height)
+                    val stats = VisionAnalyzer.analyze(pixels)
+                    if (sample !== bitmap) sample.recycle()
+
+                    val savedUri = runCatching {
+                        ScreenshotStore.save(this@VoiceAccessibilityService, bitmap)
+                    }.getOrNull()
+                    bitmap.recycle()
+                    if (savedUri != null) store.lastScreenshotUri = savedUri.toString()
+
+                    val metrics = "brilho %.1f, variação %.1f".format(
+                        stats.meanLuminance, stats.standardDeviation
+                    )
+                    store.visionStatus = when {
+                        savedUri == null -> "Imagem recebida (${stats.sampleCount} amostras; $metrics), mas falhou ao salvar em Fotos."
+                        stats.isUsable -> "OK: o TFT gerou uma imagem visível ($metrics). Salva em Pictures/Voice Controller/TFT Captures."
+                        else -> "Captura salva, mas a imagem parece preta ou sem detalhes ($metrics)."
+                    }
+                    message(
+                        if (stats.isUsable && savedUri != null) "Visão: imagem do TFT capturada e salva"
+                        else store.visionStatus
+                    )
                 }
 
                 override fun onFailure(errorCode: Int) {
+                    store.pendingCalibration = ProfileStore.PENDING_NONE
                     store.visionStatus = "Falhou a captura do TFT. Código Android: $errorCode"
                     message("Visão: captura falhou ($errorCode)")
                 }
@@ -640,6 +726,48 @@ class VoiceAccessibilityService : AccessibilityService() {
         handler.postDelayed(resetMic, durationMs)
     }
 
+    private fun addCalibrationControls(
+        overlay: FrameLayout,
+        onBack: () -> Unit,
+        onCancel: () -> Unit
+    ) {
+        val bar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+            setBackgroundColor(Color.argb(225, 20, 22, 28))
+        }
+        val child = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        bar.addView(Button(this).apply {
+            text = "Voltar um passo"
+            isAllCaps = false
+            setOnClickListener { onBack() }
+        }, child)
+        bar.addView(Button(this).apply {
+            text = "Cancelar"
+            isAllCaps = false
+            setOnClickListener { onCancel() }
+        }, child)
+        overlay.addView(
+            bar,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply { gravity = Gravity.BOTTOM }
+        )
+    }
+
+    private fun isTftForeground(): Boolean =
+        store.foregroundPackage == TFT_PACKAGE || store.foregroundPackage == TFT_PBE_PACKAGE
+
+    private fun displaySize(): Pair<Int, Int> =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            windowManager.currentWindowMetrics.bounds.let { it.width() to it.height() }
+        } else {
+            resources.displayMetrics.let { it.widthPixels to it.heightPixels }
+        }
+
+    private fun displayRotation(): Int = display?.rotation ?: Surface.ROTATION_0
+
     private fun showCaptureOverlay(view: View) {
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -674,26 +802,32 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     private fun toPixels(point: NormalizedPoint): Pair<Float, Float> {
-        val metrics = resources.displayMetrics
-        return point.x * metrics.widthPixels to point.y * metrics.heightPixels
+        val (width, height) = displaySize()
+        return point.x * width to point.y * height
     }
 
     private fun fromPixels(x: Float, y: Float): NormalizedPoint {
-        val metrics = resources.displayMetrics
+        val (width, height) = displaySize()
         return NormalizedPoint(
-            (x / metrics.widthPixels).coerceIn(0f, 1f),
-            (y / metrics.heightPixels).coerceIn(0f, 1f)
+            (x / width).coerceIn(0f, 1f),
+            (y / height).coerceIn(0f, 1f)
         )
     }
 
     private fun message(text: String) {
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
         val normalized = text.lowercase()
-        val isProblem = listOf("falha", "falhou", "erro", "indisponível", "calibre", "marque", "permita", "exige")
+        val isProblem = listOf("falha", "falhou", "erro", "indisponível", "calibre", "recalibre", "marque", "permita", "exige", "preta", "bloqueado")
             .any { it in normalized }
         if (isProblem) AppNotifications.showError(this, text)
         else AppNotifications.showStatus(this, text)
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    companion object {
+        private const val TFT_PACKAGE = "com.riotgames.league.teamfighttactics"
+        private const val TFT_PBE_PACKAGE = "com.riotgames.league.teamfighttactics.pbe"
+    }
 }
+

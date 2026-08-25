@@ -6,11 +6,14 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
+import android.view.WindowInsets
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -23,11 +26,17 @@ class MainActivity : Activity() {
     private lateinit var visionStatus: TextView
     private lateinit var speechLog: TextView
     private lateinit var modeButton: Button
+    private lateinit var skipButton: Button
+    private lateinit var cancelButton: Button
+    private lateinit var visionPreview: ImageView
+    private lateinit var openScreenshotButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = ProfileStore(this)
         AppNotifications.createChannels(this)
+        window.statusBarColor = Color.rgb(18, 20, 24)
+        window.navigationBarColor = Color.rgb(18, 20, 24)
         setContentView(buildUi())
         requestRequiredPermissions()
     }
@@ -38,10 +47,29 @@ class MainActivity : Activity() {
     }
 
     private fun buildUi(): View {
+        val basePadding = dp(18)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(18), dp(18), dp(28))
+            setPadding(basePadding, basePadding, basePadding, dp(28))
             setBackgroundColor(Color.rgb(18, 20, 24))
+            setOnApplyWindowInsetsListener { view, insets ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val bars = insets.getInsets(WindowInsets.Type.systemBars())
+                    view.setPadding(
+                        basePadding + bars.left, basePadding + bars.top,
+                        basePadding + bars.right, dp(28) + bars.bottom
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    view.setPadding(
+                        basePadding + insets.systemWindowInsetLeft,
+                        basePadding + insets.systemWindowInsetTop,
+                        basePadding + insets.systemWindowInsetRight,
+                        dp(28) + insets.systemWindowInsetBottom
+                    )
+                }
+                insets
+            }
         }
 
         root.addView(TextView(this).apply {
@@ -49,9 +77,8 @@ class MainActivity : Activity() {
             textSize = 28f
             setTextColor(Color.WHITE)
         })
-
         root.addView(TextView(this).apply {
-            text = "TFT-only • voz em português • taps e drags • calibração salva no aparelho"
+            text = "TFT-only • voz em português • taps e drags • coordenadas salvas no aparelho"
             textSize = 14f
             setTextColor(Color.LTGRAY)
             setPadding(0, dp(6), 0, dp(14))
@@ -59,7 +86,6 @@ class MainActivity : Activity() {
 
         status = bodyBox()
         root.addView(status)
-
         root.addView(button("1. Permitir microfone e notificações") { requestRequiredPermissions(true) })
         root.addView(button("2. Ativar Voice Controller na Acessibilidade") {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -73,21 +99,41 @@ class MainActivity : Activity() {
 
         root.addView(section("CALIBRAÇÃO TFT"))
         root.addView(TextView(this).apply {
-            text = "Toque no botão abaixo uma vez. Depois abra o TFT e toque UMA vez no botão de acessibilidade do Android (ou no 🎙, se aparecer). O app conduz os 22 toques em sequência e salva tudo junto no final."
+            text = "Inicie uma vez. O app marca primeiro os 16 pontos visíveis na partida e salva imediatamente. Depois pausa e avisa quando você precisa abrir itens, sinergias ou uma tela de escolha. Durante a marcação há Voltar e Cancelar."
             textSize = 13f
             setTextColor(Color.LTGRAY)
             setPadding(0, 0, 0, dp(8))
         })
-
         calibrationStatus = bodyBox()
         root.addView(calibrationStatus)
-
-        root.addView(button("Calibrar tudo em sequência (22 toques)") { queue(ProfileStore.PENDING_ALL) })
+        root.addView(button("Iniciar calibração guiada") { startCalibrationWizard() })
+        skipButton = button("Pular etapa contextual atual") { skipCurrentStage() }
+        root.addView(skipButton)
+        cancelButton = button("Cancelar calibração guiada") { cancelCalibrationWizard() }
+        root.addView(cancelButton)
 
         root.addView(section("TESTE DE VISÃO"))
-        root.addView(button("Testar screenshot do TFT") { queue(ProfileStore.PENDING_SCREENSHOT_TEST) })
+        root.addView(TextView(this).apply {
+            text = "A captura é convertida em imagem, verificada contra tela preta/sem detalhes e salva em Fotos: Pictures/Voice Controller/TFT Captures."
+            textSize = 13f
+            setTextColor(Color.LTGRAY)
+            setPadding(0, 0, 0, dp(8))
+        })
+        root.addView(button("Testar e salvar screenshot do TFT") { queueScreenshotTest() })
         visionStatus = bodyBox()
         root.addView(visionStatus)
+        visionPreview = ImageView(this).apply {
+            adjustViewBounds = true
+            maxHeight = dp(230)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            contentDescription = "Miniatura da última screenshot do TFT"
+            visibility = View.GONE
+        }
+        root.addView(visionPreview)
+        openScreenshotButton = button("Abrir última screenshot") { openLastScreenshot() }.apply {
+            isEnabled = false
+        }
+        root.addView(openScreenshotButton)
 
         root.addView(section("COMANDOS INICIAIS"))
         root.addView(TextView(this).apply {
@@ -105,21 +151,92 @@ class MainActivity : Activity() {
             refreshAll()
         })
 
-        return ScrollView(this).apply { addView(root) }
+        return ScrollView(this).apply {
+            clipToPadding = false
+            addView(root)
+        }
     }
 
-    private fun queue(type: String) {
-        store.pendingCalibration = type
-        AppNotifications.showCalibration(
-            this,
-            "Abra o TFT e toque uma vez no botão de acessibilidade ou no 🎙."
-        )
+    private fun startCalibrationWizard() {
+        store.calibrationWizardActive = true
+        store.pendingCalibration = ProfileStore.PENDING_CORE
+        AppNotifications.showCalibration(this, CalibrationFlow.prompt(ProfileStore.PENDING_CORE))
         Toast.makeText(
             this,
-            "Pronto. Abra o TFT e toque no botão de acessibilidade uma vez. Depois siga os 22 passos.",
+            "Abra o TFT e toque no 🎙. As coordenadas serão salvas ao fim de cada etapa.",
             Toast.LENGTH_LONG
         ).show()
         refreshAll()
+    }
+
+    private fun skipCurrentStage() {
+        if (!store.calibrationWizardActive) return
+        val next = CalibrationFlow.next(store.pendingCalibration)
+        store.pendingCalibration = next
+        if (next == ProfileStore.PENDING_NONE) {
+            store.calibrationWizardActive = false
+            AppNotifications.clearCalibration(this)
+            Toast.makeText(
+                this,
+                "Calibração guiada encerrada. Você pode marcar essa região depois.",
+                Toast.LENGTH_LONG
+            ).show()
+        } else {
+            AppNotifications.showCalibration(this, CalibrationFlow.prompt(next))
+            Toast.makeText(
+                this,
+                "Etapa pulada. Próxima: ${CalibrationFlow.label(next)}.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+        refreshAll()
+    }
+
+    private fun cancelCalibrationWizard() {
+        store.pendingCalibration = ProfileStore.PENDING_NONE
+        store.calibrationWizardActive = false
+        AppNotifications.clearCalibration(this)
+        Toast.makeText(
+            this,
+            "Calibração cancelada; coordenadas já salvas foram preservadas.",
+            Toast.LENGTH_LONG
+        ).show()
+        refreshAll()
+    }
+
+    private fun queueScreenshotTest() {
+        if (store.calibrationWizardActive) {
+            Toast.makeText(
+                this,
+                "Conclua ou cancele a calibração guiada antes do teste de visão.",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+        store.pendingCalibration = ProfileStore.PENDING_SCREENSHOT_TEST
+        AppNotifications.showCalibration(
+            this,
+            "Abra o TFT e toque uma vez no 🎙 para testar e salvar a imagem."
+        )
+        Toast.makeText(this, "Abra o TFT e toque no 🎙 para capturar.", Toast.LENGTH_LONG).show()
+        refreshAll()
+    }
+
+    private fun openLastScreenshot() {
+        val raw = store.lastScreenshotUri
+        if (raw.isBlank()) return
+        runCatching {
+            startActivity(Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(Uri.parse(raw), "image/jpeg")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            })
+        }.onFailure {
+            Toast.makeText(
+                this,
+                "Não encontrei um app capaz de abrir a screenshot.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
     private fun refreshAll() {
@@ -128,17 +245,45 @@ class MainActivity : Activity() {
         val notifications = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         val access = isAccessibilityEnabled()
-        status.text = "Microfone: ${if (mic) "OK" else "permissão necessária"}   •   Notificações: ${if (notifications) "OK" else "permissão necessária"}   •   Acessibilidade: ${if (access) "ON" else "OFF"}"
-        status.setTextColor(if (mic && notifications && access) Color.rgb(130, 230, 150) else Color.rgb(255, 190, 100))
+        val tftDetected = store.foregroundPackage in TFT_PACKAGES
+        val foreground = when {
+            tftDetected -> "TFT detectado ✓"
+            store.foregroundPackage.isBlank() -> "TFT ainda não detectado"
+            else -> "TFT fora de foco"
+        }
+        status.text = "Microfone: ${if (mic) "OK" else "permissão necessária"}   •   Notificações: ${if (notifications) "OK" else "permissão necessária"}   •   Acessibilidade: ${if (access) "ON" else "OFF"}\n$foreground"
+        status.setTextColor(
+            if (mic && notifications && access) Color.rgb(130, 230, 150)
+            else Color.rgb(255, 190, 100)
+        )
         modeButton.text = "Modo partida contínuo: ${if (store.continuousMode) "LIGADO" else "DESLIGADO"}"
-        calibrationStatus.text = store.calibrationSummary() + "\n\nPendente: ${store.pendingCalibration}"
+
+        val pending = store.pendingCalibration
+        calibrationStatus.text = store.calibrationSummary() +
+            "\n\nEtapa pendente: ${CalibrationFlow.label(pending)}"
+        skipButton.isEnabled = store.calibrationWizardActive && pending in CONTEXT_STAGES
+        cancelButton.isEnabled = store.calibrationWizardActive
+
         visionStatus.text = store.visionStatus
+        val screenshot = store.lastScreenshotUri
+        openScreenshotButton.isEnabled = screenshot.isNotBlank()
+        if (screenshot.isBlank()) {
+            visionPreview.visibility = View.GONE
+            visionPreview.setImageDrawable(null)
+        } else {
+            visionPreview.visibility = View.VISIBLE
+            runCatching { visionPreview.setImageURI(Uri.parse(screenshot)) }
+                .onFailure { visionPreview.setImageDrawable(null) }
+        }
         speechLog.text = store.getRecognitionLog()
     }
 
     private fun isAccessibilityEnabled(): Boolean {
         val expected = ComponentName(this, VoiceAccessibilityService::class.java).flattenToString()
-        val enabled = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: return false
+        val enabled = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ) ?: return false
         return enabled.split(':').any { it.equals(expected, ignoreCase = true) }
     }
 
@@ -151,6 +296,11 @@ class MainActivity : Activity() {
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
             missing += Manifest.permission.POST_NOTIFICATIONS
+        }
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        ) {
+            missing += Manifest.permission.WRITE_EXTERNAL_STORAGE
         }
         if (missing.isNotEmpty()) {
             requestPermissions(missing.toTypedArray(), 10)
@@ -180,4 +330,17 @@ class MainActivity : Activity() {
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    companion object {
+        private val TFT_PACKAGES = setOf(
+            "com.riotgames.league.teamfighttactics",
+            "com.riotgames.league.teamfighttactics.pbe"
+        )
+        private val CONTEXT_STAGES = setOf(
+            ProfileStore.PENDING_ITEMS,
+            ProfileStore.PENDING_TRAITS,
+            ProfileStore.PENDING_CHOICES
+        )
+    }
 }
+
