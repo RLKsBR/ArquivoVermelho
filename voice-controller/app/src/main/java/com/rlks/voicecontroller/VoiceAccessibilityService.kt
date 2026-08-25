@@ -34,11 +34,15 @@ class VoiceAccessibilityService : AccessibilityService() {
     private var micView: TextView? = null
     private var speechRecognizer: SpeechRecognizer? = null
     private var captureOverlay: View? = null
-    private var diagnosticView: TextView? = null
     private var listening = false
 
-    private val hideDiagnostic = Runnable {
-        diagnosticView?.visibility = View.GONE
+    private val resetMic = Runnable {
+        if (!listening) {
+            micView?.apply {
+                text = "🎙"
+                textSize = 27f
+            }
+        }
     }
 
     override fun onServiceConnected() {
@@ -47,7 +51,6 @@ class VoiceAccessibilityService : AccessibilityService() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         createSpeechRecognizer()
         showMicrophoneOverlay()
-        showDiagnosticOverlay()
         message("Voice Controller ready")
     }
 
@@ -55,10 +58,8 @@ class VoiceAccessibilityService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     override fun onDestroy() {
-        handler.removeCallbacks(hideDiagnostic)
+        handler.removeCallbacks(resetMic)
         removeCaptureOverlay()
-        diagnosticView?.let { runCatching { windowManager.removeView(it) } }
-        diagnosticView = null
         micView?.let { runCatching { windowManager.removeView(it) } }
         micView = null
         speechRecognizer?.destroy()
@@ -75,7 +76,10 @@ class VoiceAccessibilityService : AccessibilityService() {
             recognizer.setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {
                     listening = true
-                    micView?.text = "●"
+                    micView?.apply {
+                        text = "●"
+                        textSize = 22f
+                    }
                 }
 
                 override fun onBeginningOfSpeech() = Unit
@@ -85,20 +89,28 @@ class VoiceAccessibilityService : AccessibilityService() {
 
                 override fun onError(error: Int) {
                     listening = false
-                    micView?.text = "🎙"
-                    if (error != SpeechRecognizer.ERROR_NO_MATCH && error != SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                        showDiagnosticText("Speech error: $error")
-                    } else {
-                        showDiagnosticText("No speech match")
+                    val description = when (error) {
+                        SpeechRecognizer.ERROR_NO_MATCH -> "No speech match"
+                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Speech timeout"
+                        else -> "Speech error $error"
                     }
+                    store.addRecognitionError(description)
+                    showMicTemporary(if (error == SpeechRecognizer.ERROR_NO_MATCH) "?" else "ERR")
                 }
 
                 override fun onResults(results: Bundle?) {
                     listening = false
-                    micView?.text = "🎙"
                     val phrases = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
                     val selected = VoiceCommandParser.parseAlternatives(phrases)
-                    showRecognitionDiagnostic(phrases, selected)
+                    val summary = selected?.second?.let { commandSummary(it) }
+                    store.addRecognitionLog(phrases, summary)
+
+                    if (summary != null) {
+                        showMicTemporary(summary.replace(" ", "").replace("→", "").take(7))
+                    } else {
+                        showMicTemporary("?")
+                    }
+
                     if (selected != null) {
                         processCommand(selected.first, selected.second)
                     }
@@ -108,6 +120,15 @@ class VoiceAccessibilityService : AccessibilityService() {
                 override fun onEvent(eventType: Int, params: Bundle?) = Unit
             })
         }
+    }
+
+    private fun showMicTemporary(value: String, durationMs: Long = 2500L) {
+        handler.removeCallbacks(resetMic)
+        micView?.apply {
+            text = value
+            textSize = if (value.length <= 2) 23f else 10f
+        }
+        handler.postDelayed(resetMic, durationMs)
     }
 
     private fun startListening() {
@@ -120,15 +141,17 @@ class VoiceAccessibilityService : AccessibilityService() {
             speechRecognizer
         } ?: return
 
+        handler.removeCallbacks(resetMic)
+
         if (listening) {
             recognizer.cancel()
             listening = false
-            micView?.text = "🎙"
+            micView?.apply {
+                text = "🎙"
+                textSize = 27f
+            }
             return
         }
-
-        handler.removeCallbacks(hideDiagnostic)
-        diagnosticView?.visibility = View.GONE
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -140,7 +163,10 @@ class VoiceAccessibilityService : AccessibilityService() {
                 ProfileStore.LANG_PT -> putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR")
             }
         }
-        micView?.text = "…"
+        micView?.apply {
+            text = "…"
+            textSize = 22f
+        }
         recognizer.startListening(intent)
     }
 
@@ -169,8 +195,6 @@ class VoiceAccessibilityService : AccessibilityService() {
             }
         }
 
-        // Frequent opening coordinates get extra bias because short alphanumeric speech
-        // is where Android recognition tends to struggle the most.
         values += listOf(
             "E two E four", "D two D four", "A two A four", "H two H four",
             "G one F three", "B one C three", "E seven E five", "D seven D five",
@@ -242,58 +266,6 @@ class VoiceAccessibilityService : AccessibilityService() {
 
         windowManager.addView(view, params)
         micView = view
-    }
-
-    private fun showDiagnosticOverlay() {
-        if (diagnosticView != null) return
-        val view = TextView(this).apply {
-            visibility = View.GONE
-            textSize = 13f
-            setTextColor(Color.WHITE)
-            setBackgroundColor(Color.argb(235, 20, 22, 28))
-            setPadding(dp(12), dp(9), dp(12), dp(9))
-            maxLines = 7
-        }
-        val params = WindowManager.LayoutParams(
-            resources.displayMetrics.widthPixels - dp(24),
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = dp(12)
-            y = dp(56)
-        }
-        windowManager.addView(view, params)
-        diagnosticView = view
-    }
-
-    private fun showRecognitionDiagnostic(
-        phrases: List<String>,
-        selected: Pair<String, VoiceCommand>?
-    ) {
-        val lines = mutableListOf<String>()
-        val summary = selected?.second?.let { commandSummary(it) }
-        lines += if (summary != null) "PARSED: $summary" else "PARSED: UNKNOWN"
-        if (phrases.isEmpty()) {
-            lines += "HEARD: <nothing>"
-        } else {
-            phrases.take(5).forEachIndexed { index, phrase ->
-                lines += "${index + 1}. $phrase"
-            }
-        }
-        showDiagnosticText(lines.joinToString("\n"))
-    }
-
-    private fun showDiagnosticText(text: String) {
-        val view = diagnosticView ?: return
-        handler.removeCallbacks(hideDiagnostic)
-        view.text = text
-        view.visibility = View.VISIBLE
-        handler.postDelayed(hideDiagnostic, 20_000)
     }
 
     private fun processCommand(raw: String, command: VoiceCommand) {
