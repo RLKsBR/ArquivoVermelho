@@ -36,6 +36,19 @@ class VoiceCommandParserTest {
     }
 
     @Test
+    fun parsesAWhenRecognizerReturnsEight() {
+        assertEquals(VoiceCommand.ChessMove("a2", "a4"), VoiceCommandParser.parse("8 2 8 4"))
+        assertEquals(VoiceCommand.ChessMove("a2", "a4"), VoiceCommandParser.parse("eight two eight four"))
+        assertEquals(VoiceCommand.ChessMove("a2", "a4"), VoiceCommandParser.parse("82 84"))
+        assertEquals(VoiceCommand.ChessMove("a2", "a4"), VoiceCommandParser.parse("8284"))
+    }
+
+    @Test
+    fun keepsEightAsRankWhenItIsInRankPosition() {
+        assertEquals(VoiceCommand.ChessMove("g8", "f6"), VoiceCommandParser.parse("G eight F six"))
+    }
+
+    @Test
     fun parsesPortugueseSpokenLetterNames() {
         assertEquals(VoiceCommand.ChessMove("d2", "d4"), VoiceCommandParser.parse("dê dois dê quatro"))
         assertEquals(VoiceCommand.ChessMove("b1", "c3"), VoiceCommandParser.parse("bê um cê três"))
