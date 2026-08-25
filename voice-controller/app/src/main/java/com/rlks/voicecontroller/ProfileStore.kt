@@ -57,6 +57,37 @@ class ProfileStore(context: Context) {
     fun hasPoint(name: String, profile: String = this.profile): Boolean =
         prefs.contains(pointKey(profile, name))
 
+    fun addRecognitionLog(phrases: List<String>, parsed: String?) {
+        val compactPhrases = if (phrases.isEmpty()) {
+            "<nothing>"
+        } else {
+            phrases.take(6).joinToString(" | ")
+        }
+        val entry = "PARSED: ${parsed ?: "UNKNOWN"}\nRAW: $compactPhrases"
+        val existing = prefs.getString(KEY_RECOGNITION_LOG, "").orEmpty()
+            .split(LOG_SEPARATOR)
+            .filter { it.isNotBlank() }
+        val updated = (listOf(entry) + existing).take(12).joinToString(LOG_SEPARATOR)
+        prefs.edit().putString(KEY_RECOGNITION_LOG, updated).apply()
+    }
+
+    fun addRecognitionError(text: String) {
+        val existing = prefs.getString(KEY_RECOGNITION_LOG, "").orEmpty()
+            .split(LOG_SEPARATOR)
+            .filter { it.isNotBlank() }
+        val entry = "ERROR: $text"
+        val updated = (listOf(entry) + existing).take(12).joinToString(LOG_SEPARATOR)
+        prefs.edit().putString(KEY_RECOGNITION_LOG, updated).apply()
+    }
+
+    fun getRecognitionLog(): String = prefs.getString(KEY_RECOGNITION_LOG, "").orEmpty()
+        .replace(LOG_SEPARATOR, "\n\n")
+        .ifBlank { "No speech attempts recorded yet." }
+
+    fun clearRecognitionLog() {
+        prefs.edit().remove(KEY_RECOGNITION_LOG).apply()
+    }
+
     private fun pointKey(profile: String, name: String): String =
         "point_${key(profile)}_${VoiceCommandParser.canonicalName(name)}"
 
@@ -71,6 +102,9 @@ class ProfileStore(context: Context) {
         const val LANG_AUTO = "Auto"
         const val LANG_EN = "English"
         const val LANG_PT = "Português"
+
+        private const val KEY_RECOGNITION_LOG = "recognition_log"
+        private const val LOG_SEPARATOR = "\n---VC-ENTRY---\n"
     }
 }
 
