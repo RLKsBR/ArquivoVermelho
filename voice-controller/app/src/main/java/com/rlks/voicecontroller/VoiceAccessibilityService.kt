@@ -1,6 +1,7 @@
 package com.rlks.voicecontroller
 
 import android.Manifest
+import android.accessibilityservice.AccessibilityButtonController
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.Intent
@@ -35,6 +36,7 @@ class VoiceAccessibilityService : AccessibilityService() {
     private var speechRecognizer: SpeechRecognizer? = null
     private var captureOverlay: View? = null
     private var listening = false
+    private var accessibilityButtonCallback: AccessibilityButtonController.AccessibilityButtonCallback? = null
 
     private val resetMic = Runnable {
         if (!listening) {
@@ -51,6 +53,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         createSpeechRecognizer()
         showMicrophoneOverlay()
+        registerSystemAccessibilityButton()
         message("Voice Controller ready")
     }
 
@@ -59,12 +62,31 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         handler.removeCallbacks(resetMic)
+        accessibilityButtonCallback?.let { callback ->
+            runCatching { accessibilityButtonController.unregisterAccessibilityButtonCallback(callback) }
+        }
+        accessibilityButtonCallback = null
         removeCaptureOverlay()
         micView?.let { runCatching { windowManager.removeView(it) } }
         micView = null
         speechRecognizer?.destroy()
         speechRecognizer = null
         super.onDestroy()
+    }
+
+    private fun registerSystemAccessibilityButton() {
+        val callback = object : AccessibilityButtonController.AccessibilityButtonCallback() {
+            override fun onClicked(controller: AccessibilityButtonController) {
+                startListening()
+            }
+
+            override fun onAvailabilityChanged(
+                controller: AccessibilityButtonController,
+                available: Boolean
+            ) = Unit
+        }
+        accessibilityButtonCallback = callback
+        accessibilityButtonController.registerAccessibilityButtonCallback(callback)
     }
 
     private fun createSpeechRecognizer() {
