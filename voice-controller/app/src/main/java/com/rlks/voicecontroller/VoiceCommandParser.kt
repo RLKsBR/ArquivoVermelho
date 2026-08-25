@@ -122,7 +122,7 @@ object VoiceCommandParser {
 
     private fun parseRecordChampion(text: String): VoiceCommand? {
         val match = Regex(
-            "^(?:registrar|atualizar)(?: campeao| boneco)? (.+?) vida(?: maxima)? (\\d{2,5}) valor ([a-z0-9]+)(?: (com itens?|sem itens?))?(?: (frontline|front line|linha de frente|backline|back line|linha de tras))?$"
+            "^(?:registrar|atualizar)(?: campeao| boneco)? (.+?) vida(?: maxima)? (\\d{2,5}) valor ([a-z0-9]+)(?: (com (?:item|itens)|sem (?:item|itens)))?(?: (frontline|front line|linha de frente|backline|back line|linha de tras))?$"
         ).matchEntire(text) ?: return null
         val name = match.groupValues[1]
             .split(' ')
