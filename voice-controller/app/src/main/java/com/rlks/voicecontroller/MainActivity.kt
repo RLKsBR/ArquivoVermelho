@@ -9,16 +9,19 @@ import android.graphics.Color
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
-import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.LinearLayout
-import android.widget.Spinner
+import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 
 class MainActivity : Activity() {
     private lateinit var store: ProfileStore
     private lateinit var status: TextView
-    private lateinit var diagnostics: TextView
+    private lateinit var calibrationStatus: TextView
+    private lateinit var visionStatus: TextView
+    private lateinit var speechLog: TextView
+    private lateinit var modeButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,15 +32,13 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        if (::status.isInitialized) refreshStatus()
-        if (::diagnostics.isInitialized) refreshDiagnostics()
+        refreshAll()
     }
 
     private fun buildUi(): View {
-        val pad = dp(20)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(pad, pad, pad, pad)
+            setPadding(dp(18), dp(18), dp(18), dp(28))
             setBackgroundColor(Color.rgb(18, 20, 24))
         }
 
@@ -48,82 +49,92 @@ class MainActivity : Activity() {
         })
 
         root.addView(TextView(this).apply {
-            text = "Voice → tap/drag, while the game stays open. No engine, no screen recording, no strategy automation."
-            textSize = 15f
+            text = "TFT-only • voz em português • taps e drags • base preparada para visão da tela"
+            textSize = 14f
             setTextColor(Color.LTGRAY)
-            setPadding(0, dp(8), 0, dp(16))
+            setPadding(0, dp(6), 0, dp(14))
         })
 
-        status = TextView(this).apply {
-            textSize = 16f
-            setTextColor(Color.WHITE)
-            setPadding(0, 0, 0, dp(12))
-        }
+        status = bodyBox()
         root.addView(status)
 
-        root.addView(label("Last speech attempts"))
-        diagnostics = TextView(this).apply {
-            textSize = 12f
-            setTextColor(Color.WHITE)
-            setBackgroundColor(Color.rgb(30, 33, 39))
-            setPadding(dp(10), dp(8), dp(10), dp(8))
-            maxLines = 8
-        }
-        root.addView(diagnostics)
-
-        root.addView(button("Refresh speech log") { refreshDiagnostics() })
-        root.addView(button("Clear speech log") {
-            store.clearRecognitionLog()
-            refreshDiagnostics()
-        })
-
-        root.addView(label("Profile"))
-        val profiles = listOf(
-            ProfileStore.PROFILE_LICHESS,
-            ProfileStore.PROFILE_CHESS_COM,
-            ProfileStore.PROFILE_TFT,
-            ProfileStore.PROFILE_GENERIC
-        )
-        root.addView(Spinner(this).apply {
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, profiles)
-            setSelection(profiles.indexOf(store.profile).coerceAtLeast(0))
-            onItemSelectedListener = SimpleItemSelectedListener { store.profile = profiles[it] }
-        })
-
-        root.addView(label("Speech language"))
-        val languages = listOf(ProfileStore.LANG_AUTO, ProfileStore.LANG_EN, ProfileStore.LANG_PT)
-        root.addView(Spinner(this).apply {
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, languages)
-            setSelection(languages.indexOf(store.language).coerceAtLeast(0))
-            onItemSelectedListener = SimpleItemSelectedListener { store.language = languages[it] }
-        })
-
-        root.addView(button("1. Allow microphone") { requestMicrophoneIfNeeded(true) })
-        root.addView(button("2. Enable Voice Controller in Accessibility") {
+        root.addView(button("1. Permitir microfone") { requestMicrophoneIfNeeded(true) })
+        root.addView(button("2. Ativar Voice Controller na Acessibilidade") {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         })
 
+        modeButton = button("") {
+            store.continuousMode = !store.continuousMode
+            refreshAll()
+        }
+        root.addView(modeButton)
+
+        root.addView(section("CALIBRAÇÃO TFT"))
         root.addView(TextView(this).apply {
-            text = "QUICK CHESS TEST\n1) Enable the accessibility service.\n2) Open Lichess or Chess.com normally.\n3) If the floating 🎙 is visible, tap it.\n4) If Chess.com hides the floating 🎙, use Android's accessibility button (the little person icon in the system navigation area). Choose Voice Controller if Android asks which accessibility service to use. That button starts the same microphone.\n5) Say moves with origin + destination: “E2 E4”, “G1 F3”, etc.\n6) Say “white orientation” or “black orientation” when needed.\n\nThe parser also compensates for a real speech-recognition error we observed: if Android hears “A two A four” as “8 2 8 4”, it interprets those 8s as file A only because they are in file positions.\n\nIf a move fails, come back here. The app stores the raw Android speech hypotheses plus what the parser decided.\n\nTFT / GENERIC\nSay “set reroll”, then tap the reroll button once. Later say “reroll” or “tap reroll”. You can create any named point this way. For drags: set two named points, then say “drag bench one to board back left”."
-            textSize = 14f
+            text = "Toque numa calibração aqui. Depois abra o TFT e toque UMA vez no botão de acessibilidade do Android (ou no 🎙, se aparecer). O Voice Controller entra no modo de marcação sobre o jogo."
+            textSize = 13f
             setTextColor(Color.LTGRAY)
-            setPadding(0, dp(18), 0, 0)
+            setPadding(0, 0, 0, dp(8))
         })
 
-        refreshStatus()
-        refreshDiagnostics()
-        return root
+        calibrationStatus = bodyBox()
+        root.addView(calibrationStatus)
+
+        root.addView(button("Calibrar tabuleiro A1–G4 (8 toques)") { queue(ProfileStore.PENDING_BOARD) })
+        root.addView(button("Calibrar banco 1–9 (2 toques)") { queue(ProfileStore.PENDING_BENCH) })
+        root.addView(button("Calibrar loja 1–5 (2 toques)") { queue(ProfileStore.PENDING_SHOP) })
+        root.addView(button("Calibrar botão Rolar") { queue(ProfileStore.PENDING_REROLL) })
+        root.addView(button("Calibrar botão XP") { queue(ProfileStore.PENDING_XP) })
+        root.addView(button("Calibrar botão abrir/fechar loja") { queue(ProfileStore.PENDING_SHOP_TOGGLE) })
+        root.addView(button("Calibrar área de venda") { queue(ProfileStore.PENDING_SELL) })
+        root.addView(button("Marcar região dos itens (2 cantos)") { queue(ProfileStore.PENDING_ITEMS) })
+        root.addView(button("Marcar região das sinergias (2 cantos)") { queue(ProfileStore.PENDING_TRAITS) })
+        root.addView(button("Marcar região de escolhas/aprimoramentos (2 cantos)") { queue(ProfileStore.PENDING_CHOICES) })
+
+        root.addView(section("TESTE DE VISÃO"))
+        root.addView(button("Testar screenshot do TFT") { queue(ProfileStore.PENDING_SCREENSHOT_TEST) })
+        visionStatus = bodyBox()
+        root.addView(visionStatus)
+
+        root.addView(section("COMANDOS INICIAIS"))
+        root.addView(TextView(this).apply {
+            text = "• “rolar”\n• “comprar um”, “comprar dois quatro cinco”\n• “subir nível” / “XP”\n• “banco dois para D4”\n• “D4 para banco três”\n• “C3 para F4”\n• “vender banco dois”\n• “vender D2”\n• “aprimoramento dois”\n• “pausar controle”"
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            setPadding(0, dp(2), 0, dp(10))
+        })
+
+        root.addView(section("ÚLTIMAS FALAS"))
+        speechLog = bodyBox().apply { maxLines = 10 }
+        root.addView(speechLog)
+        root.addView(button("Limpar log de voz") {
+            store.clearRecognitionLog()
+            refreshAll()
+        })
+
+        return ScrollView(this).apply { addView(root) }
     }
 
-    private fun refreshStatus() {
+    private fun queue(type: String) {
+        store.pendingCalibration = type
+        Toast.makeText(
+            this,
+            "Pronto. Abra o TFT e toque no botão de acessibilidade uma vez.",
+            Toast.LENGTH_LONG
+        ).show()
+        refreshAll()
+    }
+
+    private fun refreshAll() {
+        if (!::status.isInitialized) return
         val mic = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         val access = isAccessibilityEnabled()
-        status.text = "Microphone: ${if (mic) "OK" else "permission needed"}   •   Accessibility: ${if (access) "ON" else "OFF"}"
-        status.setTextColor(if (mic && access) Color.rgb(120, 220, 140) else Color.rgb(255, 190, 100))
-    }
-
-    private fun refreshDiagnostics() {
-        diagnostics.text = store.getRecognitionLog()
+        status.text = "Microfone: ${if (mic) "OK" else "permissão necessária"}   •   Acessibilidade: ${if (access) "ON" else "OFF"}"
+        status.setTextColor(if (mic && access) Color.rgb(130, 230, 150) else Color.rgb(255, 190, 100))
+        modeButton.text = "Modo partida contínuo: ${if (store.continuousMode) "LIGADO" else "DESLIGADO"}"
+        calibrationStatus.text = store.calibrationSummary() + "\n\nPendente: ${store.pendingCalibration}"
+        visionStatus.text = store.visionStatus
+        speechLog.text = store.getRecognitionLog()
     }
 
     private fun isAccessibilityEnabled(): Boolean {
@@ -136,15 +147,22 @@ class MainActivity : Activity() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 10)
         } else if (force) {
-            refreshStatus()
+            refreshAll()
         }
     }
 
-    private fun label(text: String) = TextView(this).apply {
+    private fun section(text: String) = TextView(this).apply {
         this.text = text
-        textSize = 14f
-        setTextColor(Color.LTGRAY)
-        setPadding(0, dp(10), 0, dp(4))
+        textSize = 15f
+        setTextColor(Color.rgb(180, 200, 255))
+        setPadding(0, dp(18), 0, dp(7))
+    }
+
+    private fun bodyBox() = TextView(this).apply {
+        textSize = 13f
+        setTextColor(Color.WHITE)
+        setBackgroundColor(Color.rgb(30, 33, 39))
+        setPadding(dp(10), dp(9), dp(10), dp(9))
     }
 
     private fun button(text: String, action: () -> Unit) = Button(this).apply {
@@ -154,11 +172,4 @@ class MainActivity : Activity() {
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
-}
-
-private class SimpleItemSelectedListener(
-    private val onSelected: (Int) -> Unit
-) : android.widget.AdapterView.OnItemSelectedListener {
-    override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) = onSelected(position)
-    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
 }
