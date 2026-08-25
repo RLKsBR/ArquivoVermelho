@@ -12,7 +12,7 @@ import android.graphics.PixelFormat
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.speech.RecognitionListener
+import android.speech.RecognitionListener as AndroidRecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.view.Gravity
@@ -23,6 +23,11 @@ import android.view.accessibility.AccessibilityEvent
 import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
+import org.vosk.Model
+import org.vosk.Recognizer
+import org.vosk.android.RecognitionListener as VoskRecognitionListener
+import org.vosk.android.SpeechService
+import org.vosk.android.StorageService
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -38,6 +43,12 @@ class VoiceAccessibilityService : AccessibilityService() {
     private var listening = false
     private var accessibilityButtonCallback: AccessibilityButtonController.AccessibilityButtonCallback? = null
 
+    private var voskModel: Model? = null
+    private var voskRecognizer: Recognizer? = null
+    private var voskSpeechService: SpeechService? = null
+    private var voskHandled = false
+    private var voskModelLoading = false
+
     private val resetMic = Runnable {
         if (!listening) {
             micView?.apply {
@@ -52,6 +63,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         store = ProfileStore(this)
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         createSpeechRecognizer()
+        initVoskModel()
         showMicrophoneOverlay()
         registerSystemAccessibilityButton()
         message("Voice Controller ready")
@@ -62,6 +74,9 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         handler.removeCallbacks(resetMic)
+        stopVoskSession()
+        voskModel?.close()
+        voskModel = null
         accessibilityButtonCallback?.let { callback ->
             runCatching { accessibilityButtonController.unregisterAccessibilityButtonCallback(callback) }
         }
@@ -72,6 +87,26 @@ class VoiceAccessibilityService : AccessibilityService() {
         speechRecognizer?.destroy()
         speechRecognizer = null
         super.onDestroy()
+    }
+
+    private fun initVoskModel() {
+        if (voskModel != null || voskModelLoading) return
+        voskModelLoading = true
+        StorageService.unpack(
+            this,
+            "model-en-us",
+            "voice-chess-model",
+            { model ->
+                voskModel = model
+                voskModelLoading = false
+                store.addRecognitionError("Chess offline speech model ready")
+            },
+            { exception ->
+                voskModelLoading = false
+                store.addRecognitionError("Vosk model error: ${exception.message}")
+                message("Chess speech model failed to load")
+            }
+        )
     }
 
     private fun registerSystemAccessibilityButton() {
@@ -90,12 +125,9 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     private fun createSpeechRecognizer() {
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            message("No Android speech recognizer is available")
-            return
-        }
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) return
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).also { recognizer ->
-            recognizer.setRecognitionListener(object : RecognitionListener {
+            recognizer.setRecognitionListener(object : AndroidRecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {
                     listening = true
                     micView?.apply {
@@ -123,19 +155,7 @@ class VoiceAccessibilityService : AccessibilityService() {
                 override fun onResults(results: Bundle?) {
                     listening = false
                     val phrases = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
-                    val selected = VoiceCommandParser.parseAlternatives(phrases)
-                    val summary = selected?.second?.let { commandSummary(it) }
-                    store.addRecognitionLog(phrases, summary)
-
-                    if (summary != null) {
-                        showMicTemporary(summary.replace(" ", "").replace("→", "").take(7))
-                    } else {
-                        showMicTemporary("?")
-                    }
-
-                    if (selected != null) {
-                        processCommand(selected.first, selected.second)
-                    }
+                    handleRecognizedPhrases(phrases)
                 }
 
                 override fun onPartialResults(partialResults: Bundle?) = Unit
@@ -158,28 +178,128 @@ class VoiceAccessibilityService : AccessibilityService() {
             message("Open Voice Controller and allow microphone first")
             return
         }
+
+        if (listening) {
+            cancelListening()
+            return
+        }
+
+        handler.removeCallbacks(resetMic)
+        if (isChessProfile()) startChessListening() else startAndroidListening()
+    }
+
+    private fun isChessProfile(): Boolean =
+        store.profile == ProfileStore.PROFILE_LICHESS || store.profile == ProfileStore.PROFILE_CHESS_COM
+
+    private fun startChessListening() {
+        val model = voskModel
+        if (model == null) {
+            initVoskModel()
+            showMicTemporary("LOAD", 1800)
+            message("Chess speech model is still loading. Try again in a moment.")
+            return
+        }
+
+        try {
+            voskHandled = false
+            val recognizer = Recognizer(model, 16000.0f, ChessSpeechGrammar.json())
+            val service = SpeechService(recognizer, 16000.0f)
+            voskRecognizer = recognizer
+            voskSpeechService = service
+            listening = true
+            micView?.apply {
+                text = "●"
+                textSize = 22f
+            }
+
+            service.startListening(object : VoskRecognitionListener {
+                override fun onPartialResult(hypothesis: String) = Unit
+
+                override fun onResult(hypothesis: String) {
+                    handleVoskHypothesis(hypothesis)
+                }
+
+                override fun onFinalResult(hypothesis: String) {
+                    if (!voskHandled) {
+                        val text = extractVoskText(hypothesis)
+                        if (text.isNotBlank()) {
+                            handleVoskText(text)
+                        } else {
+                            voskHandled = true
+                            store.addRecognitionError("Vosk: no match")
+                            showMicTemporary("?")
+                            stopVoskSession()
+                        }
+                    }
+                }
+
+                override fun onError(exception: Exception) {
+                    if (!voskHandled) {
+                        voskHandled = true
+                        store.addRecognitionError("Vosk error: ${exception.message}")
+                        showMicTemporary("ERR")
+                    }
+                    stopVoskSession()
+                }
+
+                override fun onTimeout() {
+                    if (!voskHandled) {
+                        voskHandled = true
+                        store.addRecognitionError("Vosk timeout")
+                        showMicTemporary("?")
+                    }
+                    stopVoskSession()
+                }
+            }, 6000)
+        } catch (exception: Exception) {
+            store.addRecognitionError("Vosk start error: ${exception.message}")
+            showMicTemporary("ERR")
+            stopVoskSession()
+        }
+    }
+
+    private fun handleVoskHypothesis(json: String) {
+        if (voskHandled) return
+        val text = extractVoskText(json)
+        if (text.isNotBlank()) handleVoskText(text)
+    }
+
+    private fun handleVoskText(text: String) {
+        if (voskHandled) return
+        voskHandled = true
+        stopVoskSession()
+        handleRecognizedPhrases(listOf(text))
+    }
+
+    private fun extractVoskText(json: String): String {
+        return Regex("\\\"text\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"")
+            .find(json)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.trim()
+            .orEmpty()
+    }
+
+    private fun stopVoskSession() {
+        val service = voskSpeechService
+        voskSpeechService = null
+        runCatching { service?.stop() }
+        runCatching { service?.shutdown() }
+        runCatching { voskRecognizer?.close() }
+        voskRecognizer = null
+        listening = false
+    }
+
+    private fun startAndroidListening() {
         val recognizer = speechRecognizer ?: run {
             createSpeechRecognizer()
             speechRecognizer
         } ?: return
 
-        handler.removeCallbacks(resetMic)
-
-        if (listening) {
-            recognizer.cancel()
-            listening = false
-            micView?.apply {
-                text = "🎙"
-                textSize = 27f
-            }
-            return
-        }
-
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 10)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-            putStringArrayListExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, chessBiasingStrings())
             when (store.language) {
                 ProfileStore.LANG_EN -> putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
                 ProfileStore.LANG_PT -> putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR")
@@ -192,40 +312,32 @@ class VoiceAccessibilityService : AccessibilityService() {
         recognizer.startListening(intent)
     }
 
-    private fun chessBiasingStrings(): ArrayList<String> {
-        val values = ArrayList<String>(260)
-        val englishFiles = mapOf(
-            'A' to "A", 'B' to "B", 'C' to "C", 'D' to "D",
-            'E' to "E", 'F' to "F", 'G' to "G", 'H' to "H"
-        )
-        val natoFiles = mapOf(
-            'A' to "Alpha", 'B' to "Bravo", 'C' to "Charlie", 'D' to "Delta",
-            'E' to "Echo", 'F' to "Foxtrot", 'G' to "Golf", 'H' to "Hotel"
-        )
-        val ranks = mapOf(
-            1 to "one", 2 to "two", 3 to "three", 4 to "four",
-            5 to "five", 6 to "six", 7 to "seven", 8 to "eight"
-        )
+    private fun cancelListening() {
+        if (voskSpeechService != null) {
+            voskHandled = true
+            stopVoskSession()
+        } else {
+            speechRecognizer?.cancel()
+            listening = false
+        }
+        micView?.apply {
+            text = "🎙"
+            textSize = 27f
+        }
+    }
 
-        for (file in 'A'..'H') {
-            values += file.toString()
-            values += natoFiles.getValue(file)
-            for (rank in 1..8) {
-                values += "$file$rank"
-                values += "${englishFiles.getValue(file)} ${ranks.getValue(rank)}"
-                values += "${natoFiles.getValue(file)} ${ranks.getValue(rank)}"
-            }
+    private fun handleRecognizedPhrases(phrases: List<String>) {
+        val selected = VoiceCommandParser.parseAlternatives(phrases)
+        val summary = selected?.second?.let { commandSummary(it) }
+        store.addRecognitionLog(phrases, summary)
+
+        if (summary != null) {
+            showMicTemporary(summary.replace(" ", "").replace("→", "").take(7))
+        } else {
+            showMicTemporary("?")
         }
 
-        values += listOf(
-            "E two E four", "D two D four", "A two A four", "H two H four",
-            "G one F three", "B one C three", "E seven E five", "D seven D five",
-            "A seven A five", "H seven H five", "G eight F six", "B eight C six",
-            "Echo two Echo four", "Delta two Delta four", "Alpha two Alpha four",
-            "Hotel two Hotel four", "Golf one Foxtrot three", "Bravo one Charlie three"
-        )
-        values += listOf("castle kingside", "castle queenside", "roque pequeno", "roque grande")
-        return values
+        if (selected != null) processCommand(selected.first, selected.second)
     }
 
     private fun showMicrophoneOverlay() {
