@@ -32,6 +32,7 @@ class MainActivity : Activity() {
     private lateinit var openScreenshotButton: Button
     private lateinit var lastReadStatus: TextView
     private lateinit var saveSamplesButton: Button
+    private lateinit var rosterStatus: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -152,9 +153,19 @@ class MainActivity : Activity() {
         }
         root.addView(saveSamplesButton)
 
+        root.addView(section("COMPARAÇÕES DO TIME"))
+        root.addView(TextView(this).apply {
+            text = "Cadastro provisório por voz: “registrar indígena vida 1800 valor quatro com item frontline”. Depois pergunte “maior vida”, “maior vida sem item”, “maior valor” ou “listar frontline”. O valor é o número que você informou; o app não cria uma nota própria."
+            textSize = 13f
+            setTextColor(Color.LTGRAY)
+            setPadding(0, 0, 0, dp(8))
+        })
+        rosterStatus = bodyBox()
+        root.addView(rosterStatus)
+
         root.addView(section("COMANDOS INICIAIS"))
         root.addView(TextView(this).apply {
-            text = "• “ler loja”, “ler itens”, “ler sinergias”\n• “ler escolhas”, “ler tela”, “repetir leitura”\n• “rolar”\n• “comprar um”, “comprar dois quatro cinco”\n• “subir nível” / “XP”\n• “banco dois para D4”\n• “D4 para banco três”\n• “C3 para F4”\n• “vender banco dois”\n• “vender D2”\n• “aprimoramento dois”\n• “pausar controle”"
+            text = "• “ler loja”, “ler itens”, “ler sinergias”\n• “ler aviso”, “por que não pegou”\n• “ler escolhas”, “ler tela”, “repetir leitura”\n• “maior vida”, “maior vida sem item”\n• “maior valor”, “listar frontline”\n• “rolar”\n• “comprar um”, “comprar dois quatro cinco”\n• “subir nível” / “XP”\n• “banco dois para D4”\n• “D4 para banco três”\n• “C3 para F4”\n• “vender banco dois”\n• “vender D2”\n• “aprimoramento dois”\n• “pausar controle”"
             textSize = 14f
             setTextColor(Color.WHITE)
             setPadding(0, dp(2), 0, dp(10))
@@ -294,6 +305,7 @@ class MainActivity : Activity() {
         }
         lastReadStatus.text = store.lastReadText
         saveSamplesButton.text = "Salvar amostras de OCR: ${if (store.saveReadingScreenshots) "LIGADO" else "DESLIGADO"}"
+        rosterStatus.text = store.rosterSummary()
         speechLog.text = store.getRecognitionLog()
     }
 

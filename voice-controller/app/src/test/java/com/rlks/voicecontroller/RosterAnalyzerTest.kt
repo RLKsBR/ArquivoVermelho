@@ -1,0 +1,36 @@
+package com.rlks.voicecontroller
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class RosterAnalyzerTest {
+    private val champions = listOf(
+        ChampionObservation("A", 1800, 4, ItemStatus.EQUIPPED, TacticalRole.FRONTLINE),
+        ChampionObservation("B", 1800, 5, ItemStatus.NONE, TacticalRole.FRONTLINE),
+        ChampionObservation("C", 1200, 5, ItemStatus.NONE, TacticalRole.BACKLINE)
+    )
+
+    @Test
+    fun returnsAllHealthTiesAndRespectsItemFilter() {
+        assertEquals(
+            listOf("A", "B"),
+            RosterAnalyzer.highestHealth(champions, HealthFilter.ALL).map { it.name }
+        )
+        assertEquals(
+            listOf("B"),
+            RosterAnalyzer.highestHealth(champions, HealthFilter.WITHOUT_ITEMS).map { it.name }
+        )
+        assertEquals(
+            listOf("A"),
+            RosterAnalyzer.highestHealth(champions, HealthFilter.WITH_ITEMS).map { it.name }
+        )
+    }
+
+    @Test
+    fun returnsAllHighestValueTies() {
+        assertEquals(
+            listOf("B", "C"),
+            RosterAnalyzer.highestValue(champions).map { it.name }
+        )
+    }
+}

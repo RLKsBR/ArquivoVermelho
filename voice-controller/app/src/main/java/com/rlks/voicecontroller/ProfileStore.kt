@@ -2,6 +2,8 @@ package com.rlks.voicecontroller
 
 import android.content.Context
 import android.content.SharedPreferences
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.abs
 
 class ProfileStore(context: Context) {
@@ -34,6 +36,47 @@ class ProfileStore(context: Context) {
     var saveReadingScreenshots: Boolean
         get() = prefs.getBoolean(KEY_SAVE_READING_SCREENSHOTS, false)
         set(value) = prefs.edit().putBoolean(KEY_SAVE_READING_SCREENSHOTS, value).apply()
+
+    fun saveChampionObservation(observation: ChampionObservation): Boolean {
+        val updated = getRosterObservations()
+            .filterNot { it.name.equals(observation.name, ignoreCase = true) }
+            .plus(observation)
+        return prefs.edit().putString(KEY_ROSTER_OBSERVATIONS, encodeRoster(updated)).commit()
+    }
+
+    fun getRosterObservations(): List<ChampionObservation> {
+        val raw = prefs.getString(KEY_ROSTER_OBSERVATIONS, "[]").orEmpty()
+        return runCatching {
+            val array = JSONArray(raw)
+            (0 until array.length()).mapNotNull { index ->
+                decodeChampion(array.optJSONObject(index))
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    fun clearRosterObservations() {
+        prefs.edit().remove(KEY_ROSTER_OBSERVATIONS).apply()
+    }
+
+    fun rosterSummary(): String {
+        val champions = getRosterObservations()
+        if (champions.isEmpty()) {
+            return "Nenhum campeão registrado ainda."
+        }
+        return champions.joinToString("\n") { champion ->
+            val items = when (champion.itemStatus) {
+                ItemStatus.NONE -> "sem item"
+                ItemStatus.EQUIPPED -> "com item"
+                ItemStatus.UNKNOWN -> "itens desconhecidos"
+            }
+            val role = when (champion.role) {
+                TacticalRole.FRONTLINE -> "frontline"
+                TacticalRole.BACKLINE -> "backline"
+                TacticalRole.UNKNOWN -> "função não marcada"
+            }
+            "${champion.name}: ${champion.maxHealth} de vida, valor ${champion.value}, $items, $role"
+        }
+    }
 
     fun saveBoardRows(rows: Map<Int, TftRow>): Boolean {
         if ((1..4).any { rows[it] == null }) return false
@@ -181,6 +224,36 @@ class ProfileStore(context: Context) {
         )
     }
 
+    private fun encodeRoster(champions: List<ChampionObservation>): String {
+        val array = JSONArray()
+        champions.forEach { champion ->
+            array.put(
+                JSONObject()
+                    .put("name", champion.name)
+                    .put("maxHealth", champion.maxHealth)
+                    .put("value", champion.value)
+                    .put("itemStatus", champion.itemStatus.name)
+                    .put("role", champion.role.name)
+            )
+        }
+        return array.toString()
+    }
+
+    private fun decodeChampion(json: JSONObject?): ChampionObservation? {
+        json ?: return null
+        val name = json.optString("name").trim()
+        val health = json.optInt("maxHealth", 0)
+        val value = json.optInt("value", 0)
+        if (name.isBlank() || health <= 0 || value <= 0) return null
+        val items = runCatching {
+            ItemStatus.valueOf(json.optString("itemStatus", ItemStatus.UNKNOWN.name))
+        }.getOrDefault(ItemStatus.UNKNOWN)
+        val role = runCatching {
+            TacticalRole.valueOf(json.optString("role", TacticalRole.UNKNOWN.name))
+        }.getOrDefault(TacticalRole.UNKNOWN)
+        return ChampionObservation(name, health, value, items, role)
+    }
+
     private fun key(value: String) = value.lowercase().replace(Regex("[^a-z0-9]+"), "_")
 
     companion object {
@@ -217,6 +290,7 @@ class ProfileStore(context: Context) {
         private const val KEY_LAST_SCREENSHOT_URI = "tft_last_screenshot_uri"
         private const val KEY_LAST_READ_TEXT = "tft_last_read_text"
         private const val KEY_SAVE_READING_SCREENSHOTS = "tft_save_reading_screenshots"
+        private const val KEY_ROSTER_OBSERVATIONS = "tft_roster_observations"
         private const val KEY_BENCH_LINE = "tft_bench_line"
         private const val KEY_SHOP_LINE = "tft_shop_line"
         private const val KEY_RECOGNITION_LOG = "recognition_log"

@@ -227,14 +227,20 @@ class VoiceAccessibilityService : AccessibilityService() {
     private fun processCommand(command: VoiceCommand) {
         val safeOutsideGame = command == VoiceCommand.PauseControl ||
             command == VoiceCommand.ResumeControl || command == VoiceCommand.Help ||
-            command == VoiceCommand.RepeatLastRead
+            command == VoiceCommand.RepeatLastRead ||
+            command is VoiceCommand.RecordChampion ||
+            command is VoiceCommand.HighestHealth ||
+            command == VoiceCommand.HighestValue ||
+            command is VoiceCommand.ListRole ||
+            command == VoiceCommand.ClearRoster
         if (!safeOutsideGame && !isTftForeground()) {
             message("Comando bloqueado: o TFT não está em primeiro plano")
             return
         }
         val (displayWidth, displayHeight) = displaySize()
         val needsGeometry = !safeOutsideGame &&
-            !(command is VoiceCommand.ReadScreen && command.target == ScreenReadTarget.FULL_SCREEN)
+            !(command is VoiceCommand.ReadScreen &&
+                command.target in setOf(ScreenReadTarget.FULL_SCREEN, ScreenReadTarget.NOTICE))
         if (needsGeometry &&
             !store.isCalibrationGeometryCurrent(displayWidth, displayHeight, displayRotation())
         ) {
@@ -283,6 +289,14 @@ class VoiceAccessibilityService : AccessibilityService() {
             }
             is VoiceCommand.ReadScreen -> readScreen(command.target)
             VoiceCommand.RepeatLastRead -> speakLastRead()
+            is VoiceCommand.RecordChampion -> recordChampion(command.observation)
+            is VoiceCommand.HighestHealth -> answerHighestHealth(command.filter)
+            VoiceCommand.HighestValue -> answerHighestValue()
+            is VoiceCommand.ListRole -> answerRole(command.role)
+            VoiceCommand.ClearRoster -> {
+                store.clearRosterObservations()
+                speakFact("Lista de campeões registrada foi apagada.")
+            }
             VoiceCommand.PauseControl -> {
                 store.continuousMode = false
                 handler.removeCallbacks(restartListening)
@@ -310,6 +324,11 @@ class VoiceAccessibilityService : AccessibilityService() {
         is VoiceCommand.Choice -> "ESCOLHA ${command.index}"
         is VoiceCommand.ReadScreen -> "LER ${command.target.spokenName.uppercase()}"
         VoiceCommand.RepeatLastRead -> "REPETIR"
+        is VoiceCommand.RecordChampion -> "REGISTRAR ${command.observation.name.uppercase()}"
+        is VoiceCommand.HighestHealth -> "MAIOR VIDA"
+        VoiceCommand.HighestValue -> "MAIOR VALOR"
+        is VoiceCommand.ListRole -> "LISTAR ${command.role.name}"
+        VoiceCommand.ClearRoster -> "LIMPAR TIME"
         VoiceCommand.PauseControl -> "PAUSAR"
         VoiceCommand.ResumeControl -> "RETOMAR"
         VoiceCommand.Help -> "AJUDA"
@@ -323,7 +342,10 @@ class VoiceAccessibilityService : AccessibilityService() {
             "aprimoramento um", "aprimoramento dois", "aprimoramento três",
             "vender banco um", "vender banco dois", "vender banco três",
             "ler loja", "ler itens", "ler sinergias", "ler escolhas", "ler aprimoramentos",
-            "ler tela", "ler recompensas", "ler orbes", "repetir leitura"
+            "ler tela", "ler recompensas", "ler orbes", "repetir leitura",
+            "ler aviso", "por que não pegou", "maior vida", "maior vida sem item",
+            "maior vida com item", "maior valor", "listar frontline",
+            "registrar campeão vida valor"
         )
         val ranks = listOf("um", "dois", "três", "quatro")
         for (file in 'A'..'G') {
@@ -619,6 +641,83 @@ class VoiceAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun recordChampion(observation: ChampionObservation) {
+        val saved = store.saveChampionObservation(observation)
+        val items = when (observation.itemStatus) {
+            ItemStatus.NONE -> "sem item"
+            ItemStatus.EQUIPPED -> "com item"
+            ItemStatus.UNKNOWN -> "itens não informados"
+        }
+        val role = when (observation.role) {
+            TacticalRole.FRONTLINE -> "frontline"
+            TacticalRole.BACKLINE -> "backline"
+            TacticalRole.UNKNOWN -> "função não informada"
+        }
+        speakFact(
+            if (saved) {
+                "${observation.name} registrado: ${observation.maxHealth} de vida máxima, valor ${observation.value}, $items, $role."
+            } else {
+                "Não consegui salvar ${observation.name}."
+            }
+        )
+    }
+
+    private fun answerHighestHealth(filter: HealthFilter) {
+        val champions = RosterAnalyzer.highestHealth(store.getRosterObservations(), filter)
+        if (champions.isEmpty()) {
+            val criterion = when (filter) {
+                HealthFilter.ALL -> ""
+                HealthFilter.WITHOUT_ITEMS -> " sem item"
+                HealthFilter.WITH_ITEMS -> " com item"
+            }
+            speakFact("Ainda não há campeões$criterion registrados para comparar.")
+            return
+        }
+        val criterion = when (filter) {
+            HealthFilter.ALL -> "registrada"
+            HealthFilter.WITHOUT_ITEMS -> "registrada entre campeões sem item"
+            HealthFilter.WITH_ITEMS -> "registrada entre campeões com item"
+        }
+        val names = spokenList(champions.map { it.name })
+        speakFact("Maior vida máxima $criterion: $names, com ${champions.first().maxHealth}.")
+    }
+
+    private fun answerHighestValue() {
+        val champions = RosterAnalyzer.highestValue(store.getRosterObservations())
+        if (champions.isEmpty()) {
+            speakFact("Ainda não há campeões registrados para comparar o valor.")
+            return
+        }
+        speakFact(
+            "Maior valor registrado: ${spokenList(champions.map { it.name })}, valor ${champions.first().value}."
+        )
+    }
+
+    private fun answerRole(role: TacticalRole) {
+        val champions = RosterAnalyzer.byRole(store.getRosterObservations(), role)
+        val roleName = if (role == TacticalRole.FRONTLINE) "frontline" else "backline"
+        if (champions.isEmpty()) {
+            speakFact("Nenhum campeão foi registrado como $roleName.")
+        } else {
+            speakFact("$roleName: ${spokenList(champions.map { it.name })}.")
+        }
+    }
+
+    private fun spokenList(values: List<String>): String = when (values.size) {
+        0 -> ""
+        1 -> values.first()
+        2 -> "${values[0]} e ${values[1]}"
+        else -> values.dropLast(1).joinToString(", ") + " e " + values.last()
+    }
+
+    private fun speakFact(text: String) {
+        store.lastReadText = text
+        AppNotifications.showStatus(this, text.take(900))
+        visionBusy = true
+        handler.removeCallbacks(restartListening)
+        speakReadout(text)
+    }
+
     private fun readScreen(target: ScreenReadTarget) {
         if (visionBusy) {
             message("Aguarde: uma leitura ainda está em andamento")
@@ -634,6 +733,7 @@ class VoiceAccessibilityService : AccessibilityService() {
                 ScreenReadTarget.ITEMS -> "Marque a região dos itens antes de pedir a leitura"
                 ScreenReadTarget.TRAITS -> "Marque a região das sinergias antes de pedir a leitura"
                 ScreenReadTarget.CHOICES -> "Marque a região das escolhas antes de pedir a leitura"
+                ScreenReadTarget.NOTICE -> "Não foi possível definir a região dos avisos"
                 ScreenReadTarget.FULL_SCREEN -> "Não foi possível definir a tela"
             }
             message(missing)
@@ -685,10 +785,15 @@ class VoiceAccessibilityService : AccessibilityService() {
                             }
                             regionBitmap.recycle()
                             val clean = rawText.trim()
-                            val readout = if (clean.isBlank()) {
-                                "${target.spokenName}. Não encontrei texto legível nessa região."
-                            } else {
-                                "${target.spokenName}. $clean"
+                            val readout = when {
+                                target == ScreenReadTarget.NOTICE -> {
+                                    GameNoticeDetector.explain(clean)
+                                        ?: "Aviso. Não encontrei uma mensagem legível na tela."
+                                }
+                                clean.isBlank() -> {
+                                    "${target.spokenName}. Não encontrei texto legível nessa região."
+                                }
+                                else -> "${target.spokenName}. $clean"
                             }
                             store.lastReadText = readout
                             AppNotifications.showStatus(
@@ -757,6 +862,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         ScreenReadTarget.ITEMS -> store.getRegion(ProfileStore.REGION_ITEMS)
         ScreenReadTarget.TRAITS -> store.getRegion(ProfileStore.REGION_TRAITS)
         ScreenReadTarget.CHOICES -> store.getRegion(ProfileStore.REGION_CHOICES)
+        ScreenReadTarget.NOTICE -> NormalizedRect(0f, 0f, 1f, 1f)
         ScreenReadTarget.FULL_SCREEN -> NormalizedRect(0f, 0f, 1f, 1f)
     }
 

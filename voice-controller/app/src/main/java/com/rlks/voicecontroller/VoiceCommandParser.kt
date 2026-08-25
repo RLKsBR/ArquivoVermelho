@@ -7,6 +7,7 @@ enum class ScreenReadTarget(val spokenName: String) {
     ITEMS("Itens"),
     TRAITS("Sinergias"),
     CHOICES("Escolhas"),
+    NOTICE("Aviso"),
     FULL_SCREEN("Tela")
 }
 
@@ -23,6 +24,11 @@ sealed class VoiceCommand {
     data class Choice(val index: Int) : VoiceCommand()
     data class ReadScreen(val target: ScreenReadTarget) : VoiceCommand()
     data object RepeatLastRead : VoiceCommand()
+    data class RecordChampion(val observation: ChampionObservation) : VoiceCommand()
+    data class HighestHealth(val filter: HealthFilter) : VoiceCommand()
+    data object HighestValue : VoiceCommand()
+    data class ListRole(val role: TacticalRole) : VoiceCommand()
+    data object ClearRoster : VoiceCommand()
     data object PauseControl : VoiceCommand()
     data object ResumeControl : VoiceCommand()
     data object Help : VoiceCommand()
@@ -65,6 +71,8 @@ object VoiceCommandParser {
         if (text in setOf("repetir leitura", "repetir ultima leitura", "ler novamente")) {
             return VoiceCommand.RepeatLastRead
         }
+        parseRecordChampion(text)?.let { return it }
+        parseRosterQuery(text)?.let { return it }
         parseReadScreen(text)?.let { return it }
 
         if (text.startsWith("comprar ")) {
@@ -102,12 +110,72 @@ object VoiceCommandParser {
             "ler sinergias", "leia as sinergias", "quais sinergias", "ler traits" -> ScreenReadTarget.TRAITS
             "ler escolhas", "ler aprimoramentos", "ler augments", "quais escolhas",
             "ler opcoes", "ler itens para escolher", "ler itens da selecao" -> ScreenReadTarget.CHOICES
+            "ler aviso", "ler mensagem", "o que apareceu", "por que nao pegou",
+            "por que nao foi", "reserva cheia" -> ScreenReadTarget.NOTICE
             "ler tela", "leia a tela", "o que tem na tela", "ler recompensas",
             "ler orbe", "ler orbes", "ler campeoes adquiridos",
             "ler campeoes ganhos" -> ScreenReadTarget.FULL_SCREEN
             else -> null
         }
         return target?.let { VoiceCommand.ReadScreen(it) }
+    }
+
+    private fun parseRecordChampion(text: String): VoiceCommand? {
+        val match = Regex(
+            "^(?:registrar|atualizar)(?: campeao| boneco)? (.+?) vida(?: maxima)? (\\d{2,5}) valor ([a-z0-9]+)(?: (com itens?|sem itens?))?(?: (frontline|front line|linha de frente|backline|back line|linha de tras))?$"
+        ).matchEntire(text) ?: return null
+        val name = match.groupValues[1]
+            .split(' ')
+            .joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } }
+        val health = match.groupValues[2].toIntOrNull() ?: return null
+        val valueToken = match.groupValues[3]
+        val value = valueToken.toIntOrNull() ?: numbers[valueToken] ?: return null
+        if (health <= 0 || value <= 0) return null
+        val itemStatus = when (match.groupValues[4]) {
+            "com item", "com itens" -> ItemStatus.EQUIPPED
+            "sem item", "sem itens" -> ItemStatus.NONE
+            else -> ItemStatus.UNKNOWN
+        }
+        val role = when (match.groupValues[5]) {
+            "frontline", "front line", "linha de frente" -> TacticalRole.FRONTLINE
+            "backline", "back line", "linha de tras" -> TacticalRole.BACKLINE
+            else -> TacticalRole.UNKNOWN
+        }
+        return VoiceCommand.RecordChampion(
+            ChampionObservation(name, health, value, itemStatus, role)
+        )
+    }
+
+    private fun parseRosterQuery(text: String): VoiceCommand? {
+        if (text in setOf("limpar time", "limpar campeoes", "apagar time")) {
+            return VoiceCommand.ClearRoster
+        }
+        if ("maior vida" in text || "mais vida" in text) {
+            val filter = when {
+                "sem item" in text || "sem itens" in text -> HealthFilter.WITHOUT_ITEMS
+                "com item" in text || "com itens" in text -> HealthFilter.WITH_ITEMS
+                else -> HealthFilter.ALL
+            }
+            return VoiceCommand.HighestHealth(filter)
+        }
+        if ("maior valor" in text || "vale mais" in text || "valem mais" in text) {
+            return VoiceCommand.HighestValue
+        }
+        if (text in setOf(
+                "quem e frontline", "quais frontline", "listar frontline",
+                "ler frontline", "quem esta na linha de frente"
+            )
+        ) {
+            return VoiceCommand.ListRole(TacticalRole.FRONTLINE)
+        }
+        if (text in setOf(
+                "quem e backline", "quais backline", "listar backline",
+                "ler backline", "quem esta na linha de tras"
+            )
+        ) {
+            return VoiceCommand.ListRole(TacticalRole.BACKLINE)
+        }
+        return null
     }
 
     private fun parseChoice(text: String): VoiceCommand? {

@@ -68,6 +68,40 @@ class VoiceCommandParserTest {
             VoiceCommandParser.parse("ler orbes")
         )
         assertEquals(VoiceCommand.RepeatLastRead, VoiceCommandParser.parse("repetir leitura"))
+        assertEquals(
+            VoiceCommand.ReadScreen(ScreenReadTarget.NOTICE),
+            VoiceCommandParser.parse("por que não pegou")
+        )
+    }
+
+    @Test
+    fun parsesRosterFactsAndQueries() {
+        assertEquals(
+            VoiceCommand.RecordChampion(
+                ChampionObservation(
+                    "Indigena",
+                    1800,
+                    4,
+                    ItemStatus.EQUIPPED,
+                    TacticalRole.FRONTLINE
+                )
+            ),
+            VoiceCommandParser.parse(
+                "registrar indígena vida 1800 valor quatro com item frontline"
+            )
+        )
+        assertEquals(
+            VoiceCommand.HighestHealth(HealthFilter.WITHOUT_ITEMS),
+            VoiceCommandParser.parse("qual boneco com maior vida sem item")
+        )
+        assertEquals(
+            VoiceCommand.HighestValue,
+            VoiceCommandParser.parse("quais os bonecos de maior valor")
+        )
+        assertEquals(
+            VoiceCommand.ListRole(TacticalRole.FRONTLINE),
+            VoiceCommandParser.parse("listar frontline")
+        )
     }
 
     @Test
@@ -94,4 +128,3 @@ class VoiceCommandParserTest {
         assertEquals(0.5f, TftLayout.shopSlotToPoint(3, line)!!.x, 0.0001f)
     }
 }
-

@@ -2,6 +2,15 @@
 
 Protótipo de acessibilidade por voz para controlar o TFT com o serviço de Acessibilidade do Android.
 
+## v0.14
+
+- comando “ler aviso” e variações como “por que não pegou”;
+- interpretação de mensagens de reserva, banco ou espaço de itens cheio;
+- cadastro factual provisório de campeões por voz;
+- consultas de maior vida máxima com/sem itens, maior valor e frontline/backline;
+- empates são falados por completo;
+- nenhuma escolha, venda, item ou posicionamento é decidido automaticamente.
+
 ## v0.13
 
 - leitura por voz com OCR local: loja, itens, sinergias, escolhas e tela inteira;
