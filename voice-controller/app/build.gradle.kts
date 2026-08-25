@@ -11,8 +11,8 @@ android {
         applicationId = "com.rlks.voicecontroller"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 7
+        versionName = "0.7.0"
     }
 
     buildTypes {
@@ -36,5 +36,8 @@ android {
 }
 
 dependencies {
+    implementation("net.java.dev.jna:jna:5.18.1@aar")
+    implementation("com.alphacephei:vosk-android:0.3.75@aar")
+    implementation("com.alphacephei:vosk-model-en:0.3.75")
     testImplementation("junit:junit:4.13.2")
 }
