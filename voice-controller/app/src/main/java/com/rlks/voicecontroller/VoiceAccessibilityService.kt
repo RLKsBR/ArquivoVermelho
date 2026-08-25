@@ -55,6 +55,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         store = ProfileStore(this)
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        AppNotifications.createChannels(this)
         createSpeechRecognizer()
         showMicrophoneOverlay()
         registerSystemAccessibilityButton()
@@ -72,6 +73,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         }
         accessibilityButtonCallback = null
         removeCaptureOverlay()
+        AppNotifications.clearCalibration(this)
         micView?.let { runCatching { windowManager.removeView(it) } }
         micView = null
         speechRecognizer?.destroy()
@@ -110,6 +112,7 @@ class VoiceAccessibilityService : AccessibilityService() {
     private fun createSpeechRecognizer() {
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
             store.addRecognitionError("Reconhecimento de voz indisponível")
+            AppNotifications.showError(this, "Reconhecimento de voz indisponível neste aparelho.")
             return
         }
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).also { recognizer ->
@@ -132,6 +135,9 @@ class VoiceAccessibilityService : AccessibilityService() {
                         else -> "Erro de voz $error"
                     }
                     store.addRecognitionError(description)
+                    if (error != SpeechRecognizer.ERROR_NO_MATCH && error != SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                        AppNotifications.showError(this@VoiceAccessibilityService, "Reconhecimento de voz: $description")
+                    }
                     showMicTemporary("?")
                     scheduleContinuousRestart(650)
                 }
@@ -300,6 +306,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         val overlay = FrameLayout(this).apply { setBackgroundColor(Color.argb(28, 60, 180, 100)) }
         val hint = hintView("Toque no CENTRO de ${labels.first()}")
         overlay.addView(hint, hintLayoutParams())
+        AppNotifications.showCalibration(this, hint.text.toString())
         val points = mutableListOf<NormalizedPoint>()
 
         overlay.setOnTouchListener { _, event ->
@@ -307,6 +314,7 @@ class VoiceAccessibilityService : AccessibilityService() {
                 points += fromPixels(event.rawX, event.rawY)
                 if (points.size < labels.size) {
                     hint.text = "Agora toque no CENTRO de ${labels[points.size]}"
+                    AppNotifications.showCalibration(this, hint.text.toString())
                 } else {
                     val rows = (1..4).associateWith { rank ->
                         val index = (rank - 1) * 2
@@ -334,6 +342,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         val overlay = FrameLayout(this).apply { setBackgroundColor(Color.argb(24, 70, 120, 210)) }
         val hint = hintView(firstHint)
         overlay.addView(hint, hintLayoutParams())
+        AppNotifications.showCalibration(this, hint.text.toString())
         var first: NormalizedPoint? = null
         overlay.setOnTouchListener { _, event ->
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
@@ -341,6 +350,7 @@ class VoiceAccessibilityService : AccessibilityService() {
                 if (first == null) {
                     first = point
                     hint.text = secondHint
+                    AppNotifications.showCalibration(this, hint.text.toString())
                 } else {
                     val saved = save(first!!, point)
                     finishCalibration(
@@ -359,6 +369,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         val overlay = FrameLayout(this).apply { setBackgroundColor(Color.argb(20, 180, 120, 40)) }
         val hint = hintView(hintText)
         overlay.addView(hint, hintLayoutParams())
+        AppNotifications.showCalibration(this, hint.text.toString())
         overlay.setOnTouchListener { _, event ->
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                 val saved = store.savePoint(name, fromPixels(event.rawX, event.rawY))
@@ -374,6 +385,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         val overlay = FrameLayout(this).apply { setBackgroundColor(Color.argb(22, 120, 80, 200)) }
         val hint = hintView("Região de $label: toque no canto SUPERIOR ESQUERDO")
         overlay.addView(hint, hintLayoutParams())
+        AppNotifications.showCalibration(this, hint.text.toString())
         var first: NormalizedPoint? = null
         overlay.setOnTouchListener { _, event ->
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
@@ -381,6 +393,7 @@ class VoiceAccessibilityService : AccessibilityService() {
                 if (first == null) {
                     first = point
                     hint.text = "Agora toque no canto INFERIOR DIREITO"
+                    AppNotifications.showCalibration(this, hint.text.toString())
                 } else {
                     val a = first!!
                     val saved = store.saveRegion(
@@ -401,12 +414,15 @@ class VoiceAccessibilityService : AccessibilityService() {
     private fun finishCalibration(text: String) {
         handler.post {
             removeCaptureOverlay()
+            AppNotifications.clearCalibration(this)
             message(text)
             scheduleContinuousRestart(500)
         }
     }
 
     private fun testScreenshot() {
+        AppNotifications.clearCalibration(this)
+        AppNotifications.showStatus(this, "Testando captura da tela do TFT...")
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             store.visionStatus = "Screenshot via acessibilidade exige Android 11+."
             message(store.visionStatus)
@@ -455,11 +471,16 @@ class VoiceAccessibilityService : AccessibilityService() {
         val gesture = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path, 0, 65))
             .build()
-        dispatchGesture(gesture, object : GestureResultCallback() {
+        val accepted = dispatchGesture(gesture, object : GestureResultCallback() {
             override fun onCompleted(gestureDescription: GestureDescription?) {
                 after?.invoke()
             }
+
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                AppNotifications.showError(this@VoiceAccessibilityService, "O Android cancelou o toque solicitado.")
+            }
         }, null)
+        if (!accepted) AppNotifications.showError(this, "O Android recusou o toque solicitado.")
     }
 
     private fun drag(from: NormalizedPoint, to: NormalizedPoint) {
@@ -472,7 +493,12 @@ class VoiceAccessibilityService : AccessibilityService() {
         val gesture = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path, 0, 480))
             .build()
-        dispatchGesture(gesture, null, null)
+        val accepted = dispatchGesture(gesture, object : GestureResultCallback() {
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                AppNotifications.showError(this@VoiceAccessibilityService, "O Android cancelou o arrasto solicitado.")
+            }
+        }, null)
+        if (!accepted) AppNotifications.showError(this, "O Android recusou o arrasto solicitado.")
     }
 
     private fun showMicrophoneOverlay() {
@@ -586,6 +612,11 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     private fun message(text: String) {
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
+        val normalized = text.lowercase()
+        val isProblem = listOf("falha", "falhou", "erro", "indisponível", "calibre", "marque", "permita", "exige")
+            .any { it in normalized }
+        if (isProblem) AppNotifications.showError(this, text)
+        else AppNotifications.showStatus(this, text)
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()

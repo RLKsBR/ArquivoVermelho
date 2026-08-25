@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
@@ -26,8 +27,9 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = ProfileStore(this)
+        AppNotifications.createChannels(this)
         setContentView(buildUi())
-        requestMicrophoneIfNeeded()
+        requestRequiredPermissions()
     }
 
     override fun onResume() {
@@ -58,7 +60,7 @@ class MainActivity : Activity() {
         status = bodyBox()
         root.addView(status)
 
-        root.addView(button("1. Permitir microfone") { requestMicrophoneIfNeeded(true) })
+        root.addView(button("1. Permitir microfone e notificações") { requestRequiredPermissions(true) })
         root.addView(button("2. Ativar Voice Controller na Acessibilidade") {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         })
@@ -117,6 +119,10 @@ class MainActivity : Activity() {
 
     private fun queue(type: String) {
         store.pendingCalibration = type
+        AppNotifications.showCalibration(
+            this,
+            "Abra o TFT e toque uma vez no botão de acessibilidade ou no 🎙."
+        )
         Toast.makeText(
             this,
             "Pronto. Abra o TFT e toque no botão de acessibilidade uma vez.",
@@ -128,9 +134,11 @@ class MainActivity : Activity() {
     private fun refreshAll() {
         if (!::status.isInitialized) return
         val mic = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        val notifications = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         val access = isAccessibilityEnabled()
-        status.text = "Microfone: ${if (mic) "OK" else "permissão necessária"}   •   Acessibilidade: ${if (access) "ON" else "OFF"}"
-        status.setTextColor(if (mic && access) Color.rgb(130, 230, 150) else Color.rgb(255, 190, 100))
+        status.text = "Microfone: ${if (mic) "OK" else "permissão necessária"}   •   Notificações: ${if (notifications) "OK" else "permissão necessária"}   •   Acessibilidade: ${if (access) "ON" else "OFF"}"
+        status.setTextColor(if (mic && notifications && access) Color.rgb(130, 230, 150) else Color.rgb(255, 190, 100))
         modeButton.text = "Modo partida contínuo: ${if (store.continuousMode) "LIGADO" else "DESLIGADO"}"
         calibrationStatus.text = store.calibrationSummary() + "\n\nPendente: ${store.pendingCalibration}"
         visionStatus.text = store.visionStatus
@@ -143,9 +151,18 @@ class MainActivity : Activity() {
         return enabled.split(':').any { it.equals(expected, ignoreCase = true) }
     }
 
-    private fun requestMicrophoneIfNeeded(force: Boolean = false) {
+    private fun requestRequiredPermissions(force: Boolean = false) {
+        val missing = mutableListOf<String>()
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 10)
+            missing += Manifest.permission.RECORD_AUDIO
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            missing += Manifest.permission.POST_NOTIFICATIONS
+        }
+        if (missing.isNotEmpty()) {
+            requestPermissions(missing.toTypedArray(), 10)
         } else if (force) {
             refreshAll()
         }
