@@ -18,6 +18,7 @@ import android.widget.TextView
 class MainActivity : Activity() {
     private lateinit var store: ProfileStore
     private lateinit var status: TextView
+    private lateinit var diagnostics: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +30,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         if (::status.isInitialized) refreshStatus()
+        if (::diagnostics.isInitialized) refreshDiagnostics()
     }
 
     private fun buildUi(): View {
@@ -59,6 +61,22 @@ class MainActivity : Activity() {
         }
         root.addView(status)
 
+        root.addView(label("Last speech attempts"))
+        diagnostics = TextView(this).apply {
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.rgb(30, 33, 39))
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            maxLines = 8
+        }
+        root.addView(diagnostics)
+
+        root.addView(button("Refresh speech log") { refreshDiagnostics() })
+        root.addView(button("Clear speech log") {
+            store.clearRecognitionLog()
+            refreshDiagnostics()
+        })
+
         root.addView(label("Profile"))
         val profiles = listOf(
             ProfileStore.PROFILE_LICHESS,
@@ -86,13 +104,14 @@ class MainActivity : Activity() {
         })
 
         root.addView(TextView(this).apply {
-            text = "QUICK CHESS TEST\n1) Enable the accessibility service.\n2) Open Lichess or Chess.com normally.\n3) Tap the floating 🎙 button.\n4) Say “calibrate board”, then tap the outer top-left and bottom-right corners of the board.\n5) Say moves with origin + destination: “E2 E4”, “G1 F3”, etc.\n6) Say “white orientation” or “black orientation” when needed.\n\nTFT / GENERIC\nSay “set reroll”, then tap the reroll button once. Later say “reroll” or “tap reroll”. You can create any named point this way. For drags: set two named points, then say “drag bench one to board back left”.\n\nThe mic is push-to-talk: it only listens after you tap the floating button, which keeps resource use low and plays nicer with Android's native screen recorder."
+            text = "QUICK CHESS TEST\n1) Enable the accessibility service.\n2) Open Lichess or Chess.com normally.\n3) Tap the floating 🎙 button.\n4) Say “calibrate board”, then tap the outer top-left and bottom-right corners of the board.\n5) Say moves with origin + destination: “E2 E4”, “G1 F3”, etc.\n6) Say “white orientation” or “black orientation” when needed.\n\nIf a move fails, just come back here. The app stores the raw Android speech hypotheses plus what the parser decided, so we can diagnose it without a screenshot at the exact moment.\n\nTFT / GENERIC\nSay “set reroll”, then tap the reroll button once. Later say “reroll” or “tap reroll”. You can create any named point this way. For drags: set two named points, then say “drag bench one to board back left”."
             textSize = 14f
             setTextColor(Color.LTGRAY)
             setPadding(0, dp(18), 0, 0)
         })
 
         refreshStatus()
+        refreshDiagnostics()
         return root
     }
 
@@ -101,6 +120,10 @@ class MainActivity : Activity() {
         val access = isAccessibilityEnabled()
         status.text = "Microphone: ${if (mic) "OK" else "permission needed"}   •   Accessibility: ${if (access) "ON" else "OFF"}"
         status.setTextColor(if (mic && access) Color.rgb(120, 220, 140) else Color.rgb(255, 190, 100))
+    }
+
+    private fun refreshDiagnostics() {
+        diagnostics.text = store.getRecognitionLog()
     }
 
     private fun isAccessibilityEnabled(): Boolean {
