@@ -13,11 +13,15 @@ class ProfileStore(context: Context) {
         get() = prefs.getString(KEY_PENDING_CALIBRATION, PENDING_NONE) ?: PENDING_NONE
         set(value) = prefs.edit().putString(KEY_PENDING_CALIBRATION, value).apply()
 
-    fun saveBoardRow(rank: Int, left: NormalizedPoint, right: NormalizedPoint) {
-        prefs.edit()
-            .putString("tft_board_${rank}_left", encodePoint(left))
-            .putString("tft_board_${rank}_right", encodePoint(right))
-            .apply()
+    fun saveBoardRows(rows: Map<Int, TftRow>): Boolean {
+        if ((1..4).any { rows[it] == null }) return false
+        val editor = prefs.edit()
+        for (rank in 1..4) {
+            val row = rows.getValue(rank)
+            editor.putString("tft_board_${rank}_left", encodePoint(row.left))
+            editor.putString("tft_board_${rank}_right", encodePoint(row.right))
+        }
+        return editor.commit()
     }
 
     fun getBoardRows(): Map<Int, TftRow> {
@@ -30,33 +34,29 @@ class ProfileStore(context: Context) {
         return rows
     }
 
-    fun saveBenchLine(first: NormalizedPoint, last: NormalizedPoint) {
+    fun saveBenchLine(first: NormalizedPoint, last: NormalizedPoint): Boolean =
         saveLine(KEY_BENCH_LINE, first, last)
-    }
 
     fun getBenchLine(): TftLine? = getLine(KEY_BENCH_LINE)
 
-    fun saveShopLine(first: NormalizedPoint, last: NormalizedPoint) {
+    fun saveShopLine(first: NormalizedPoint, last: NormalizedPoint): Boolean =
         saveLine(KEY_SHOP_LINE, first, last)
-    }
 
     fun getShopLine(): TftLine? = getLine(KEY_SHOP_LINE)
 
-    fun savePoint(name: String, point: NormalizedPoint) {
-        prefs.edit().putString("tft_point_${key(name)}", encodePoint(point)).apply()
-    }
+    fun savePoint(name: String, point: NormalizedPoint): Boolean =
+        prefs.edit().putString("tft_point_${key(name)}", encodePoint(point)).commit()
 
     fun getPoint(name: String): NormalizedPoint? =
         decodePoint(prefs.getString("tft_point_${key(name)}", null))
 
     fun hasPoint(name: String): Boolean = getPoint(name) != null
 
-    fun saveRegion(name: String, rect: NormalizedRect) {
+    fun saveRegion(name: String, rect: NormalizedRect): Boolean =
         prefs.edit().putString(
             "tft_region_${key(name)}",
             "${rect.left},${rect.top},${rect.right},${rect.bottom}"
-        ).apply()
-    }
+        ).commit()
 
     fun getRegion(name: String): NormalizedRect? {
         val raw = prefs.getString("tft_region_${key(name)}", null) ?: return null
@@ -96,9 +96,11 @@ class ProfileStore(context: Context) {
         get() = prefs.getString(KEY_VISION_STATUS, "Visão ainda não testada.") ?: "Visão ainda não testada."
         set(value) = prefs.edit().putString(KEY_VISION_STATUS, value).apply()
 
-    private fun saveLine(key: String, first: NormalizedPoint, last: NormalizedPoint) {
-        prefs.edit().putString("${key}_first", encodePoint(first)).putString("${key}_last", encodePoint(last)).apply()
-    }
+    private fun saveLine(key: String, first: NormalizedPoint, last: NormalizedPoint): Boolean =
+        prefs.edit()
+            .putString("${key}_first", encodePoint(first))
+            .putString("${key}_last", encodePoint(last))
+            .commit()
 
     private fun getLine(key: String): TftLine? {
         val first = decodePoint(prefs.getString("${key}_first", null)) ?: return null

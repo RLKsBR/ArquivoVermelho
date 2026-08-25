@@ -49,7 +49,7 @@ class MainActivity : Activity() {
         })
 
         root.addView(TextView(this).apply {
-            text = "TFT-only • voz em português • taps e drags • base preparada para visão da tela"
+            text = "TFT-only • voz em português • taps e drags • calibração salva no aparelho"
             textSize = 14f
             setTextColor(Color.LTGRAY)
             setPadding(0, dp(6), 0, dp(14))
@@ -71,7 +71,7 @@ class MainActivity : Activity() {
 
         root.addView(section("CALIBRAÇÃO TFT"))
         root.addView(TextView(this).apply {
-            text = "Toque numa calibração aqui. Depois abra o TFT e toque UMA vez no botão de acessibilidade do Android (ou no 🎙, se aparecer). O Voice Controller entra no modo de marcação sobre o jogo."
+            text = "Toque numa calibração aqui. Depois abra o TFT e toque UMA vez no botão de acessibilidade do Android (ou no 🎙, se aparecer). Ao terminar, as coordenadas ficam salvas dentro do app e continuam lá quando ele for fechado e aberto novamente."
             textSize = 13f
             setTextColor(Color.LTGRAY)
             setPadding(0, 0, 0, dp(8))

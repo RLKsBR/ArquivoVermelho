@@ -308,11 +308,15 @@ class VoiceAccessibilityService : AccessibilityService() {
                 if (points.size < labels.size) {
                     hint.text = "Agora toque no CENTRO de ${labels[points.size]}"
                 } else {
-                    for (rank in 1..4) {
+                    val rows = (1..4).associateWith { rank ->
                         val index = (rank - 1) * 2
-                        store.saveBoardRow(rank, points[index], points[index + 1])
+                        TftRow(points[index], points[index + 1])
                     }
-                    finishCalibration("Tabuleiro A1–G4 calibrado")
+                    val saved = store.saveBoardRows(rows)
+                    finishCalibration(
+                        if (saved) "Tabuleiro A1–G4 calibrado e salvo no app"
+                        else "Falha ao salvar o tabuleiro"
+                    )
                 }
                 true
             } else true
@@ -324,7 +328,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         title: String,
         firstHint: String,
         secondHint: String,
-        save: (NormalizedPoint, NormalizedPoint) -> Unit
+        save: (NormalizedPoint, NormalizedPoint) -> Boolean
     ) {
         removeCaptureOverlay()
         val overlay = FrameLayout(this).apply { setBackgroundColor(Color.argb(24, 70, 120, 210)) }
@@ -338,8 +342,11 @@ class VoiceAccessibilityService : AccessibilityService() {
                     first = point
                     hint.text = secondHint
                 } else {
-                    save(first!!, point)
-                    finishCalibration("$title calibrado")
+                    val saved = save(first!!, point)
+                    finishCalibration(
+                        if (saved) "$title calibrado e salvo no app"
+                        else "Falha ao salvar $title"
+                    )
                 }
                 true
             } else true
@@ -354,8 +361,8 @@ class VoiceAccessibilityService : AccessibilityService() {
         overlay.addView(hint, hintLayoutParams())
         overlay.setOnTouchListener { _, event ->
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                store.savePoint(name, fromPixels(event.rawX, event.rawY))
-                finishCalibration("Posição salva")
+                val saved = store.savePoint(name, fromPixels(event.rawX, event.rawY))
+                finishCalibration(if (saved) "Posição salva no app" else "Falha ao salvar a posição")
                 true
             } else true
         }
@@ -376,8 +383,14 @@ class VoiceAccessibilityService : AccessibilityService() {
                     hint.text = "Agora toque no canto INFERIOR DIREITO"
                 } else {
                     val a = first!!
-                    store.saveRegion(name, NormalizedRect(min(a.x, point.x), min(a.y, point.y), max(a.x, point.x), max(a.y, point.y)))
-                    finishCalibration("Região de $label salva")
+                    val saved = store.saveRegion(
+                        name,
+                        NormalizedRect(min(a.x, point.x), min(a.y, point.y), max(a.x, point.x), max(a.y, point.y))
+                    )
+                    finishCalibration(
+                        if (saved) "Região de $label salva no app"
+                        else "Falha ao salvar a região de $label"
+                    )
                 }
                 true
             } else true
