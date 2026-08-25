@@ -22,6 +22,19 @@ data class TftRow(val left: NormalizedPoint, val right: NormalizedPoint)
 
 data class TftLine(val first: NormalizedPoint, val last: NormalizedPoint)
 
+data class TftCalibration(
+    val boardRows: Map<Int, TftRow>,
+    val benchLine: TftLine,
+    val shopLine: TftLine,
+    val reroll: NormalizedPoint,
+    val xp: NormalizedPoint,
+    val shopToggle: NormalizedPoint,
+    val sell: NormalizedPoint,
+    val items: NormalizedRect,
+    val traits: NormalizedRect,
+    val choices: NormalizedRect
+)
+
 object TftLayout {
     fun boardSquareToPoint(square: String, rows: Map<Int, TftRow>): NormalizedPoint? {
         val clean = square.lowercase().replace(" ", "")

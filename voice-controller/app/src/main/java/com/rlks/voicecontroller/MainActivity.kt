@@ -73,7 +73,7 @@ class MainActivity : Activity() {
 
         root.addView(section("CALIBRAÇÃO TFT"))
         root.addView(TextView(this).apply {
-            text = "Toque numa calibração aqui. Depois abra o TFT e toque UMA vez no botão de acessibilidade do Android (ou no 🎙, se aparecer). Ao terminar, as coordenadas ficam salvas dentro do app e continuam lá quando ele for fechado e aberto novamente."
+            text = "Toque no botão abaixo uma vez. Depois abra o TFT e toque UMA vez no botão de acessibilidade do Android (ou no 🎙, se aparecer). O app conduz os 22 toques em sequência e salva tudo junto no final."
             textSize = 13f
             setTextColor(Color.LTGRAY)
             setPadding(0, 0, 0, dp(8))
@@ -82,16 +82,7 @@ class MainActivity : Activity() {
         calibrationStatus = bodyBox()
         root.addView(calibrationStatus)
 
-        root.addView(button("Calibrar tabuleiro A1–G4 (8 toques)") { queue(ProfileStore.PENDING_BOARD) })
-        root.addView(button("Calibrar banco 1–9 (2 toques)") { queue(ProfileStore.PENDING_BENCH) })
-        root.addView(button("Calibrar loja 1–5 (2 toques)") { queue(ProfileStore.PENDING_SHOP) })
-        root.addView(button("Calibrar botão Rolar") { queue(ProfileStore.PENDING_REROLL) })
-        root.addView(button("Calibrar botão XP") { queue(ProfileStore.PENDING_XP) })
-        root.addView(button("Calibrar botão abrir/fechar loja") { queue(ProfileStore.PENDING_SHOP_TOGGLE) })
-        root.addView(button("Calibrar área de venda") { queue(ProfileStore.PENDING_SELL) })
-        root.addView(button("Marcar região dos itens (2 cantos)") { queue(ProfileStore.PENDING_ITEMS) })
-        root.addView(button("Marcar região das sinergias (2 cantos)") { queue(ProfileStore.PENDING_TRAITS) })
-        root.addView(button("Marcar região de escolhas/aprimoramentos (2 cantos)") { queue(ProfileStore.PENDING_CHOICES) })
+        root.addView(button("Calibrar tudo em sequência (22 toques)") { queue(ProfileStore.PENDING_ALL) })
 
         root.addView(section("TESTE DE VISÃO"))
         root.addView(button("Testar screenshot do TFT") { queue(ProfileStore.PENDING_SCREENSHOT_TEST) })
@@ -125,7 +116,7 @@ class MainActivity : Activity() {
         )
         Toast.makeText(
             this,
-            "Pronto. Abra o TFT e toque no botão de acessibilidade uma vez.",
+            "Pronto. Abra o TFT e toque no botão de acessibilidade uma vez. Depois siga os 22 passos.",
             Toast.LENGTH_LONG
         ).show()
         refreshAll()

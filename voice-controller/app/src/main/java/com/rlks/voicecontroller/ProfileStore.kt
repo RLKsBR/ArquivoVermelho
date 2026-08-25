@@ -24,6 +24,28 @@ class ProfileStore(context: Context) {
         return editor.commit()
     }
 
+    fun saveFullCalibration(calibration: TftCalibration): Boolean {
+        if ((1..4).any { calibration.boardRows[it] == null }) return false
+        val editor = prefs.edit()
+        for (rank in 1..4) {
+            val row = calibration.boardRows.getValue(rank)
+            editor.putString("tft_board_${rank}_left", encodePoint(row.left))
+            editor.putString("tft_board_${rank}_right", encodePoint(row.right))
+        }
+        editor.putString("${KEY_BENCH_LINE}_first", encodePoint(calibration.benchLine.first))
+        editor.putString("${KEY_BENCH_LINE}_last", encodePoint(calibration.benchLine.last))
+        editor.putString("${KEY_SHOP_LINE}_first", encodePoint(calibration.shopLine.first))
+        editor.putString("${KEY_SHOP_LINE}_last", encodePoint(calibration.shopLine.last))
+        editor.putString("tft_point_${key(POINT_REROLL)}", encodePoint(calibration.reroll))
+        editor.putString("tft_point_${key(POINT_XP)}", encodePoint(calibration.xp))
+        editor.putString("tft_point_${key(POINT_SHOP_TOGGLE)}", encodePoint(calibration.shopToggle))
+        editor.putString("tft_point_${key(POINT_SELL)}", encodePoint(calibration.sell))
+        editor.putString("tft_region_${key(REGION_ITEMS)}", encodeRect(calibration.items))
+        editor.putString("tft_region_${key(REGION_TRAITS)}", encodeRect(calibration.traits))
+        editor.putString("tft_region_${key(REGION_CHOICES)}", encodeRect(calibration.choices))
+        return editor.commit()
+    }
+
     fun getBoardRows(): Map<Int, TftRow> {
         val rows = mutableMapOf<Int, TftRow>()
         for (rank in 1..4) {
@@ -117,6 +139,9 @@ class ProfileStore(context: Context) {
 
     private fun encodePoint(point: NormalizedPoint) = "${point.x},${point.y}"
 
+    private fun encodeRect(rect: NormalizedRect) =
+        "${rect.left},${rect.top},${rect.right},${rect.bottom}"
+
     private fun decodePoint(raw: String?): NormalizedPoint? {
         val pieces = raw?.split(',') ?: return null
         if (pieces.size != 2) return null
@@ -127,6 +152,7 @@ class ProfileStore(context: Context) {
 
     companion object {
         const val PENDING_NONE = "none"
+        const val PENDING_ALL = "all"
         const val PENDING_BOARD = "board"
         const val PENDING_BENCH = "bench"
         const val PENDING_SHOP = "shop"

@@ -278,6 +278,7 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     private fun performPendingCalibration(type: String) {
         when (type) {
+            ProfileStore.PENDING_ALL -> captureAll()
             ProfileStore.PENDING_BOARD -> captureBoard()
             ProfileStore.PENDING_BENCH -> captureLine(
                 "Banco",
@@ -298,6 +299,81 @@ class VoiceAccessibilityService : AccessibilityService() {
             ProfileStore.PENDING_CHOICES -> captureRegion(ProfileStore.REGION_CHOICES, "escolhas/aprimoramentos")
             ProfileStore.PENDING_SCREENSHOT_TEST -> testScreenshot()
         }
+    }
+
+    private fun captureAll() {
+        removeCaptureOverlay()
+        val steps = listOf(
+            "Toque no CENTRO de A1",
+            "Toque no CENTRO de G1",
+            "Toque no CENTRO de A2",
+            "Toque no CENTRO de G2",
+            "Toque no CENTRO de A3",
+            "Toque no CENTRO de G3",
+            "Toque no CENTRO de A4",
+            "Toque no CENTRO de G4",
+            "Toque no CENTRO do banco 1",
+            "Toque no CENTRO do banco 9",
+            "Toque no CENTRO da carta 1 da loja",
+            "Toque no CENTRO da carta 5 da loja",
+            "Toque no botão ROLAR",
+            "Toque no botão de XP",
+            "Toque no botão de abrir/fechar a loja",
+            "Toque no CENTRO da área de venda",
+            "Itens: toque no canto SUPERIOR ESQUERDO",
+            "Itens: toque no canto INFERIOR DIREITO",
+            "Sinergias: toque no canto SUPERIOR ESQUERDO",
+            "Sinergias: toque no canto INFERIOR DIREITO",
+            "Aprimoramentos: toque no canto SUPERIOR ESQUERDO",
+            "Aprimoramentos: toque no canto INFERIOR DIREITO"
+        )
+        fun instruction(index: Int) = "${index + 1}/${steps.size} — ${steps[index]}"
+        fun rect(a: NormalizedPoint, b: NormalizedPoint) = NormalizedRect(
+            min(a.x, b.x),
+            min(a.y, b.y),
+            max(a.x, b.x),
+            max(a.y, b.y)
+        )
+
+        val overlay = FrameLayout(this).apply { setBackgroundColor(Color.argb(28, 60, 180, 100)) }
+        val hint = hintView(instruction(0))
+        overlay.addView(hint, hintLayoutParams())
+        AppNotifications.showCalibration(this, hint.text.toString())
+        val points = mutableListOf<NormalizedPoint>()
+
+        overlay.setOnTouchListener { _, event ->
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                points += fromPixels(event.rawX, event.rawY)
+                if (points.size < steps.size) {
+                    hint.text = instruction(points.size)
+                    AppNotifications.showCalibration(this, hint.text.toString())
+                } else {
+                    val boardRows = (1..4).associateWith { rank ->
+                        val index = (rank - 1) * 2
+                        TftRow(points[index], points[index + 1])
+                    }
+                    val calibration = TftCalibration(
+                        boardRows = boardRows,
+                        benchLine = TftLine(points[8], points[9]),
+                        shopLine = TftLine(points[10], points[11]),
+                        reroll = points[12],
+                        xp = points[13],
+                        shopToggle = points[14],
+                        sell = points[15],
+                        items = rect(points[16], points[17]),
+                        traits = rect(points[18], points[19]),
+                        choices = rect(points[20], points[21])
+                    )
+                    val saved = store.saveFullCalibration(calibration)
+                    finishCalibration(
+                        if (saved) "Calibração completa salva no app"
+                        else "Falha ao salvar a calibração completa"
+                    )
+                }
+                true
+            } else true
+        }
+        showCaptureOverlay(overlay)
     }
 
     private fun captureBoard() {
