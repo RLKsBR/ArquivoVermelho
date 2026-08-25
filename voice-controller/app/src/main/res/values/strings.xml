@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Voice Controller</string>
-    <string name="accessibility_description">Controls taps and drags from your own voice commands while another app is open.</string>
+    <string name="accessibility_description">Controla toques e arrastos no TFT a partir dos seus comandos de voz e calibra regiões da interface.</string>
 </resources>
