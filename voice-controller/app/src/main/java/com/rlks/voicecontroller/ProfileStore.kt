@@ -5,108 +5,153 @@ import android.content.Context
 class ProfileStore(context: Context) {
     private val prefs = context.getSharedPreferences("voice_controller", Context.MODE_PRIVATE)
 
-    var profile: String
-        get() = prefs.getString("profile", PROFILE_LICHESS) ?: PROFILE_LICHESS
-        set(value) = prefs.edit().putString("profile", value).apply()
+    var continuousMode: Boolean
+        get() = prefs.getBoolean(KEY_CONTINUOUS_MODE, false)
+        set(value) = prefs.edit().putBoolean(KEY_CONTINUOUS_MODE, value).apply()
 
-    var language: String
-        get() = prefs.getString("language", LANG_AUTO) ?: LANG_AUTO
-        set(value) = prefs.edit().putString("language", value).apply()
+    var pendingCalibration: String
+        get() = prefs.getString(KEY_PENDING_CALIBRATION, PENDING_NONE) ?: PENDING_NONE
+        set(value) = prefs.edit().putString(KEY_PENDING_CALIBRATION, value).apply()
 
-    fun isWhiteBottom(profile: String = this.profile): Boolean =
-        prefs.getBoolean("orientation_${key(profile)}", true)
-
-    fun setWhiteBottom(value: Boolean, profile: String = this.profile) {
-        prefs.edit().putBoolean("orientation_${key(profile)}", value).apply()
-    }
-
-    fun saveBoardRect(rect: BoardRect, profile: String = this.profile) {
+    fun saveBoardRow(rank: Int, left: NormalizedPoint, right: NormalizedPoint) {
         prefs.edit()
-            .putFloat("board_l_${key(profile)}", rect.left)
-            .putFloat("board_t_${key(profile)}", rect.top)
-            .putFloat("board_r_${key(profile)}", rect.right)
-            .putFloat("board_b_${key(profile)}", rect.bottom)
+            .putString("tft_board_${rank}_left", encodePoint(left))
+            .putString("tft_board_${rank}_right", encodePoint(right))
             .apply()
     }
 
-    fun getBoardRect(profile: String = this.profile): BoardRect? {
-        val suffix = key(profile)
-        if (!prefs.contains("board_l_$suffix")) return null
-        return BoardRect(
-            prefs.getFloat("board_l_$suffix", 0f),
-            prefs.getFloat("board_t_$suffix", 0f),
-            prefs.getFloat("board_r_$suffix", 1f),
-            prefs.getFloat("board_b_$suffix", 1f)
-        )
+    fun getBoardRows(): Map<Int, TftRow> {
+        val rows = mutableMapOf<Int, TftRow>()
+        for (rank in 1..4) {
+            val left = decodePoint(prefs.getString("tft_board_${rank}_left", null))
+            val right = decodePoint(prefs.getString("tft_board_${rank}_right", null))
+            if (left != null && right != null) rows[rank] = TftRow(left, right)
+        }
+        return rows
     }
 
-    fun savePoint(name: String, x: Float, y: Float, profile: String = this.profile) {
-        val pointKey = pointKey(profile, name)
-        prefs.edit().putString(pointKey, "$x,$y").apply()
+    fun saveBenchLine(first: NormalizedPoint, last: NormalizedPoint) {
+        saveLine(KEY_BENCH_LINE, first, last)
     }
 
-    fun getPoint(name: String, profile: String = this.profile): NormalizedPoint? {
-        val raw = prefs.getString(pointKey(profile, name), null) ?: return null
-        val pieces = raw.split(',')
-        if (pieces.size != 2) return null
-        val x = pieces[0].toFloatOrNull() ?: return null
-        val y = pieces[1].toFloatOrNull() ?: return null
-        return NormalizedPoint(x, y)
+    fun getBenchLine(): TftLine? = getLine(KEY_BENCH_LINE)
+
+    fun saveShopLine(first: NormalizedPoint, last: NormalizedPoint) {
+        saveLine(KEY_SHOP_LINE, first, last)
     }
 
-    fun hasPoint(name: String, profile: String = this.profile): Boolean =
-        prefs.contains(pointKey(profile, name))
+    fun getShopLine(): TftLine? = getLine(KEY_SHOP_LINE)
+
+    fun savePoint(name: String, point: NormalizedPoint) {
+        prefs.edit().putString("tft_point_${key(name)}", encodePoint(point)).apply()
+    }
+
+    fun getPoint(name: String): NormalizedPoint? =
+        decodePoint(prefs.getString("tft_point_${key(name)}", null))
+
+    fun hasPoint(name: String): Boolean = getPoint(name) != null
+
+    fun saveRegion(name: String, rect: NormalizedRect) {
+        prefs.edit().putString(
+            "tft_region_${key(name)}",
+            "${rect.left},${rect.top},${rect.right},${rect.bottom}"
+        ).apply()
+    }
+
+    fun getRegion(name: String): NormalizedRect? {
+        val raw = prefs.getString("tft_region_${key(name)}", null) ?: return null
+        val p = raw.split(',').mapNotNull { it.toFloatOrNull() }
+        if (p.size != 4) return null
+        return NormalizedRect(p[0], p[1], p[2], p[3])
+    }
+
+    fun calibrationSummary(): String {
+        fun mark(ok: Boolean) = if (ok) "✓" else "—"
+        return buildString {
+            append("${mark(getBoardRows().size == 4)} Tabuleiro A1–G4\n")
+            append("${mark(getBenchLine() != null)} Banco 1–9\n")
+            append("${mark(getShopLine() != null)} Loja 1–5\n")
+            append("${mark(hasPoint(POINT_REROLL))} Rolar   ${mark(hasPoint(POINT_XP))} XP   ${mark(hasPoint(POINT_SHOP_TOGGLE))} Botão loja\n")
+            append("${mark(hasPoint(POINT_SELL))} Venda   ${mark(getRegion(REGION_ITEMS) != null)} Itens   ${mark(getRegion(REGION_TRAITS) != null)} Sinergias\n")
+            append("${mark(getRegion(REGION_CHOICES) != null)} Escolhas/aprimoramentos")
+        }
+    }
 
     fun addRecognitionLog(phrases: List<String>, parsed: String?) {
-        val compactPhrases = if (phrases.isEmpty()) {
-            "<nothing>"
-        } else {
-            phrases.take(6).joinToString(" | ")
-        }
-        val entry = "PARSED: ${parsed ?: "UNKNOWN"}\nRAW: $compactPhrases"
-        val existing = prefs.getString(KEY_RECOGNITION_LOG, "").orEmpty()
-            .split(LOG_SEPARATOR)
-            .filter { it.isNotBlank() }
-        val updated = (listOf(entry) + existing).take(12).joinToString(LOG_SEPARATOR)
-        prefs.edit().putString(KEY_RECOGNITION_LOG, updated).apply()
+        val raw = if (phrases.isEmpty()) "<nada>" else phrases.take(6).joinToString(" | ")
+        addLogEntry("PARSED: ${parsed ?: "UNKNOWN"}\nRAW: $raw")
     }
 
-    fun addRecognitionError(text: String) {
-        val existing = prefs.getString(KEY_RECOGNITION_LOG, "").orEmpty()
-            .split(LOG_SEPARATOR)
-            .filter { it.isNotBlank() }
-        val entry = "ERROR: $text"
-        val updated = (listOf(entry) + existing).take(12).joinToString(LOG_SEPARATOR)
-        prefs.edit().putString(KEY_RECOGNITION_LOG, updated).apply()
-    }
+    fun addRecognitionError(text: String) = addLogEntry("ERROR: $text")
 
     fun getRecognitionLog(): String = prefs.getString(KEY_RECOGNITION_LOG, "").orEmpty()
         .replace(LOG_SEPARATOR, "\n\n")
-        .ifBlank { "No speech attempts recorded yet." }
+        .ifBlank { "Nenhuma tentativa registrada ainda." }
 
     fun clearRecognitionLog() {
         prefs.edit().remove(KEY_RECOGNITION_LOG).apply()
     }
 
-    private fun pointKey(profile: String, name: String): String =
-        "point_${key(profile)}_${VoiceCommandParser.canonicalName(name)}"
+    var visionStatus: String
+        get() = prefs.getString(KEY_VISION_STATUS, "Visão ainda não testada.") ?: "Visão ainda não testada."
+        set(value) = prefs.edit().putString(KEY_VISION_STATUS, value).apply()
 
-    private fun key(value: String): String = value.lowercase().replace(Regex("[^a-z0-9]+"), "_")
+    private fun saveLine(key: String, first: NormalizedPoint, last: NormalizedPoint) {
+        prefs.edit().putString("${key}_first", encodePoint(first)).putString("${key}_last", encodePoint(last)).apply()
+    }
+
+    private fun getLine(key: String): TftLine? {
+        val first = decodePoint(prefs.getString("${key}_first", null)) ?: return null
+        val last = decodePoint(prefs.getString("${key}_last", null)) ?: return null
+        return TftLine(first, last)
+    }
+
+    private fun addLogEntry(entry: String) {
+        val existing = prefs.getString(KEY_RECOGNITION_LOG, "").orEmpty()
+            .split(LOG_SEPARATOR)
+            .filter { it.isNotBlank() }
+        prefs.edit().putString(KEY_RECOGNITION_LOG, (listOf(entry) + existing).take(12).joinToString(LOG_SEPARATOR)).apply()
+    }
+
+    private fun encodePoint(point: NormalizedPoint) = "${point.x},${point.y}"
+
+    private fun decodePoint(raw: String?): NormalizedPoint? {
+        val pieces = raw?.split(',') ?: return null
+        if (pieces.size != 2) return null
+        return NormalizedPoint(pieces[0].toFloatOrNull() ?: return null, pieces[1].toFloatOrNull() ?: return null)
+    }
+
+    private fun key(value: String) = value.lowercase().replace(Regex("[^a-z0-9]+"), "_")
 
     companion object {
-        const val PROFILE_LICHESS = "Lichess"
-        const val PROFILE_CHESS_COM = "Chess.com"
-        const val PROFILE_TFT = "TFT"
-        const val PROFILE_GENERIC = "Generic"
+        const val PENDING_NONE = "none"
+        const val PENDING_BOARD = "board"
+        const val PENDING_BENCH = "bench"
+        const val PENDING_SHOP = "shop"
+        const val PENDING_REROLL = "reroll"
+        const val PENDING_XP = "xp"
+        const val PENDING_SHOP_TOGGLE = "shop_toggle"
+        const val PENDING_SELL = "sell"
+        const val PENDING_ITEMS = "items"
+        const val PENDING_TRAITS = "traits"
+        const val PENDING_CHOICES = "choices"
+        const val PENDING_SCREENSHOT_TEST = "screenshot_test"
 
-        const val LANG_AUTO = "Auto"
-        const val LANG_EN = "English"
-        const val LANG_PT = "Português"
+        const val POINT_REROLL = "reroll"
+        const val POINT_XP = "xp"
+        const val POINT_SHOP_TOGGLE = "shop_toggle"
+        const val POINT_SELL = "sell"
 
+        const val REGION_ITEMS = "items"
+        const val REGION_TRAITS = "traits"
+        const val REGION_CHOICES = "choices"
+
+        private const val KEY_CONTINUOUS_MODE = "tft_continuous_mode"
+        private const val KEY_PENDING_CALIBRATION = "tft_pending_calibration"
+        private const val KEY_BENCH_LINE = "tft_bench_line"
+        private const val KEY_SHOP_LINE = "tft_shop_line"
         private const val KEY_RECOGNITION_LOG = "recognition_log"
+        private const val KEY_VISION_STATUS = "tft_vision_status"
         private const val LOG_SEPARATOR = "\n---VC-ENTRY---\n"
     }
 }
-
-data class NormalizedPoint(val x: Float, val y: Float)
-data class BoardRect(val left: Float, val top: Float, val right: Float, val bottom: Float)
