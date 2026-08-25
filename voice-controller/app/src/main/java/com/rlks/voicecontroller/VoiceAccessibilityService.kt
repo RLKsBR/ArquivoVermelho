@@ -32,10 +32,14 @@ class VoiceAccessibilityService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
 
     private var micView: TextView? = null
-    private var micParams: WindowManager.LayoutParams? = null
     private var speechRecognizer: SpeechRecognizer? = null
     private var captureOverlay: View? = null
+    private var diagnosticView: TextView? = null
     private var listening = false
+
+    private val hideDiagnostic = Runnable {
+        diagnosticView?.visibility = View.GONE
+    }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -43,6 +47,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         createSpeechRecognizer()
         showMicrophoneOverlay()
+        showDiagnosticOverlay()
         message("Voice Controller ready")
     }
 
@@ -50,7 +55,10 @@ class VoiceAccessibilityService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     override fun onDestroy() {
+        handler.removeCallbacks(hideDiagnostic)
         removeCaptureOverlay()
+        diagnosticView?.let { runCatching { windowManager.removeView(it) } }
+        diagnosticView = null
         micView?.let { runCatching { windowManager.removeView(it) } }
         micView = null
         speechRecognizer?.destroy()
@@ -79,7 +87,9 @@ class VoiceAccessibilityService : AccessibilityService() {
                     listening = false
                     micView?.text = "🎙"
                     if (error != SpeechRecognizer.ERROR_NO_MATCH && error != SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                        message("Speech error $error")
+                        showDiagnosticText("Speech error: $error")
+                    } else {
+                        showDiagnosticText("No speech match")
                     }
                 }
 
@@ -88,14 +98,8 @@ class VoiceAccessibilityService : AccessibilityService() {
                     micView?.text = "🎙"
                     val phrases = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
                     val selected = VoiceCommandParser.parseAlternatives(phrases)
+                    showRecognitionDiagnostic(phrases, selected)
                     if (selected != null) {
-                        val summary = commandSummary(selected.second)
-                        if (summary != null) {
-                            message("Heard: ${selected.first} → $summary")
-                        } else {
-                            val preview = phrases.take(3).joinToString(" | ")
-                            message("Heard: $preview")
-                        }
                         processCommand(selected.first, selected.second)
                     }
                 }
@@ -123,6 +127,9 @@ class VoiceAccessibilityService : AccessibilityService() {
             return
         }
 
+        handler.removeCallbacks(hideDiagnostic)
+        diagnosticView?.visibility = View.GONE
+
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 10)
@@ -138,13 +145,39 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     private fun chessBiasingStrings(): ArrayList<String> {
-        val values = ArrayList<String>(80)
+        val values = ArrayList<String>(260)
+        val englishFiles = mapOf(
+            'A' to "A", 'B' to "B", 'C' to "C", 'D' to "D",
+            'E' to "E", 'F' to "F", 'G' to "G", 'H' to "H"
+        )
+        val natoFiles = mapOf(
+            'A' to "Alpha", 'B' to "Bravo", 'C' to "Charlie", 'D' to "Delta",
+            'E' to "Echo", 'F' to "Foxtrot", 'G' to "Golf", 'H' to "Hotel"
+        )
+        val ranks = mapOf(
+            1 to "one", 2 to "two", 3 to "three", 4 to "four",
+            5 to "five", 6 to "six", 7 to "seven", 8 to "eight"
+        )
+
         for (file in 'A'..'H') {
             values += file.toString()
+            values += natoFiles.getValue(file)
             for (rank in 1..8) {
                 values += "$file$rank"
+                values += "${englishFiles.getValue(file)} ${ranks.getValue(rank)}"
+                values += "${natoFiles.getValue(file)} ${ranks.getValue(rank)}"
             }
         }
+
+        // Frequent opening coordinates get extra bias because short alphanumeric speech
+        // is where Android recognition tends to struggle the most.
+        values += listOf(
+            "E two E four", "D two D four", "A two A four", "H two H four",
+            "G one F three", "B one C three", "E seven E five", "D seven D five",
+            "A seven A five", "H seven H five", "G eight F six", "B eight C six",
+            "Echo two Echo four", "Delta two Delta four", "Alpha two Alpha four",
+            "Hotel two Hotel four", "Golf one Foxtrot three", "Bravo one Charlie three"
+        )
         values += listOf("castle kingside", "castle queenside", "roque pequeno", "roque grande")
         return values
     }
@@ -209,7 +242,58 @@ class VoiceAccessibilityService : AccessibilityService() {
 
         windowManager.addView(view, params)
         micView = view
-        micParams = params
+    }
+
+    private fun showDiagnosticOverlay() {
+        if (diagnosticView != null) return
+        val view = TextView(this).apply {
+            visibility = View.GONE
+            textSize = 13f
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.argb(235, 20, 22, 28))
+            setPadding(dp(12), dp(9), dp(12), dp(9))
+            maxLines = 7
+        }
+        val params = WindowManager.LayoutParams(
+            resources.displayMetrics.widthPixels - dp(24),
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = dp(12)
+            y = dp(56)
+        }
+        windowManager.addView(view, params)
+        diagnosticView = view
+    }
+
+    private fun showRecognitionDiagnostic(
+        phrases: List<String>,
+        selected: Pair<String, VoiceCommand>?
+    ) {
+        val lines = mutableListOf<String>()
+        val summary = selected?.second?.let { commandSummary(it) }
+        lines += if (summary != null) "PARSED: $summary" else "PARSED: UNKNOWN"
+        if (phrases.isEmpty()) {
+            lines += "HEARD: <nothing>"
+        } else {
+            phrases.take(5).forEachIndexed { index, phrase ->
+                lines += "${index + 1}. $phrase"
+            }
+        }
+        showDiagnosticText(lines.joinToString("\n"))
+    }
+
+    private fun showDiagnosticText(text: String) {
+        val view = diagnosticView ?: return
+        handler.removeCallbacks(hideDiagnostic)
+        view.text = text
+        view.visibility = View.VISIBLE
+        handler.postDelayed(hideDiagnostic, 20_000)
     }
 
     private fun processCommand(raw: String, command: VoiceCommand) {
