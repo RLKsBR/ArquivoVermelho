@@ -30,6 +30,8 @@ class MainActivity : Activity() {
     private lateinit var cancelButton: Button
     private lateinit var visionPreview: ImageView
     private lateinit var openScreenshotButton: Button
+    private lateinit var lastReadStatus: TextView
+    private lateinit var saveSamplesButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -135,9 +137,24 @@ class MainActivity : Activity() {
         }
         root.addView(openScreenshotButton)
 
+        root.addView(section("LEITURA POR VOZ"))
+        root.addView(TextView(this).apply {
+            text = "Dentro do TFT, diga “ler loja”, “ler itens”, “ler sinergias”, “ler escolhas” ou “ler tela”. O reconhecimento roda no aparelho e o Android fala o texto encontrado."
+            textSize = 13f
+            setTextColor(Color.LTGRAY)
+            setPadding(0, 0, 0, dp(8))
+        })
+        lastReadStatus = bodyBox()
+        root.addView(lastReadStatus)
+        saveSamplesButton = button("") {
+            store.saveReadingScreenshots = !store.saveReadingScreenshots
+            refreshAll()
+        }
+        root.addView(saveSamplesButton)
+
         root.addView(section("COMANDOS INICIAIS"))
         root.addView(TextView(this).apply {
-            text = "• “rolar”\n• “comprar um”, “comprar dois quatro cinco”\n• “subir nível” / “XP”\n• “banco dois para D4”\n• “D4 para banco três”\n• “C3 para F4”\n• “vender banco dois”\n• “vender D2”\n• “aprimoramento dois”\n• “pausar controle”"
+            text = "• “ler loja”, “ler itens”, “ler sinergias”\n• “ler escolhas”, “ler tela”, “repetir leitura”\n• “rolar”\n• “comprar um”, “comprar dois quatro cinco”\n• “subir nível” / “XP”\n• “banco dois para D4”\n• “D4 para banco três”\n• “C3 para F4”\n• “vender banco dois”\n• “vender D2”\n• “aprimoramento dois”\n• “pausar controle”"
             textSize = 14f
             setTextColor(Color.WHITE)
             setPadding(0, dp(2), 0, dp(10))
@@ -275,6 +292,8 @@ class MainActivity : Activity() {
             runCatching { visionPreview.setImageURI(Uri.parse(screenshot)) }
                 .onFailure { visionPreview.setImageDrawable(null) }
         }
+        lastReadStatus.text = store.lastReadText
+        saveSamplesButton.text = "Salvar amostras de OCR: ${if (store.saveReadingScreenshots) "LIGADO" else "DESLIGADO"}"
         speechLog.text = store.getRecognitionLog()
     }
 
@@ -343,4 +362,3 @@ class MainActivity : Activity() {
         )
     }
 }
-

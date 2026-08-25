@@ -27,6 +27,14 @@ class ProfileStore(context: Context) {
         get() = prefs.getString(KEY_LAST_SCREENSHOT_URI, "").orEmpty()
         set(value) = prefs.edit().putString(KEY_LAST_SCREENSHOT_URI, value).apply()
 
+    var lastReadText: String
+        get() = prefs.getString(KEY_LAST_READ_TEXT, "Nenhuma leitura feita ainda.").orEmpty()
+        set(value) = prefs.edit().putString(KEY_LAST_READ_TEXT, value).apply()
+
+    var saveReadingScreenshots: Boolean
+        get() = prefs.getBoolean(KEY_SAVE_READING_SCREENSHOTS, false)
+        set(value) = prefs.edit().putBoolean(KEY_SAVE_READING_SCREENSHOTS, value).apply()
+
     fun saveBoardRows(rows: Map<Int, TftRow>): Boolean {
         if ((1..4).any { rows[it] == null }) return false
         val editor = prefs.edit()
@@ -207,6 +215,8 @@ class ProfileStore(context: Context) {
         private const val KEY_CALIBRATION_ROTATION = "tft_calibration_rotation"
         private const val KEY_FOREGROUND_PACKAGE = "tft_foreground_package"
         private const val KEY_LAST_SCREENSHOT_URI = "tft_last_screenshot_uri"
+        private const val KEY_LAST_READ_TEXT = "tft_last_read_text"
+        private const val KEY_SAVE_READING_SCREENSHOTS = "tft_save_reading_screenshots"
         private const val KEY_BENCH_LINE = "tft_bench_line"
         private const val KEY_SHOP_LINE = "tft_shop_line"
         private const val KEY_RECOGNITION_LOG = "recognition_log"
@@ -214,4 +224,3 @@ class ProfileStore(context: Context) {
         private const val LOG_SEPARATOR = "\n---VC-ENTRY---\n"
     }
 }
-

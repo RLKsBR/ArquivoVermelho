@@ -2,6 +2,14 @@ package com.rlks.voicecontroller
 
 import java.text.Normalizer
 
+enum class ScreenReadTarget(val spokenName: String) {
+    SHOP("Loja"),
+    ITEMS("Itens"),
+    TRAITS("Sinergias"),
+    CHOICES("Escolhas"),
+    FULL_SCREEN("Tela")
+}
+
 sealed class VoiceCommand {
     data class BuySlots(val slots: List<Int>) : VoiceCommand()
     data object Reroll : VoiceCommand()
@@ -13,6 +21,8 @@ sealed class VoiceCommand {
     data class SellBench(val bench: Int) : VoiceCommand()
     data class SellBoard(val square: String) : VoiceCommand()
     data class Choice(val index: Int) : VoiceCommand()
+    data class ReadScreen(val target: ScreenReadTarget) : VoiceCommand()
+    data object RepeatLastRead : VoiceCommand()
     data object PauseControl : VoiceCommand()
     data object ResumeControl : VoiceCommand()
     data object Help : VoiceCommand()
@@ -52,6 +62,10 @@ object VoiceCommandParser {
         if (text in setOf("abrir loja", "fechar loja", "loja")) return VoiceCommand.ToggleShop
         if (text in setOf("pausar controle", "parar controle", "pausa")) return VoiceCommand.PauseControl
         if (text in setOf("retomar controle", "ativar controle", "continuar controle", "retomar")) return VoiceCommand.ResumeControl
+        if (text in setOf("repetir leitura", "repetir ultima leitura", "ler novamente")) {
+            return VoiceCommand.RepeatLastRead
+        }
+        parseReadScreen(text)?.let { return it }
 
         if (text.startsWith("comprar ")) {
             val slots = text.removePrefix("comprar ")
@@ -66,7 +80,6 @@ object VoiceCommandParser {
         parseChoice(text)?.let { return it }
         parseSell(text)?.let { return it }
         parseMovement(text)?.let { return it }
-
         return VoiceCommand.Unknown(raw)
     }
 
@@ -82,6 +95,21 @@ object VoiceCommandParser {
 
     fun canonicalName(raw: String): String = normalize(raw)
 
+    private fun parseReadScreen(text: String): VoiceCommand? {
+        val target = when (text) {
+            "ler loja", "leia a loja", "o que tem na loja", "quais campeoes na loja" -> ScreenReadTarget.SHOP
+            "ler itens", "leia os itens", "quais itens", "itens disponiveis" -> ScreenReadTarget.ITEMS
+            "ler sinergias", "leia as sinergias", "quais sinergias", "ler traits" -> ScreenReadTarget.TRAITS
+            "ler escolhas", "ler aprimoramentos", "ler augments", "quais escolhas",
+            "ler opcoes", "ler itens para escolher", "ler itens da selecao" -> ScreenReadTarget.CHOICES
+            "ler tela", "leia a tela", "o que tem na tela", "ler recompensas",
+            "ler orbe", "ler orbes", "ler campeoes adquiridos",
+            "ler campeoes ganhos" -> ScreenReadTarget.FULL_SCREEN
+            else -> null
+        }
+        return target?.let { VoiceCommand.ReadScreen(it) }
+    }
+
     private fun parseChoice(text: String): VoiceCommand? {
         val match = Regex("^(?:escolha|aprimoramento|augment) (.+)$").matchEntire(text) ?: return null
         val index = numbers[match.groupValues[1]] ?: return null
@@ -91,13 +119,11 @@ object VoiceCommandParser {
     private fun parseSell(text: String): VoiceCommand? {
         val rest = text.removePrefix("vender ")
         if (rest == text) return null
-
         val bench = Regex("^banco (.+)$").matchEntire(rest)
         if (bench != null) {
             val slot = numbers[bench.groupValues[1]] ?: return null
             if (slot in 1..9) return VoiceCommand.SellBench(slot)
         }
-
         parseSquare(rest)?.let { return VoiceCommand.SellBoard(it) }
         return null
     }
@@ -107,12 +133,10 @@ object VoiceCommandParser {
         if (pieces.size != 2) return null
         val from = pieces[0].trim()
         val to = pieces[1].trim()
-
         val fromBench = parseBench(from)
         val toBench = parseBench(to)
         val fromSquare = parseSquare(from)
         val toSquare = parseSquare(to)
-
         return when {
             fromBench != null && toSquare != null -> VoiceCommand.BenchToBoard(fromBench, toSquare)
             fromSquare != null && toBench != null -> VoiceCommand.BoardToBench(fromSquare, toBench)
@@ -129,8 +153,9 @@ object VoiceCommandParser {
 
     private fun parseSquare(text: String): String? {
         val compact = text.replace(" ", "")
-        Regex("^([a-g])([1-4])$").matchEntire(compact)?.let { return "${it.groupValues[1]}${it.groupValues[2]}" }
-
+        Regex("^([a-g])([1-4])$").matchEntire(compact)?.let {
+            return "${it.groupValues[1]}${it.groupValues[2]}"
+        }
         val tokens = text.split(' ').filter { it.isNotBlank() }
         if (tokens.size != 2) return null
         val file = files[tokens[0]] ?: return null

@@ -46,6 +46,31 @@ class VoiceCommandParserTest {
     }
 
     @Test
+    fun parsesScreenReadingCommands() {
+        assertEquals(
+            VoiceCommand.ReadScreen(ScreenReadTarget.SHOP),
+            VoiceCommandParser.parse("ler loja")
+        )
+        assertEquals(
+            VoiceCommand.ReadScreen(ScreenReadTarget.ITEMS),
+            VoiceCommandParser.parse("quais itens")
+        )
+        assertEquals(
+            VoiceCommand.ReadScreen(ScreenReadTarget.TRAITS),
+            VoiceCommandParser.parse("ler sinergias")
+        )
+        assertEquals(
+            VoiceCommand.ReadScreen(ScreenReadTarget.CHOICES),
+            VoiceCommandParser.parse("ler aprimoramentos")
+        )
+        assertEquals(
+            VoiceCommand.ReadScreen(ScreenReadTarget.FULL_SCREEN),
+            VoiceCommandParser.parse("ler orbes")
+        )
+        assertEquals(VoiceCommand.RepeatLastRead, VoiceCommandParser.parse("repetir leitura"))
+    }
+
+    @Test
     fun mapsTftBoardGeometry() {
         val rows = mapOf(
             1 to TftRow(NormalizedPoint(0.1f, 0.8f), NormalizedPoint(0.9f, 0.8f)),
@@ -69,3 +94,4 @@ class VoiceCommandParserTest {
         assertEquals(0.5f, TftLayout.shopSlotToPoint(3, line)!!.x, 0.0001f)
     }
 }
+

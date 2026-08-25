@@ -2,6 +2,15 @@
 
 Protótipo de acessibilidade por voz para controlar o TFT com o serviço de Acessibilidade do Android.
 
+## v0.13
+
+- leitura por voz com OCR local: loja, itens, sinergias, escolhas e tela inteira;
+- resposta falada pelo mecanismo de voz do Android;
+- comando para repetir a última leitura;
+- último texto reconhecido visível dentro do app;
+- opção de salvar recortes usados pelo OCR em Pictures/Voice Controller/TFT Captures/OCR Samples;
+- modelo latino incluído no APK para funcionar sem baixar o OCR durante a partida.
+
 ## v0.12
 
 - calibração guiada: 16 pontos principais são salvos juntos; itens, sinergias e escolhas são marcados quando essas telas aparecem;
@@ -13,4 +22,3 @@ Protótipo de acessibilidade por voz para controlar o TFT com o serviço de Aces
 - correção de barras do sistema na tela principal.
 
 A branch de desenvolvimento é voice-controller-android. O GitHub Actions publica um APK de teste a cada alteração no app.
-

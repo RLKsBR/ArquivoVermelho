@@ -17,6 +17,8 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.view.Display
 import android.view.Gravity
 import android.view.MotionEvent
@@ -29,9 +31,11 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 class VoiceAccessibilityService : AccessibilityService() {
     private lateinit var store: ProfileStore
@@ -42,6 +46,10 @@ class VoiceAccessibilityService : AccessibilityService() {
     private var speechRecognizer: SpeechRecognizer? = null
     private var captureOverlay: View? = null
     private var listening = false
+    private var visionBusy = false
+    private var ttsReady = false
+    private var textToSpeech: TextToSpeech? = null
+    private lateinit var screenTextReader: ScreenTextReader
     private var accessibilityButtonCallback: AccessibilityButtonController.AccessibilityButtonCallback? = null
 
     private val resetMic = Runnable {
@@ -50,7 +58,8 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     private val restartListening = Runnable {
         if (::store.isInitialized && store.continuousMode && !listening && captureOverlay == null &&
-            store.pendingCalibration == ProfileStore.PENDING_NONE && isTftForeground()) {
+            store.pendingCalibration == ProfileStore.PENDING_NONE && isTftForeground() &&
+            !visionBusy && textToSpeech?.isSpeaking != true) {
             startListening()
         }
     }
@@ -60,6 +69,8 @@ class VoiceAccessibilityService : AccessibilityService() {
         store = ProfileStore(this)
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         AppNotifications.createChannels(this)
+        screenTextReader = ScreenTextReader()
+        initializeTextToSpeech()
         createSpeechRecognizer()
         showMicrophoneOverlay()
         registerSystemAccessibilityButton()
@@ -85,6 +96,10 @@ class VoiceAccessibilityService : AccessibilityService() {
         micView = null
         speechRecognizer?.destroy()
         speechRecognizer = null
+        if (::screenTextReader.isInitialized) screenTextReader.close()
+        textToSpeech?.stop()
+        textToSpeech?.shutdown()
+        textToSpeech = null
         super.onDestroy()
     }
 
@@ -170,6 +185,10 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     private fun startListening() {
+        if (visionBusy || textToSpeech?.isSpeaking == true) {
+            message("Aguarde a leitura terminar")
+            return
+        }
         if (!isTftForeground()) {
             message("Comandos bloqueados: o TFT não está em primeiro plano")
             return
@@ -207,13 +226,16 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     private fun processCommand(command: VoiceCommand) {
         val safeOutsideGame = command == VoiceCommand.PauseControl ||
-            command == VoiceCommand.ResumeControl || command == VoiceCommand.Help
+            command == VoiceCommand.ResumeControl || command == VoiceCommand.Help ||
+            command == VoiceCommand.RepeatLastRead
         if (!safeOutsideGame && !isTftForeground()) {
             message("Comando bloqueado: o TFT não está em primeiro plano")
             return
         }
         val (displayWidth, displayHeight) = displaySize()
-        if (!safeOutsideGame &&
+        val needsGeometry = !safeOutsideGame &&
+            !(command is VoiceCommand.ReadScreen && command.target == ScreenReadTarget.FULL_SCREEN)
+        if (needsGeometry &&
             !store.isCalibrationGeometryCurrent(displayWidth, displayHeight, displayRotation())
         ) {
             message("A tela mudou de tamanho ou orientação. Recalibre antes de executar comandos")
@@ -259,6 +281,8 @@ class VoiceAccessibilityService : AccessibilityService() {
                 val point = store.getRegion(ProfileStore.REGION_CHOICES)?.horizontalChoice(command.index, 3)
                 if (point == null) message("Marque a região de escolhas primeiro") else tap(point)
             }
+            is VoiceCommand.ReadScreen -> readScreen(command.target)
+            VoiceCommand.RepeatLastRead -> speakLastRead()
             VoiceCommand.PauseControl -> {
                 store.continuousMode = false
                 handler.removeCallbacks(restartListening)
@@ -268,7 +292,7 @@ class VoiceAccessibilityService : AccessibilityService() {
                 store.continuousMode = true
                 message("Controle contínuo ativado")
             }
-            VoiceCommand.Help -> message("Ex.: rolar • comprar três • banco dois para D4")
+            VoiceCommand.Help -> message("Ex.: ler loja • ler itens • rolar • comprar três • banco dois para D4")
             is VoiceCommand.Unknown -> Unit
         }
     }
@@ -284,6 +308,8 @@ class VoiceAccessibilityService : AccessibilityService() {
         is VoiceCommand.SellBench -> "VENDER B${command.bench}"
         is VoiceCommand.SellBoard -> "VENDER ${command.square.uppercase()}"
         is VoiceCommand.Choice -> "ESCOLHA ${command.index}"
+        is VoiceCommand.ReadScreen -> "LER ${command.target.spokenName.uppercase()}"
+        VoiceCommand.RepeatLastRead -> "REPETIR"
         VoiceCommand.PauseControl -> "PAUSAR"
         VoiceCommand.ResumeControl -> "RETOMAR"
         VoiceCommand.Help -> "AJUDA"
@@ -295,7 +321,9 @@ class VoiceAccessibilityService : AccessibilityService() {
             "rolar", "rerrolar", "comprar um", "comprar dois", "comprar três", "comprar quatro", "comprar cinco",
             "subir nível", "comprar xp", "abrir loja", "fechar loja", "pausar controle", "retomar controle",
             "aprimoramento um", "aprimoramento dois", "aprimoramento três",
-            "vender banco um", "vender banco dois", "vender banco três"
+            "vender banco um", "vender banco dois", "vender banco três",
+            "ler loja", "ler itens", "ler sinergias", "ler escolhas", "ler aprimoramentos",
+            "ler tela", "ler recompensas", "ler orbes", "repetir leitura"
         )
         val ranks = listOf("um", "dois", "três", "quatro")
         for (file in 'A'..'G') {
@@ -545,6 +573,227 @@ class VoiceAccessibilityService : AccessibilityService() {
         removeCaptureOverlay()
         AppNotifications.clearCalibration(this)
         message(text)
+    }
+
+    private fun initializeTextToSpeech() {
+        textToSpeech = TextToSpeech(this) { status ->
+            if (status != TextToSpeech.SUCCESS) {
+                ttsReady = false
+                AppNotifications.showError(this, "A voz do Android não pôde ser iniciada.")
+            } else {
+                val engine = textToSpeech
+                if (engine == null) {
+                    ttsReady = false
+                    AppNotifications.showError(this, "A voz do Android não ficou disponível.")
+                } else {
+                    val languageResult = engine.setLanguage(Locale("pt", "BR"))
+                    ttsReady = languageResult != TextToSpeech.LANG_MISSING_DATA &&
+                        languageResult != TextToSpeech.LANG_NOT_SUPPORTED
+                    engine.setSpeechRate(0.92f)
+                    engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        override fun onStart(utteranceId: String?) = Unit
+
+                        override fun onDone(utteranceId: String?) {
+                            handler.post { releaseVisionAndResume() }
+                        }
+
+                        @Deprecated("Deprecated in Java")
+                        override fun onError(utteranceId: String?) {
+                            handler.post {
+                                AppNotifications.showError(
+                                    this@VoiceAccessibilityService,
+                                    "A leitura foi encontrada, mas a voz do Android falhou."
+                                )
+                                releaseVisionAndResume()
+                            }
+                        }
+                    })
+                    if (!ttsReady) {
+                        AppNotifications.showError(
+                            this,
+                            "A voz em português não está instalada no Android."
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun readScreen(target: ScreenReadTarget) {
+        if (visionBusy) {
+            message("Aguarde: uma leitura ainda está em andamento")
+            return
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            message("Leitura da tela exige Android 11 ou superior")
+            return
+        }
+        val region = regionFor(target) ?: run {
+            val missing = when (target) {
+                ScreenReadTarget.SHOP -> "Calibre a loja antes de pedir a leitura"
+                ScreenReadTarget.ITEMS -> "Marque a região dos itens antes de pedir a leitura"
+                ScreenReadTarget.TRAITS -> "Marque a região das sinergias antes de pedir a leitura"
+                ScreenReadTarget.CHOICES -> "Marque a região das escolhas antes de pedir a leitura"
+                ScreenReadTarget.FULL_SCREEN -> "Não foi possível definir a tela"
+            }
+            message(missing)
+            return
+        }
+
+        visionBusy = true
+        listening = false
+        handler.removeCallbacks(restartListening)
+        showMicTemporary("LENDO", 12_000)
+        AppNotifications.showStatus(this, "Lendo ${target.spokenName.lowercase()} do TFT...")
+
+        takeScreenshot(
+            Display.DEFAULT_DISPLAY,
+            mainExecutor,
+            object : AccessibilityService.TakeScreenshotCallback {
+                override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
+                    val fullBitmap = bitmapFromScreenshot(screenshot)
+                    if (fullBitmap == null) {
+                        failVisionRead("A captura chegou, mas não pôde ser convertida em imagem")
+                        return
+                    }
+                    val regionBitmap = cropBitmap(fullBitmap, region)
+                    if (regionBitmap !== fullBitmap) fullBitmap.recycle()
+                    if (regionBitmap == null) {
+                        failVisionRead("A região calibrada ficou fora da imagem")
+                        return
+                    }
+
+                    screenTextReader.read(
+                        bitmap = regionBitmap,
+                        onSuccess = { rawText ->
+                            if (store.saveReadingScreenshots) {
+                                runCatching {
+                                    ScreenshotStore.save(
+                                        this@VoiceAccessibilityService,
+                                        regionBitmap,
+                                        category = target.name,
+                                        saveAsOcrSample = true
+                                    )
+                                }.onSuccess { uri ->
+                                    store.lastScreenshotUri = uri.toString()
+                                }.onFailure {
+                                    AppNotifications.showError(
+                                        this@VoiceAccessibilityService,
+                                        "A leitura funcionou, mas a amostra não foi salva."
+                                    )
+                                }
+                            }
+                            regionBitmap.recycle()
+                            val clean = rawText.trim()
+                            val readout = if (clean.isBlank()) {
+                                "${target.spokenName}. Não encontrei texto legível nessa região."
+                            } else {
+                                "${target.spokenName}. $clean"
+                            }
+                            store.lastReadText = readout
+                            AppNotifications.showStatus(
+                                this@VoiceAccessibilityService,
+                                readout.take(900)
+                            )
+                            speakReadout(readout)
+                        },
+                        onFailure = { error ->
+                            regionBitmap.recycle()
+                            failVisionRead(
+                                "Falha ao reconhecer o texto: ${error.message ?: error.javaClass.simpleName}"
+                            )
+                        }
+                    )
+                }
+
+                override fun onFailure(errorCode: Int) {
+                    failVisionRead("O Android recusou a screenshot. Código $errorCode")
+                }
+            }
+        )
+    }
+
+    private fun speakLastRead() {
+        if (visionBusy) {
+            message("Aguarde: uma leitura ainda está em andamento")
+            return
+        }
+        val text = store.lastReadText
+        if (text.isBlank() || text == "Nenhuma leitura feita ainda.") {
+            message("Nenhuma leitura anterior para repetir")
+            return
+        }
+        visionBusy = true
+        handler.removeCallbacks(restartListening)
+        speakReadout(text)
+    }
+
+    private fun speakReadout(text: String) {
+        if (!ttsReady) {
+            message("Leitura concluída, mas a voz em português não está disponível")
+            releaseVisionAndResume()
+            return
+        }
+        val engine = textToSpeech
+        if (engine == null) {
+            message("A voz do Android não está disponível")
+            releaseVisionAndResume()
+            return
+        }
+        val result = engine.speak(
+            text.take(TextToSpeech.getMaxSpeechInputLength()),
+            TextToSpeech.QUEUE_FLUSH,
+            null,
+            "tft_read_${System.currentTimeMillis()}"
+        )
+        if (result == TextToSpeech.ERROR) {
+            message("A voz do Android não conseguiu falar a leitura")
+            releaseVisionAndResume()
+        }
+    }
+
+    private fun regionFor(target: ScreenReadTarget): NormalizedRect? = when (target) {
+        ScreenReadTarget.SHOP -> VisionRegion.shopFromLine(store.getShopLine())
+        ScreenReadTarget.ITEMS -> store.getRegion(ProfileStore.REGION_ITEMS)
+        ScreenReadTarget.TRAITS -> store.getRegion(ProfileStore.REGION_TRAITS)
+        ScreenReadTarget.CHOICES -> store.getRegion(ProfileStore.REGION_CHOICES)
+        ScreenReadTarget.FULL_SCREEN -> NormalizedRect(0f, 0f, 1f, 1f)
+    }
+
+    private fun bitmapFromScreenshot(
+        screenshot: AccessibilityService.ScreenshotResult
+    ): Bitmap? {
+        val buffer = screenshot.hardwareBuffer
+        return try {
+            val hardwareBitmap = Bitmap.wrapHardwareBuffer(buffer, screenshot.colorSpace)
+            val softwareBitmap = hardwareBitmap?.copy(Bitmap.Config.ARGB_8888, false)
+            hardwareBitmap?.recycle()
+            softwareBitmap
+        } finally {
+            buffer.close()
+        }
+    }
+
+    private fun cropBitmap(source: Bitmap, normalized: NormalizedRect): Bitmap? {
+        val rect = VisionRegion.clamp(normalized)
+        val left = (rect.left * source.width).roundToInt().coerceIn(0, source.width - 1)
+        val top = (rect.top * source.height).roundToInt().coerceIn(0, source.height - 1)
+        val right = (rect.right * source.width).roundToInt().coerceIn(left + 1, source.width)
+        val bottom = (rect.bottom * source.height).roundToInt().coerceIn(top + 1, source.height)
+        if (right <= left || bottom <= top) return null
+        return Bitmap.createBitmap(source, left, top, right - left, bottom - top)
+    }
+
+    private fun failVisionRead(text: String) {
+        store.lastReadText = text
+        message(text)
+        releaseVisionAndResume()
+    }
+
+    private fun releaseVisionAndResume() {
+        visionBusy = false
+        showMicTemporary("🎙")
+        scheduleContinuousRestart(650)
     }
 
     private fun testScreenshot() {
@@ -830,4 +1079,3 @@ class VoiceAccessibilityService : AccessibilityService() {
         private const val TFT_PBE_PACKAGE = "com.riotgames.league.teamfighttactics.pbe"
     }
 }
-
