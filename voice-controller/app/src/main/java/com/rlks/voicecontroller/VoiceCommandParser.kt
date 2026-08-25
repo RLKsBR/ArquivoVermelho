@@ -46,6 +46,7 @@ object VoiceCommandParser {
     private val collapsedSameFile = Regex("^([a-h])([1-8])([1-8])$")
     private val oneLiteralSquare = Regex("^([a-h])([1-8])$")
     private val rankPair = Regex("^([1-8])([1-8])$")
+    private val aAsEightTokens = setOf("8", "eight", "ate")
 
     fun parse(raw: String): VoiceCommand {
         val text = normalize(raw)
@@ -94,6 +95,12 @@ object VoiceCommandParser {
             }
         }
 
+        // The Android recognizer on some devices has been observed turning spoken
+        // "A two A four" into "8 2 8 4". In chess coordinates a file can never
+        // be the digit 8, so it is safe to interpret 8/eight as file A only when
+        // it appears specifically in a FILE position of a coordinate sequence.
+        parseCoordinateSequence(text)?.let { return it }
+
         val squares = extractSquares(text)
         if (squares.size >= 2) return VoiceCommand.ChessMove(squares[0], squares[1])
 
@@ -104,8 +111,6 @@ object VoiceCommandParser {
         val cleaned = candidates.map { it.trim() }.filter { it.isNotEmpty() }
         if (cleaned.isEmpty()) return null
 
-        // Prefer a hypothesis that parses as a chess move. Short coordinates are
-        // often not Google's first textual hypothesis even when a later one is exact.
         for (candidate in cleaned) {
             val command = parse(candidate)
             if (command is VoiceCommand.ChessMove || command is VoiceCommand.Castle) {
@@ -124,6 +129,49 @@ object VoiceCommandParser {
         .replace(Regex("\\bbotao\\b"), "")
         .replace(Regex("\\s+"), " ")
         .trim()
+
+    private fun parseCoordinateSequence(text: String): VoiceCommand.ChessMove? {
+        val tokens = text.split(' ').filter { it.isNotBlank() }
+
+        if (tokens.size == 4) {
+            val file1 = coordinateFile(tokens[0])
+            val rank1 = numberWords[tokens[1]]
+            val file2 = coordinateFile(tokens[2])
+            val rank2 = numberWords[tokens[3]]
+            if (file1 != null && rank1 != null && file2 != null && rank2 != null) {
+                return VoiceCommand.ChessMove("$file1$rank1", "$file2$rank2")
+            }
+        }
+
+        if (tokens.size == 2) {
+            val first = compactSquare(tokens[0])
+            val second = compactSquare(tokens[1])
+            if (first != null && second != null) return VoiceCommand.ChessMove(first, second)
+        }
+
+        if (tokens.size == 1 && tokens[0].length == 4) {
+            val first = compactSquare(tokens[0].substring(0, 2))
+            val second = compactSquare(tokens[0].substring(2, 4))
+            if (first != null && second != null) return VoiceCommand.ChessMove(first, second)
+        }
+
+        return null
+    }
+
+    private fun coordinateFile(token: String): String? =
+        fileWords[token] ?: if (token in aAsEightTokens) "a" else null
+
+    private fun compactSquare(token: String): String? {
+        if (token.length != 2) return null
+        val file = when (val first = token[0]) {
+            in 'a'..'h' -> first.toString()
+            '8' -> "a"
+            else -> null
+        } ?: return null
+        val rank = token[1]
+        if (rank !in '1'..'8') return null
+        return "$file$rank"
+    }
 
     private fun parseNamedDrag(text: String): VoiceCommand.DragPoint? {
         val english = Regex("^(?:drag|move) (.+?) (?:to|into) (.+)$").matchEntire(text)
