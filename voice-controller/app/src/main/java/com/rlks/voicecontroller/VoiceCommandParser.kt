@@ -32,14 +32,14 @@ object VoiceCommandParser {
     )
 
     private val fileWords = mapOf(
-        "a" to "a", "ay" to "a", "ei" to "a",
-        "b" to "b", "be" to "b", "bee" to "b", "bi" to "b",
-        "c" to "c", "ce" to "c", "see" to "c", "sea" to "c", "si" to "c",
-        "d" to "d", "de" to "d", "dee" to "d", "di" to "d", "the" to "d",
-        "e" to "e", "ee" to "e", "he" to "e",
-        "f" to "f", "ef" to "f", "efe" to "f",
-        "g" to "g", "ge" to "g", "gee" to "g", "ji" to "g",
-        "h" to "h", "aga" to "h", "aitch" to "h", "eitch" to "h"
+        "a" to "a", "ay" to "a", "ei" to "a", "hey" to "a", "alpha" to "a",
+        "b" to "b", "be" to "b", "bee" to "b", "bi" to "b", "bravo" to "b",
+        "c" to "c", "ce" to "c", "see" to "c", "sea" to "c", "si" to "c", "charlie" to "c",
+        "d" to "d", "de" to "d", "dee" to "d", "di" to "d", "the" to "d", "delta" to "d",
+        "e" to "e", "ee" to "e", "he" to "e", "echo" to "e",
+        "f" to "f", "ef" to "f", "efe" to "f", "foxtrot" to "f",
+        "g" to "g", "ge" to "g", "gee" to "g", "ji" to "g", "golf" to "g",
+        "h" to "h", "aga" to "h", "aitch" to "h", "eitch" to "h", "age" to "h", "hotel" to "h"
     )
 
     private val twoLiteralSquares = Regex("^([a-h])([1-8])([a-h])([1-8])$")
@@ -103,6 +103,15 @@ object VoiceCommandParser {
     fun parseAlternatives(candidates: List<String>): Pair<String, VoiceCommand>? {
         val cleaned = candidates.map { it.trim() }.filter { it.isNotEmpty() }
         if (cleaned.isEmpty()) return null
+
+        // Prefer a hypothesis that parses as a chess move. Short coordinates are
+        // often not Google's first textual hypothesis even when a later one is exact.
+        for (candidate in cleaned) {
+            val command = parse(candidate)
+            if (command is VoiceCommand.ChessMove || command is VoiceCommand.Castle) {
+                return candidate to command
+            }
+        }
         for (candidate in cleaned) {
             val command = parse(candidate)
             if (command !is VoiceCommand.Unknown) return candidate to command
