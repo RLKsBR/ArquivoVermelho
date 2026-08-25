@@ -2,6 +2,17 @@
 
 Protótipo de acessibilidade por voz para controlar o TFT com o serviço de Acessibilidade do Android.
 
+## v0.15
+
+- catálogo offline com as 36 combinações dos oito componentes básicos;
+- comandos “quais componentes fazem...”, “o que faz com...” e “quais itens existem”;
+- a calibração principal termina após os 16 pontos que realmente estão disponíveis no início;
+- detector contextual tenta salvar automaticamente as regiões quando surgem telas de aprimoramento, arsenal, inventário ou sinergias;
+- comandos experimentais “ler tabuleiro”, “ler inventário” e “ler carrossel”;
+- base factual para registrar sinergias ativas e consultar campeões registrados fora delas;
+- nenhum caminho, compra, venda, escolha de item, aprimoramento ou campeão é decidido automaticamente;
+- identificação de campeões e itens apenas por ícones ainda depende de amostras reais das telas e não é anunciada como pronta.
+
 ## v0.14
 
 - comando “ler aviso” e variações como “por que não pegou”;

@@ -23,7 +23,8 @@ data class ChampionObservation(
     val maxHealth: Int,
     val value: Int,
     val itemStatus: ItemStatus,
-    val role: TacticalRole
+    val role: TacticalRole,
+    val traits: Set<String> = emptySet()
 )
 
 object RosterAnalyzer {
@@ -51,4 +52,15 @@ object RosterAnalyzer {
         champions: List<ChampionObservation>,
         role: TacticalRole
     ): List<ChampionObservation> = champions.filter { it.role == role }
+
+    fun outsideActiveSynergies(
+        champions: List<ChampionObservation>,
+        activeSynergies: Set<String>
+    ): List<ChampionObservation> {
+        val active = activeSynergies.map(ItemRecipeBook::normalize).filter { it.isNotBlank() }.toSet()
+        if (active.isEmpty()) return emptyList()
+        return champions.filter { champion ->
+            champion.traits.map(ItemRecipeBook::normalize).none { it in active }
+        }
+    }
 }

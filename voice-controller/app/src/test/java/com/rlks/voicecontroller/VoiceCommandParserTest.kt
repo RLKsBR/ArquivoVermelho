@@ -105,6 +105,39 @@ class VoiceCommandParserTest {
     }
 
     @Test
+    fun parsesItemKnowledgeAndAccessibleReadCommands() {
+        assertEquals(
+            VoiceCommand.ItemRecipeQuery("gume do infinito"),
+            VoiceCommandParser.parse("quais componentes fazem o Gume do Infinito")
+        )
+        assertEquals(
+            VoiceCommand.ItemsFromComponent("arco"),
+            VoiceCommandParser.parse("o que faz com arco")
+        )
+        assertEquals(VoiceCommand.ListItemCatalog, VoiceCommandParser.parse("quais itens existem"))
+        assertEquals(
+            VoiceCommand.ReadScreen(ScreenReadTarget.BOARD),
+            VoiceCommandParser.parse("ler tabuleiro")
+        )
+        assertEquals(
+            VoiceCommand.ReadScreen(ScreenReadTarget.INVENTORY),
+            VoiceCommandParser.parse("ler inventário")
+        )
+        assertEquals(
+            VoiceCommand.ReadScreen(ScreenReadTarget.CAROUSEL),
+            VoiceCommandParser.parse("ler carrossel")
+        )
+        assertEquals(
+            VoiceCommand.NonSynergyChampions,
+            VoiceCommandParser.parse("quem não faz parte das sinergias")
+        )
+        assertEquals(
+            VoiceCommand.RecordActiveSynergies(setOf("bastiao", "arcana")),
+            VoiceCommandParser.parse("registrar sinergias ativas bastião e arcana")
+        )
+    }
+
+    @Test
     fun mapsTftBoardGeometry() {
         val rows = mapOf(
             1 to TftRow(NormalizedPoint(0.1f, 0.8f), NormalizedPoint(0.9f, 0.8f)),

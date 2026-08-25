@@ -37,6 +37,24 @@ class ProfileStore(context: Context) {
         get() = prefs.getBoolean(KEY_SAVE_READING_SCREENSHOTS, false)
         set(value) = prefs.edit().putBoolean(KEY_SAVE_READING_SCREENSHOTS, value).apply()
 
+    var autoContextCalibration: Boolean
+        get() = prefs.getBoolean(KEY_AUTO_CONTEXT_CALIBRATION, true)
+        set(value) = prefs.edit().putBoolean(KEY_AUTO_CONTEXT_CALIBRATION, value).apply()
+
+    var autoCalibrationStatus: String
+        get() = prefs.getString(
+            KEY_AUTO_CALIBRATION_STATUS,
+            "Autocalibração aguardando telas contextuais."
+        ).orEmpty()
+        set(value) = prefs.edit().putString(KEY_AUTO_CALIBRATION_STATUS, value).apply()
+
+    fun saveActiveSynergies(names: Set<String>) {
+        prefs.edit().putStringSet(KEY_ACTIVE_SYNERGIES, names).apply()
+    }
+
+    fun getActiveSynergies(): Set<String> =
+        prefs.getStringSet(KEY_ACTIVE_SYNERGIES, emptySet()).orEmpty().toSet()
+
     fun saveChampionObservation(observation: ChampionObservation): Boolean {
         val updated = getRosterObservations()
             .filterNot { it.name.equals(observation.name, ignoreCase = true) }
@@ -74,7 +92,9 @@ class ProfileStore(context: Context) {
                 TacticalRole.BACKLINE -> "backline"
                 TacticalRole.UNKNOWN -> "função não marcada"
             }
-            "${champion.name}: ${champion.maxHealth} de vida, valor ${champion.value}, $items, $role"
+            val traits = if (champion.traits.isEmpty()) "sinergias não informadas"
+            else "sinergias ${champion.traits.joinToString(", ")}"
+            "${champion.name}: ${champion.maxHealth} de vida, valor ${champion.value}, $items, $role, $traits"
         }
     }
 
@@ -163,6 +183,7 @@ class ProfileStore(context: Context) {
             append("${mark(hasPoint(POINT_SELL))} Venda   ${mark(getRegion(REGION_ITEMS) != null)} Itens   ${mark(getRegion(REGION_TRAITS) != null)} Sinergias\n")
             append("${mark(getRegion(REGION_CHOICES) != null)} Escolhas/aprimoramentos\n")
             append(if (width > 0 && height > 0) "✓ Tela salva: ${width}×${height}" else "— Tela/orientação ainda não registradas")
+            append("\nAutocalibração contextual: ${if (autoContextCalibration) "ligada" else "desligada"}")
         }
     }
 
@@ -234,6 +255,7 @@ class ProfileStore(context: Context) {
                     .put("value", champion.value)
                     .put("itemStatus", champion.itemStatus.name)
                     .put("role", champion.role.name)
+                    .put("traits", JSONArray(champion.traits.toList()))
             )
         }
         return array.toString()
@@ -251,7 +273,11 @@ class ProfileStore(context: Context) {
         val role = runCatching {
             TacticalRole.valueOf(json.optString("role", TacticalRole.UNKNOWN.name))
         }.getOrDefault(TacticalRole.UNKNOWN)
-        return ChampionObservation(name, health, value, items, role)
+        val traitsArray = json.optJSONArray("traits") ?: JSONArray()
+        val traits = (0 until traitsArray.length())
+            .mapNotNull { traitsArray.optString(it).trim().takeIf { value -> value.isNotBlank() } }
+            .toSet()
+        return ChampionObservation(name, health, value, items, role, traits)
     }
 
     private fun key(value: String) = value.lowercase().replace(Regex("[^a-z0-9]+"), "_")
@@ -290,6 +316,9 @@ class ProfileStore(context: Context) {
         private const val KEY_LAST_SCREENSHOT_URI = "tft_last_screenshot_uri"
         private const val KEY_LAST_READ_TEXT = "tft_last_read_text"
         private const val KEY_SAVE_READING_SCREENSHOTS = "tft_save_reading_screenshots"
+        private const val KEY_AUTO_CONTEXT_CALIBRATION = "tft_auto_context_calibration"
+        private const val KEY_AUTO_CALIBRATION_STATUS = "tft_auto_calibration_status"
+        private const val KEY_ACTIVE_SYNERGIES = "tft_active_synergies"
         private const val KEY_ROSTER_OBSERVATIONS = "tft_roster_observations"
         private const val KEY_BENCH_LINE = "tft_bench_line"
         private const val KEY_SHOP_LINE = "tft_shop_line"

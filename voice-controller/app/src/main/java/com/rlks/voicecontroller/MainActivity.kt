@@ -33,6 +33,7 @@ class MainActivity : Activity() {
     private lateinit var lastReadStatus: TextView
     private lateinit var saveSamplesButton: Button
     private lateinit var rosterStatus: TextView
+    private lateinit var autoCalibrationButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,7 +103,7 @@ class MainActivity : Activity() {
 
         root.addView(section("CALIBRAÇÃO TFT"))
         root.addView(TextView(this).apply {
-            text = "Inicie uma vez. O app marca primeiro os 16 pontos visíveis na partida e salva imediatamente. Depois pausa e avisa quando você precisa abrir itens, sinergias ou uma tela de escolha. Durante a marcação há Voltar e Cancelar."
+            text = "A etapa principal salva 16 pontos. Depois o app não bloqueia a partida: fica aguardando as primeiras telas de itens, sinergias e aprimoramentos para reconhecer e salvar as regiões automaticamente."
             textSize = 13f
             setTextColor(Color.LTGRAY)
             setPadding(0, 0, 0, dp(8))
@@ -110,6 +111,11 @@ class MainActivity : Activity() {
         calibrationStatus = bodyBox()
         root.addView(calibrationStatus)
         root.addView(button("Iniciar calibração guiada") { startCalibrationWizard() })
+        autoCalibrationButton = button("") {
+            store.autoContextCalibration = !store.autoContextCalibration
+            refreshAll()
+        }
+        root.addView(autoCalibrationButton)
         skipButton = button("Pular etapa contextual atual") { skipCurrentStage() }
         root.addView(skipButton)
         cancelButton = button("Cancelar calibração guiada") { cancelCalibrationWizard() }
@@ -163,9 +169,21 @@ class MainActivity : Activity() {
         rosterStatus = bodyBox()
         root.addView(rosterStatus)
 
+        root.addView(section("GUIA OFFLINE DE ITENS"))
+        root.addView(TextView(this).apply {
+            text = "Disponível antes da partida. Pergunte “quais componentes fazem o Gume do Infinito?”, “o que faz com arco?” ou “quais itens existem?”."
+            textSize = 13f
+            setTextColor(Color.LTGRAY)
+            setPadding(0, 0, 0, dp(8))
+        })
+        root.addView(bodyBox().apply {
+            text = ItemRecipeBook.catalogSummary()
+            contentDescription = "Catálogo de receitas dos itens combináveis do TFT. $text"
+        })
+
         root.addView(section("COMANDOS INICIAIS"))
         root.addView(TextView(this).apply {
-            text = "• “ler loja”, “ler itens”, “ler sinergias”\n• “ler aviso”, “por que não pegou”\n• “ler escolhas”, “ler tela”, “repetir leitura”\n• “maior vida”, “maior vida sem item”\n• “maior valor”, “listar frontline”\n• “rolar”\n• “comprar um”, “comprar dois quatro cinco”\n• “subir nível” / “XP”\n• “banco dois para D4”\n• “D4 para banco três”\n• “C3 para F4”\n• “vender banco dois”\n• “vender D2”\n• “aprimoramento dois”\n• “pausar controle”"
+            text = "• “ler loja”, “ler itens”, “ler sinergias”\n• “ler tabuleiro”, “ler inventário”, “ler carrossel” (experimental)\n• “ler aviso”, “por que não pegou”\n• “ler escolhas”, “ler tela”, “repetir leitura”\n• “quais componentes fazem o Gume do Infinito?”\n• “o que faz com arco?”, “quais itens existem?”\n• “quem não faz parte das sinergias?”\n• “maior vida”, “maior vida sem item”\n• “maior valor”, “listar frontline”\n• “rolar”\n• “comprar um”, “comprar dois quatro cinco”\n• “subir nível” / “XP”\n• “banco dois para D4”\n• “D4 para banco três”\n• “C3 para F4”\n• “vender banco dois”\n• “vender D2”\n• “aprimoramento dois”\n• “pausar controle”"
             textSize = 14f
             setTextColor(Color.WHITE)
             setPadding(0, dp(2), 0, dp(10))
@@ -177,6 +195,13 @@ class MainActivity : Activity() {
         root.addView(button("Limpar log de voz") {
             store.clearRecognitionLog()
             refreshAll()
+        })
+
+        root.addView(TextView(this).apply {
+            text = "Voice Controller não é endossado pela Riot Games e não reflete as opiniões da Riot Games ou de qualquer pessoa oficialmente envolvida na produção ou administração de suas propriedades. Riot Games e todas as propriedades associadas são marcas comerciais ou registradas da Riot Games, Inc."
+            textSize = 11f
+            setTextColor(Color.GRAY)
+            setPadding(0, dp(18), 0, 0)
         })
 
         return ScrollView(this).apply {
@@ -288,7 +313,10 @@ class MainActivity : Activity() {
 
         val pending = store.pendingCalibration
         calibrationStatus.text = store.calibrationSummary() +
-            "\n\nEtapa pendente: ${CalibrationFlow.label(pending)}"
+            "\n\nEtapa pendente: ${CalibrationFlow.label(pending)}" +
+            "\n${store.autoCalibrationStatus}"
+        autoCalibrationButton.text =
+            "Autocalibração contextual: ${if (store.autoContextCalibration) "LIGADA" else "DESLIGADA"}"
         skipButton.isEnabled = store.calibrationWizardActive && pending in CONTEXT_STAGES
         cancelButton.isEnabled = store.calibrationWizardActive
 

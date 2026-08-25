@@ -14,6 +14,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -48,6 +49,9 @@ class VoiceAccessibilityService : AccessibilityService() {
     private var listening = false
     private var visionBusy = false
     private var ttsReady = false
+    private var contextScanBusy = false
+    private var contextScanScheduled = false
+    private var lastContextScanAt = 0L
     private var textToSpeech: TextToSpeech? = null
     private lateinit var screenTextReader: ScreenTextReader
     private var accessibilityButtonCallback: AccessibilityButtonController.AccessibilityButtonCallback? = null
@@ -64,6 +68,11 @@ class VoiceAccessibilityService : AccessibilityService() {
         }
     }
 
+    private val contextScanRunnable = Runnable {
+        contextScanScheduled = false
+        scanForContextCalibration()
+    }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         store = ProfileStore(this)
@@ -78,7 +87,13 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        event?.packageName?.toString()?.let { store.foregroundPackage = it }
+        val current = event?.packageName?.toString() ?: return
+        if (current == TFT_PACKAGE || current == TFT_PBE_PACKAGE) {
+            store.foregroundPackage = current
+            scheduleContextScan()
+        } else if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            store.foregroundPackage = current
+        }
     }
 
     override fun onInterrupt() = Unit
@@ -86,6 +101,7 @@ class VoiceAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         handler.removeCallbacks(resetMic)
         handler.removeCallbacks(restartListening)
+        handler.removeCallbacks(contextScanRunnable)
         accessibilityButtonCallback?.let { callback ->
             runCatching { accessibilityButtonController.unregisterAccessibilityButtonCallback(callback) }
         }
@@ -189,8 +205,8 @@ class VoiceAccessibilityService : AccessibilityService() {
             message("Aguarde a leitura terminar")
             return
         }
-        if (!isTftForeground()) {
-            message("Comandos bloqueados: o TFT não está em primeiro plano")
+        if (!isTftForeground() && !isControllerForeground()) {
+            message("Abra o TFT ou o Voice Controller antes de falar um comando")
             return
         }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -232,15 +248,24 @@ class VoiceAccessibilityService : AccessibilityService() {
             command is VoiceCommand.HighestHealth ||
             command == VoiceCommand.HighestValue ||
             command is VoiceCommand.ListRole ||
+            command is VoiceCommand.ItemRecipeQuery ||
+            command is VoiceCommand.ItemsFromComponent ||
+            command == VoiceCommand.ListItemCatalog ||
+            command is VoiceCommand.RecordActiveSynergies ||
+            command == VoiceCommand.NonSynergyChampions ||
             command == VoiceCommand.ClearRoster
         if (!safeOutsideGame && !isTftForeground()) {
             message("Comando bloqueado: o TFT não está em primeiro plano")
             return
         }
         val (displayWidth, displayHeight) = displaySize()
+        val geometryFreeReads = setOf(
+            ScreenReadTarget.FULL_SCREEN, ScreenReadTarget.NOTICE,
+            ScreenReadTarget.ITEMS, ScreenReadTarget.TRAITS, ScreenReadTarget.CHOICES,
+            ScreenReadTarget.INVENTORY, ScreenReadTarget.CAROUSEL
+        )
         val needsGeometry = !safeOutsideGame &&
-            !(command is VoiceCommand.ReadScreen &&
-                command.target in setOf(ScreenReadTarget.FULL_SCREEN, ScreenReadTarget.NOTICE))
+            !(command is VoiceCommand.ReadScreen && command.target in geometryFreeReads)
         if (needsGeometry &&
             !store.isCalibrationGeometryCurrent(displayWidth, displayHeight, displayRotation())
         ) {
@@ -293,6 +318,16 @@ class VoiceAccessibilityService : AccessibilityService() {
             is VoiceCommand.HighestHealth -> answerHighestHealth(command.filter)
             VoiceCommand.HighestValue -> answerHighestValue()
             is VoiceCommand.ListRole -> answerRole(command.role)
+            is VoiceCommand.ItemRecipeQuery -> answerItemRecipe(command.itemName)
+            is VoiceCommand.ItemsFromComponent -> answerItemsFromComponent(command.componentName)
+            VoiceCommand.ListItemCatalog -> speakFact(
+                "Itens combináveis: ${spokenList(ItemRecipeBook.recipes.map { it.name })}."
+            )
+            is VoiceCommand.RecordActiveSynergies -> {
+                store.saveActiveSynergies(command.names)
+                speakFact("Sinergias ativas registradas: ${spokenList(command.names.toList())}.")
+            }
+            VoiceCommand.NonSynergyChampions -> answerNonSynergyChampions()
             VoiceCommand.ClearRoster -> {
                 store.clearRosterObservations()
                 speakFact("Lista de campeões registrada foi apagada.")
@@ -328,6 +363,11 @@ class VoiceAccessibilityService : AccessibilityService() {
         is VoiceCommand.HighestHealth -> "MAIOR VIDA"
         VoiceCommand.HighestValue -> "MAIOR VALOR"
         is VoiceCommand.ListRole -> "LISTAR ${command.role.name}"
+        is VoiceCommand.ItemRecipeQuery -> "RECEITA"
+        is VoiceCommand.ItemsFromComponent -> "ITENS DO COMPONENTE"
+        VoiceCommand.ListItemCatalog -> "CATÁLOGO DE ITENS"
+        is VoiceCommand.RecordActiveSynergies -> "REGISTRAR SINERGIAS"
+        VoiceCommand.NonSynergyChampions -> "FORA DAS SINERGIAS"
         VoiceCommand.ClearRoster -> "LIMPAR TIME"
         VoiceCommand.PauseControl -> "PAUSAR"
         VoiceCommand.ResumeControl -> "RETOMAR"
@@ -345,7 +385,9 @@ class VoiceAccessibilityService : AccessibilityService() {
             "ler tela", "ler recompensas", "ler orbes", "repetir leitura",
             "ler aviso", "por que não pegou", "maior vida", "maior vida sem item",
             "maior vida com item", "maior valor", "listar frontline",
-            "registrar campeão vida valor"
+            "registrar campeão vida valor", "ler tabuleiro", "ler inventário", "ler carrossel",
+            "quais componentes fazem", "receita de", "quais itens existem",
+            "quem não faz parte das sinergias", "registrar sinergias ativas"
         )
         val ranks = listOf("um", "dois", "três", "quatro")
         for (file in 'A'..'G') {
@@ -653,9 +695,11 @@ class VoiceAccessibilityService : AccessibilityService() {
             TacticalRole.BACKLINE -> "backline"
             TacticalRole.UNKNOWN -> "função não informada"
         }
+        val traits = if (observation.traits.isEmpty()) "sinergias não informadas"
+        else "sinergias ${spokenList(observation.traits.toList())}"
         speakFact(
             if (saved) {
-                "${observation.name} registrado: ${observation.maxHealth} de vida máxima, valor ${observation.value}, $items, $role."
+                "${observation.name} registrado: ${observation.maxHealth} de vida máxima, valor ${observation.value}, $items, $role, $traits."
             } else {
                 "Não consegui salvar ${observation.name}."
             }
@@ -703,6 +747,48 @@ class VoiceAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun answerItemRecipe(itemName: String) {
+        val recipe = ItemRecipeBook.find(itemName)
+        if (recipe == null) {
+            speakFact("Não encontrei a receita de $itemName no catálogo offline.")
+        } else {
+            speakFact(ItemRecipeBook.describe(recipe))
+        }
+    }
+
+    private fun answerItemsFromComponent(componentName: String) {
+        val component = ItemRecipeBook.findComponent(componentName)
+        if (component == null) {
+            speakFact("Não reconheci o componente $componentName.")
+            return
+        }
+        val recipes = ItemRecipeBook.recipesUsing(component)
+        speakFact("Com $component você pode fazer: ${spokenList(recipes.map { it.name })}.")
+    }
+
+    private fun answerNonSynergyChampions() {
+        val active = store.getActiveSynergies()
+        if (active.isEmpty()) {
+            speakFact("Ainda não há sinergias ativas confirmadas. Diga registrar sinergias ativas e os nomes.")
+            return
+        }
+        val roster = store.getRosterObservations()
+        val known = roster.filter { it.traits.isNotEmpty() }
+        if (known.isEmpty()) {
+            speakFact("Os campeões registrados ainda não têm suas sinergias informadas.")
+            return
+        }
+        val outside = RosterAnalyzer.outsideActiveSynergies(known, active)
+        val unknownCount = roster.size - known.size
+        val main = if (outside.isEmpty()) {
+            "Nenhum campeão com sinergias conhecidas está fora das sinergias ativas."
+        } else {
+            "Fora das sinergias ativas: ${spokenList(outside.map { it.name })}."
+        }
+        val caveat = if (unknownCount > 0) " $unknownCount campeão ou campeões ainda não puderam ser avaliados." else ""
+        speakFact(main + caveat)
+    }
+
     private fun spokenList(values: List<String>): String = when (values.size) {
         0 -> ""
         1 -> values.first()
@@ -733,6 +819,9 @@ class VoiceAccessibilityService : AccessibilityService() {
                 ScreenReadTarget.ITEMS -> "Marque a região dos itens antes de pedir a leitura"
                 ScreenReadTarget.TRAITS -> "Marque a região das sinergias antes de pedir a leitura"
                 ScreenReadTarget.CHOICES -> "Marque a região das escolhas antes de pedir a leitura"
+                ScreenReadTarget.BOARD -> "Calibre o tabuleiro antes de pedir a leitura"
+                ScreenReadTarget.INVENTORY -> "Não foi possível definir o inventário"
+                ScreenReadTarget.CAROUSEL -> "Não foi possível definir a tela do carrossel"
                 ScreenReadTarget.NOTICE -> "Não foi possível definir a região dos avisos"
                 ScreenReadTarget.FULL_SCREEN -> "Não foi possível definir a tela"
             }
@@ -791,7 +880,16 @@ class VoiceAccessibilityService : AccessibilityService() {
                                         ?: "Aviso. Não encontrei uma mensagem legível na tela."
                                 }
                                 clean.isBlank() -> {
-                                    "${target.spokenName}. Não encontrei texto legível nessa região."
+                                    val visualOnly = target in setOf(
+                                        ScreenReadTarget.BOARD,
+                                        ScreenReadTarget.INVENTORY,
+                                        ScreenReadTarget.CAROUSEL
+                                    )
+                                    if (visualOnly) {
+                                        "${target.spokenName}. Não encontrei nomes em texto. A identificação por ícones ainda precisa das amostras visuais desta tela."
+                                    } else {
+                                        "${target.spokenName}. Não encontrei texto legível nessa região."
+                                    }
                                 }
                                 else -> "${target.spokenName}. $clean"
                             }
@@ -860,10 +958,101 @@ class VoiceAccessibilityService : AccessibilityService() {
     private fun regionFor(target: ScreenReadTarget): NormalizedRect? = when (target) {
         ScreenReadTarget.SHOP -> VisionRegion.shopFromLine(store.getShopLine())
         ScreenReadTarget.ITEMS -> store.getRegion(ProfileStore.REGION_ITEMS)
+            ?: NormalizedRect(0f, 0f, 1f, 1f)
         ScreenReadTarget.TRAITS -> store.getRegion(ProfileStore.REGION_TRAITS)
+            ?: NormalizedRect(0f, 0f, 1f, 1f)
         ScreenReadTarget.CHOICES -> store.getRegion(ProfileStore.REGION_CHOICES)
+            ?: NormalizedRect(0f, 0f, 1f, 1f)
+        ScreenReadTarget.BOARD -> VisionRegion.boardFromRows(store.getBoardRows())
+        ScreenReadTarget.INVENTORY -> store.getRegion(ProfileStore.REGION_ITEMS)
+            ?: NormalizedRect(0f, 0f, 1f, 1f)
+        ScreenReadTarget.CAROUSEL -> NormalizedRect(0f, 0f, 1f, 1f)
         ScreenReadTarget.NOTICE -> NormalizedRect(0f, 0f, 1f, 1f)
         ScreenReadTarget.FULL_SCREEN -> NormalizedRect(0f, 0f, 1f, 1f)
+    }
+
+    private fun scheduleContextScan() {
+        if (!::store.isInitialized || !store.autoContextCalibration || contextScanScheduled) return
+        if (!hasMissingContextRegions()) return
+        contextScanScheduled = true
+        handler.postDelayed(contextScanRunnable, 900)
+    }
+
+    private fun hasMissingContextRegions(): Boolean =
+        store.getRegion(ProfileStore.REGION_ITEMS) == null ||
+            store.getRegion(ProfileStore.REGION_TRAITS) == null ||
+            store.getRegion(ProfileStore.REGION_CHOICES) == null
+
+    private fun scanForContextCalibration() {
+        if (!store.autoContextCalibration || !isTftForeground() || !hasMissingContextRegions()) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || contextScanBusy || visionBusy ||
+            listening || captureOverlay != null || store.pendingCalibration != ProfileStore.PENDING_NONE
+        ) {
+            return
+        }
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastContextScanAt < 3500L) return
+        lastContextScanAt = now
+        contextScanBusy = true
+        takeScreenshot(
+            Display.DEFAULT_DISPLAY,
+            mainExecutor,
+            object : AccessibilityService.TakeScreenshotCallback {
+                override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
+                    val bitmap = bitmapFromScreenshot(screenshot)
+                    if (bitmap == null) {
+                        contextScanBusy = false
+                        store.autoCalibrationStatus = "Autocalibração: a screenshot não pôde ser convertida."
+                        return
+                    }
+                    screenTextReader.readDetailed(
+                        bitmap,
+                        onSuccess = { result ->
+                            val saved = ContextScreenDetector.detect(result.lines)
+                                .filter { detection ->
+                                    detection.confidence >= 0.85f &&
+                                        store.getRegion(detection.kind.regionName) == null
+                                }
+                                .filter { detection ->
+                                    store.saveRegion(detection.kind.regionName, detection.region)
+                                }
+                            if (store.saveReadingScreenshots && saved.isNotEmpty()) {
+                                runCatching {
+                                    ScreenshotStore.save(
+                                        this@VoiceAccessibilityService,
+                                        bitmap,
+                                        category = "AUTO_CONTEXT",
+                                        saveAsOcrSample = true
+                                    )
+                                }
+                            }
+                            bitmap.recycle()
+                            contextScanBusy = false
+                            if (saved.isNotEmpty()) {
+                                val names = spokenList(saved.map { it.kind.spokenName })
+                                val announcement = "Autocalibração concluída para $names. Região salva no aparelho."
+                                store.autoCalibrationStatus = announcement
+                                visionBusy = true
+                                handler.removeCallbacks(restartListening)
+                                AppNotifications.showStatus(this@VoiceAccessibilityService, announcement)
+                                speakReadout(announcement)
+                            }
+                        },
+                        onFailure = { error ->
+                            bitmap.recycle()
+                            contextScanBusy = false
+                            store.autoCalibrationStatus =
+                                "Autocalibração: OCR falhou (${error.javaClass.simpleName})."
+                        }
+                    )
+                }
+
+                override fun onFailure(errorCode: Int) {
+                    contextScanBusy = false
+                    store.autoCalibrationStatus = "Autocalibração: screenshot recusada, código $errorCode."
+                }
+            }
+        )
     }
 
     private fun bitmapFromScreenshot(
@@ -1113,6 +1302,8 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     private fun isTftForeground(): Boolean =
         store.foregroundPackage == TFT_PACKAGE || store.foregroundPackage == TFT_PBE_PACKAGE
+
+    private fun isControllerForeground(): Boolean = store.foregroundPackage == packageName
 
     private fun displaySize(): Pair<Int, Int> =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

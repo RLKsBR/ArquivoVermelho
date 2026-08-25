@@ -19,5 +19,18 @@ class VisionRegionTest {
         assertTrue(region.top < 0.9f)
         assertEquals(1f, region.bottom, 0.0001f)
     }
-}
 
+    @Test
+    fun derivesBoardRegionFromFourCalibratedRows() {
+        val rows = (1..4).associateWith { rank ->
+            TftRow(
+                NormalizedPoint(0.2f, 0.25f + rank * 0.1f),
+                NormalizedPoint(0.8f, 0.25f + rank * 0.1f)
+            )
+        }
+        val region = VisionRegion.boardFromRows(rows)
+        assertNotNull(region)
+        assertTrue(region!!.left < 0.2f)
+        assertTrue(region.right > 0.8f)
+    }
+}

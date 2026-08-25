@@ -33,4 +33,22 @@ class RosterAnalyzerTest {
             RosterAnalyzer.highestValue(champions).map { it.name }
         )
     }
+
+    @Test
+    fun findsChampionsOutsideActiveSynergiesWithoutRecommendingActions() {
+        val observed = listOf(
+            ChampionObservation(
+                "A", 1000, 1, ItemStatus.NONE, TacticalRole.FRONTLINE,
+                setOf("Bastião", "Arcana")
+            ),
+            ChampionObservation(
+                "B", 900, 2, ItemStatus.NONE, TacticalRole.BACKLINE,
+                setOf("Feérico")
+            )
+        )
+        assertEquals(
+            listOf("B"),
+            RosterAnalyzer.outsideActiveSynergies(observed, setOf("Bastião")).map { it.name }
+        )
+    }
 }

@@ -7,6 +7,9 @@ enum class ScreenReadTarget(val spokenName: String) {
     ITEMS("Itens"),
     TRAITS("Sinergias"),
     CHOICES("Escolhas"),
+    BOARD("Tabuleiro"),
+    INVENTORY("Inventário"),
+    CAROUSEL("Carrossel"),
     NOTICE("Aviso"),
     FULL_SCREEN("Tela")
 }
@@ -28,6 +31,11 @@ sealed class VoiceCommand {
     data class HighestHealth(val filter: HealthFilter) : VoiceCommand()
     data object HighestValue : VoiceCommand()
     data class ListRole(val role: TacticalRole) : VoiceCommand()
+    data class ItemRecipeQuery(val itemName: String) : VoiceCommand()
+    data class ItemsFromComponent(val componentName: String) : VoiceCommand()
+    data object ListItemCatalog : VoiceCommand()
+    data class RecordActiveSynergies(val names: Set<String>) : VoiceCommand()
+    data object NonSynergyChampions : VoiceCommand()
     data object ClearRoster : VoiceCommand()
     data object PauseControl : VoiceCommand()
     data object ResumeControl : VoiceCommand()
@@ -72,6 +80,7 @@ object VoiceCommandParser {
             return VoiceCommand.RepeatLastRead
         }
         parseRecordChampion(text)?.let { return it }
+        parseKnowledgeQuery(text)?.let { return it }
         parseRosterQuery(text)?.let { return it }
         parseReadScreen(text)?.let { return it }
 
@@ -110,6 +119,11 @@ object VoiceCommandParser {
             "ler sinergias", "leia as sinergias", "quais sinergias", "ler traits" -> ScreenReadTarget.TRAITS
             "ler escolhas", "ler aprimoramentos", "ler augments", "quais escolhas",
             "ler opcoes", "ler itens para escolher", "ler itens da selecao" -> ScreenReadTarget.CHOICES
+            "ler tabuleiro", "quem esta no tabuleiro", "ler board",
+            "ler campeoes no tabuleiro", "ler itens no tabuleiro" -> ScreenReadTarget.BOARD
+            "ler inventario", "ler componentes no inventario", "itens no inventario" -> ScreenReadTarget.INVENTORY
+            "ler carrossel", "resumir carrossel", "quais itens no carrossel",
+            "quais campeoes no carrossel" -> ScreenReadTarget.CAROUSEL
             "ler aviso", "ler mensagem", "o que apareceu", "por que nao pegou",
             "por que nao foi", "reserva cheia" -> ScreenReadTarget.NOTICE
             "ler tela", "leia a tela", "o que tem na tela", "ler recompensas",
@@ -122,7 +136,7 @@ object VoiceCommandParser {
 
     private fun parseRecordChampion(text: String): VoiceCommand? {
         val match = Regex(
-            "^(?:registrar|atualizar)(?: campeao| boneco)? (.+?) vida(?: maxima)? (\\d{2,5}) valor ([a-z0-9]+)(?: (com (?:item|itens)|sem (?:item|itens)))?(?: (frontline|front line|linha de frente|backline|back line|linha de tras))?$"
+            "^(?:registrar|atualizar)(?: campeao| boneco)? (.+?) vida(?: maxima)? (\\d{2,5}) valor ([a-z0-9]+)(?: (com (?:item|itens)|sem (?:item|itens)))?(?: (frontline|front line|linha de frente|backline|back line|linha de tras))?(?: sinergias (.+))?$"
         ).matchEntire(text) ?: return null
         val name = match.groupValues[1]
             .split(' ')
@@ -141,8 +155,13 @@ object VoiceCommandParser {
             "backline", "back line", "linha de tras" -> TacticalRole.BACKLINE
             else -> TacticalRole.UNKNOWN
         }
+        val traits = match.groupValues[6]
+            .split(Regex("\\s+e\\s+"))
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toSet()
         return VoiceCommand.RecordChampion(
-            ChampionObservation(name, health, value, itemStatus, role)
+            ChampionObservation(name, health, value, itemStatus, role, traits)
         )
     }
 
@@ -162,6 +181,13 @@ object VoiceCommandParser {
             return VoiceCommand.HighestValue
         }
         if (text in setOf(
+                "quem nao faz parte das sinergias", "quem esta fora das sinergias",
+                "campeoes fora das sinergias", "tem campeao sem sinergia"
+            )
+        ) {
+            return VoiceCommand.NonSynergyChampions
+        }
+        if (text in setOf(
                 "quem e frontline", "quais frontline", "listar frontline",
                 "ler frontline", "quem esta na linha de frente"
             )
@@ -174,6 +200,25 @@ object VoiceCommandParser {
             )
         ) {
             return VoiceCommand.ListRole(TacticalRole.BACKLINE)
+        }
+        return null
+    }
+
+    private fun parseKnowledgeQuery(text: String): VoiceCommand? {
+        if (text in setOf("listar itens", "quais itens existem", "guia de itens", "catalogo de itens")) {
+            return VoiceCommand.ListItemCatalog
+        }
+        Regex("^(?:quais componentes fazem|como faz|receita de|componentes de) (?:o |a )?(.+)$")
+            .matchEntire(text)?.let { return VoiceCommand.ItemRecipeQuery(it.groupValues[1]) }
+        Regex("^(?:o que faz com|quais itens usam|itens com) (?:o |a )?(.+)$")
+            .matchEntire(text)?.let { return VoiceCommand.ItemsFromComponent(it.groupValues[1]) }
+        Regex("^(?:registrar|definir) sinergias ativas (.+)$").matchEntire(text)?.let { match ->
+            val names = match.groupValues[1]
+                .split(Regex("\\s+e\\s+|\\s{2,}"))
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .toSet()
+            if (names.isNotEmpty()) return VoiceCommand.RecordActiveSynergies(names)
         }
         return null
     }
