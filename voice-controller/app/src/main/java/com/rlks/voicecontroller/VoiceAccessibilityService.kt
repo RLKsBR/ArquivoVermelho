@@ -1,6 +1,7 @@
 package com.rlks.voicecontroller
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.accessibilityservice.AccessibilityButtonController
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
@@ -960,6 +961,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         speakReadout(text)
     }
 
+    @SuppressLint("NewApi")
     private fun readScreen(target: ScreenReadTarget) {
         if (visionBusy) {
             message("Aguarde: uma leitura ainda está em andamento")
@@ -1143,6 +1145,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         captureOrbDetectionFrames(mutableListOf(), 0)
     }
 
+    @SuppressLint("NewApi")
     private fun captureOrbDetectionFrames(
         frames: MutableList<List<NormalizedPoint>>,
         index: Int
@@ -1209,6 +1212,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         captureAutoCalibrationFrames(passiveOnly, 0, mutableListOf())
     }
 
+    @SuppressLint("NewApi")
     private fun captureAutoCalibrationFrames(
         passiveOnly: Boolean,
         index: Int,
@@ -1367,6 +1371,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         }
     }
 
+    @SuppressLint("NewApi")
     private fun captureCurrentOrbs(onResult: (List<NormalizedPoint>) -> Unit) {
         takeScreenshot(
             Display.DEFAULT_DISPLAY,
@@ -1433,6 +1438,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         captureCarouselFrames(mutableListOf(), 0)
     }
 
+    @SuppressLint("NewApi")
     private fun captureCarouselFrames(frames: MutableList<ScreenTextResult>, index: Int) {
         takeScreenshot(
             Display.DEFAULT_DISPLAY,
@@ -1541,6 +1547,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         handler.postDelayed(gameMonitorRunnable, delayMs)
     }
 
+    @SuppressLint("NewApi")
     private fun scanGameFlow() {
         if (!::store.isInitialized || !isTftForeground()) return
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || gameMonitorBusy ||
@@ -1725,6 +1732,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         AppNotifications.showStatus(this, "Atenção: faltam cerca de 10 segundos para escolher.")
     }
 
+    @SuppressLint("NewApi")
     private fun bitmapFromScreenshot(
         screenshot: AccessibilityService.ScreenshotResult
     ): Bitmap? {
@@ -1770,6 +1778,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         scheduleContinuousRestart(650)
     }
 
+    @SuppressLint("NewApi")
     private fun testScreenshot() {
         AppNotifications.clearCalibration(this)
         AppNotifications.showStatus(this, "Testando a imagem capturada do TFT...")
