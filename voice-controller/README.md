@@ -2,6 +2,20 @@
 
 Protótipo de acessibilidade por voz para controlar o TFT com o serviço de Acessibilidade do Android.
 
+## v0.16
+
+- reinterpretação conservadora de erros comuns do reconhecimento de voz, sem remover a validação dos gestos;
+- comandos “pegar orbes” e “coletar orbes” procuram brilhos compactos na área de jogo e visitam apenas candidatos visuais de alta confiança;
+- anúncio automático “Estágio X, rodada X”, sem repetir a mesma rodada;
+- detecção de aprimoramentos, bigornas/arsenal e escolhas de componentes, com leitura automática das opções;
+- durante a leitura de escolhas, “parar” interrompe a voz e “leia X” repete apenas a opção pedida;
+- alerta sonoro quando o contador detectado chega a dez segundos; na ausência de contador legível, usa uma janela conservadora de trinta segundos;
+- carrossel lido em três imagens sucessivas, informando textos encontrados e direções aproximadas no relógio;
+- posições táticas por voz: “linha de frente”, “segunda linha de frente”, “terceira linha” e “retaguarda”, combinadas com “esquerda”, “meio” ou “direita”;
+- comando “auto calibrar” reconhece loja, rolar, XP e regiões contextuais visíveis; tabuleiro e banco continuam guiados para evitar coordenadas perigosas.
+
+O tabuleiro do TFT tem sete colunas (A–G) e quatro fileiras. Os nomes táticos são calculados pela posição visual, portanto continuam corretos mesmo se a numeração usada na calibração estiver invertida.
+
 ## v0.15
 
 - catálogo offline com as 36 combinações dos oito componentes básicos;

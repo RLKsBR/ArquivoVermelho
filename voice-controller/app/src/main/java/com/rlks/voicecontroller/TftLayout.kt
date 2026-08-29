@@ -16,6 +16,13 @@ data class NormalizedRect(val left: Float, val top: Float, val right: Float, val
 data class TftRow(val left: NormalizedPoint, val right: NormalizedPoint)
 data class TftLine(val first: NormalizedPoint, val last: NormalizedPoint)
 
+enum class HorizontalZone { LEFT, CENTER, RIGHT }
+
+data class TacticalPosition(
+    val rowFromFront: Int,
+    val horizontal: HorizontalZone = HorizontalZone.CENTER
+)
+
 data class TftCoreCalibration(
     val boardRows: Map<Int, TftRow>,
     val benchLine: TftLine,
@@ -57,6 +64,18 @@ object TftLayout {
     fun shopSlotToPoint(slot: Int, line: TftLine?): NormalizedPoint? {
         if (line == null || slot !in 1..5) return null
         return interpolate(line.first, line.last, slot - 1, 5)
+    }
+
+    fun tacticalPoint(position: TacticalPosition, rows: Map<Int, TftRow>): NormalizedPoint? {
+        if (position.rowFromFront !in 1..4 || rows.size < 4) return null
+        val orderedFrontToBack = rows.values.sortedBy { (it.left.y + it.right.y) / 2f }
+        val row = orderedFrontToBack.getOrNull(position.rowFromFront - 1) ?: return null
+        val columnIndex = when (position.horizontal) {
+            HorizontalZone.LEFT -> 0
+            HorizontalZone.CENTER -> 3
+            HorizontalZone.RIGHT -> 6
+        }
+        return interpolate(row.left, row.right, columnIndex, 7)
     }
 
     private fun interpolate(first: NormalizedPoint, last: NormalizedPoint, index: Int, count: Int): NormalizedPoint {

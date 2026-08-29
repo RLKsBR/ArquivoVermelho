@@ -22,9 +22,15 @@ sealed class VoiceCommand {
     data class BenchToBoard(val bench: Int, val square: String) : VoiceCommand()
     data class BoardToBench(val square: String, val bench: Int) : VoiceCommand()
     data class BoardToBoard(val from: String, val to: String) : VoiceCommand()
+    data class BenchToTactical(val bench: Int, val position: TacticalPosition) : VoiceCommand()
+    data class BoardToTactical(val square: String, val position: TacticalPosition) : VoiceCommand()
     data class SellBench(val bench: Int) : VoiceCommand()
     data class SellBoard(val square: String) : VoiceCommand()
     data class Choice(val index: Int) : VoiceCommand()
+    data class ReadChoice(val index: Int) : VoiceCommand()
+    data object StopReading : VoiceCommand()
+    data object CollectOrbs : VoiceCommand()
+    data object AutoCalibrate : VoiceCommand()
     data class ReadScreen(val target: ScreenReadTarget) : VoiceCommand()
     data object RepeatLastRead : VoiceCommand()
     data class RecordChampion(val observation: ChampionObservation) : VoiceCommand()
@@ -67,9 +73,20 @@ object VoiceCommandParser {
     )
 
     fun parse(raw: String): VoiceCommand {
-        val text = normalize(raw)
+        val text = reinterpret(normalize(raw))
         if (text.isBlank()) return VoiceCommand.Unknown(raw)
 
+        if (text in setOf("parar", "parar leitura", "pare", "silencio", "calar")) {
+            return VoiceCommand.StopReading
+        }
+        if (text in setOf(
+                "pegar orbe", "pegar orbes", "coletar orbe", "coletar orbes",
+                "buscar orbes", "recolher orbes"
+            )
+        ) return VoiceCommand.CollectOrbs
+        if (text in setOf("auto calibrar", "autocalibrar", "calibrar automaticamente", "melhorar calibracao")) {
+            return VoiceCommand.AutoCalibrate
+        }
         if (text in setOf("ajuda", "comandos", "help")) return VoiceCommand.Help
         if (text in setOf("rolar", "rerrolar", "reroll", "rerolar")) return VoiceCommand.Reroll
         if (text in setOf("xp", "comprar xp", "subir nivel", "upar nivel", "nivel")) return VoiceCommand.BuyXp
@@ -82,6 +99,7 @@ object VoiceCommandParser {
         parseRecordChampion(text)?.let { return it }
         parseKnowledgeQuery(text)?.let { return it }
         parseRosterQuery(text)?.let { return it }
+        parseReadChoice(text)?.let { return it }
         parseReadScreen(text)?.let { return it }
 
         if (text.startsWith("comprar ")) {
@@ -112,6 +130,57 @@ object VoiceCommandParser {
 
     fun canonicalName(raw: String): String = normalize(raw)
 
+    fun reinterpret(raw: String): String {
+        val normalized = normalize(raw)
+        val phraseAliases = mapOf(
+            "para" to "parar",
+            "pare de ler" to "parar leitura",
+            "para de ler" to "parar leitura",
+            "calar a boca" to "calar",
+            "pega os orbes" to "pegar orbes",
+            "pegue os orbes" to "pegar orbes",
+            "pegar os orbes" to "pegar orbes",
+            "coleta os orbes" to "coletar orbes",
+            "carro cel" to "carrossel"
+        )
+        phraseAliases[normalized]?.let { return it }
+        val shortAliases = mapOf(
+            "le" to "ler", "lei" to "ler", "lerh" to "ler",
+            "carrocel" to "carrossel", "carocel" to "carrossel",
+            "orbis" to "orbes", "orb" to "orbe", "branco" to "banco",
+            "rerola" to "rerolar", "rerole" to "rerolar",
+            "aprimorament" to "aprimoramento", "augmento" to "augment"
+        )
+        val vocabulary = setOf(
+            "comprar", "vender", "banco", "aprimoramento", "carrossel", "orbes",
+            "parar", "rolar", "itens", "sinergias", "inventario", "tabuleiro",
+            "escolha", "registrar", "repetir", "coletar"
+        )
+        return normalized.split(' ').joinToString(" ") { token ->
+            shortAliases[token] ?: vocabulary.firstOrNull { candidate ->
+                token.length >= 5 && kotlin.math.abs(token.length - candidate.length) <= 1 &&
+                    editDistance(token, candidate) <= 1
+            } ?: token
+        }
+    }
+
+    private fun editDistance(first: String, second: String): Int {
+        var previous = IntArray(second.length + 1) { it }
+        for (i in first.indices) {
+            val current = IntArray(second.length + 1)
+            current[0] = i + 1
+            for (j in second.indices) {
+                current[j + 1] = minOf(
+                    current[j] + 1,
+                    previous[j + 1] + 1,
+                    previous[j] + if (first[i] == second[j]) 0 else 1
+                )
+            }
+            previous = current
+        }
+        return previous[second.length]
+    }
+
     private fun parseReadScreen(text: String): VoiceCommand? {
         val target = when (text) {
             "ler loja", "leia a loja", "o que tem na loja", "quais campeoes na loja" -> ScreenReadTarget.SHOP
@@ -132,6 +201,13 @@ object VoiceCommandParser {
             else -> null
         }
         return target?.let { VoiceCommand.ReadScreen(it) }
+    }
+
+    private fun parseReadChoice(text: String): VoiceCommand? {
+        val match = Regex("^(?:ler|leia) (?:(?:a )?(?:opcao|escolha|aprimoramento|item) )?(.+)$")
+            .matchEntire(text) ?: return null
+        val index = numbers[match.groupValues[1]] ?: return null
+        return if (index in 1..9) VoiceCommand.ReadChoice(index) else null
     }
 
     private fun parseRecordChampion(text: String): VoiceCommand? {
@@ -224,7 +300,7 @@ object VoiceCommandParser {
     }
 
     private fun parseChoice(text: String): VoiceCommand? {
-        val match = Regex("^(?:escolha|aprimoramento|augment) (.+)$").matchEntire(text) ?: return null
+        val match = Regex("^(?:escolha|opcao|aprimoramento|augment) (.+)$").matchEntire(text) ?: return null
         val index = numbers[match.groupValues[1]] ?: return null
         return if (index in 1..3) VoiceCommand.Choice(index) else null
     }
@@ -250,12 +326,32 @@ object VoiceCommandParser {
         val toBench = parseBench(to)
         val fromSquare = parseSquare(from)
         val toSquare = parseSquare(to)
+        val tactical = parseTacticalPosition(to)
         return when {
+            fromBench != null && tactical != null -> VoiceCommand.BenchToTactical(fromBench, tactical)
+            fromSquare != null && tactical != null -> VoiceCommand.BoardToTactical(fromSquare, tactical)
             fromBench != null && toSquare != null -> VoiceCommand.BenchToBoard(fromBench, toSquare)
             fromSquare != null && toBench != null -> VoiceCommand.BoardToBench(fromSquare, toBench)
             fromSquare != null && toSquare != null -> VoiceCommand.BoardToBoard(fromSquare, toSquare)
             else -> null
         }
+    }
+
+    private fun parseTacticalPosition(text: String): TacticalPosition? {
+        val row = when {
+            "segunda linha de frente" in text || "segunda linha" in text -> 2
+            "terceira linha de frente" in text || "terceira linha" in text -> 3
+            "retaguarda" in text || "ultima linha" in text || "linha de tras" in text -> 4
+            "linha de frente" in text || "primeira linha" in text -> 1
+            text == "meio" || text == "no meio" || text == "centro" -> 2
+            else -> return null
+        }
+        val horizontal = when {
+            "esquerda" in text -> HorizontalZone.LEFT
+            "direita" in text -> HorizontalZone.RIGHT
+            else -> HorizontalZone.CENTER
+        }
+        return TacticalPosition(row, horizontal)
     }
 
     private fun parseBench(text: String): Int? {

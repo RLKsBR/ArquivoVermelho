@@ -10,6 +10,8 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Path
 import android.graphics.PixelFormat
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -51,8 +53,16 @@ class VoiceAccessibilityService : AccessibilityService() {
     private var ttsReady = false
     private var contextScanBusy = false
     private var contextScanScheduled = false
+    private var gameMonitorBusy = false
+    private var gameMonitorScheduled = false
     private var lastContextScanAt = 0L
+    private var lastRoundKey: String? = null
+    private var activeSelection: SelectionScreen? = null
+    private var selectionMissingScans = 0
+    private var selectionReading = false
+    private var selectionWarningFired = false
     private var textToSpeech: TextToSpeech? = null
+    private var warningTone: ToneGenerator? = null
     private lateinit var screenTextReader: ScreenTextReader
     private var accessibilityButtonCallback: AccessibilityButtonController.AccessibilityButtonCallback? = null
 
@@ -63,7 +73,8 @@ class VoiceAccessibilityService : AccessibilityService() {
     private val restartListening = Runnable {
         if (::store.isInitialized && store.continuousMode && !listening && captureOverlay == null &&
             store.pendingCalibration == ProfileStore.PENDING_NONE && isTftForeground() &&
-            !visionBusy && textToSpeech?.isSpeaking != true) {
+            (!visionBusy || selectionReading) &&
+            (textToSpeech?.isSpeaking != true || selectionReading)) {
             startListening()
         }
     }
@@ -73,6 +84,18 @@ class VoiceAccessibilityService : AccessibilityService() {
         scanForContextCalibration()
     }
 
+    private val gameMonitorRunnable = Runnable {
+        gameMonitorScheduled = false
+        scanGameFlow()
+    }
+
+    private val selectionWarningRunnable = Runnable {
+        if (activeSelection != null && !selectionWarningFired) {
+            selectionWarningFired = true
+            playSelectionWarning()
+        }
+    }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         store = ProfileStore(this)
@@ -80,10 +103,12 @@ class VoiceAccessibilityService : AccessibilityService() {
         AppNotifications.createChannels(this)
         screenTextReader = ScreenTextReader()
         initializeTextToSpeech()
+        warningTone = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 88)
         createSpeechRecognizer()
         showMicrophoneOverlay()
         registerSystemAccessibilityButton()
         message("Voice Controller TFT pronto")
+        scheduleGameMonitor(900)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -91,6 +116,7 @@ class VoiceAccessibilityService : AccessibilityService() {
         if (current == TFT_PACKAGE || current == TFT_PBE_PACKAGE) {
             store.foregroundPackage = current
             scheduleContextScan()
+            scheduleGameMonitor(350)
         } else if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             store.foregroundPackage = current
         }
@@ -102,6 +128,8 @@ class VoiceAccessibilityService : AccessibilityService() {
         handler.removeCallbacks(resetMic)
         handler.removeCallbacks(restartListening)
         handler.removeCallbacks(contextScanRunnable)
+        handler.removeCallbacks(gameMonitorRunnable)
+        handler.removeCallbacks(selectionWarningRunnable)
         accessibilityButtonCallback?.let { callback ->
             runCatching { accessibilityButtonController.unregisterAccessibilityButtonCallback(callback) }
         }
@@ -116,6 +144,8 @@ class VoiceAccessibilityService : AccessibilityService() {
         textToSpeech?.stop()
         textToSpeech?.shutdown()
         textToSpeech = null
+        warningTone?.release()
+        warningTone = null
         super.onDestroy()
     }
 
@@ -190,7 +220,14 @@ class VoiceAccessibilityService : AccessibilityService() {
                     val summary = selected?.second?.let { commandSummary(it) }
                     store.addRecognitionLog(phrases, summary)
                     showMicTemporary(summary?.take(8) ?: "?")
-                    if (selected != null) processCommand(selected.second)
+                    if (selected != null) {
+                        val command = selected.second
+                        if (!selectionReading || command == VoiceCommand.StopReading ||
+                            command is VoiceCommand.ReadChoice || command is VoiceCommand.Choice
+                        ) {
+                            processCommand(command)
+                        }
+                    }
                     scheduleContinuousRestart(420)
                 }
 
@@ -201,7 +238,7 @@ class VoiceAccessibilityService : AccessibilityService() {
     }
 
     private fun startListening() {
-        if (visionBusy || textToSpeech?.isSpeaking == true) {
+        if ((visionBusy || textToSpeech?.isSpeaking == true) && !selectionReading) {
             message("Aguarde a leitura terminar")
             return
         }
@@ -244,6 +281,8 @@ class VoiceAccessibilityService : AccessibilityService() {
         val safeOutsideGame = command == VoiceCommand.PauseControl ||
             command == VoiceCommand.ResumeControl || command == VoiceCommand.Help ||
             command == VoiceCommand.RepeatLastRead ||
+            command == VoiceCommand.StopReading ||
+            command is VoiceCommand.ReadChoice ||
             command is VoiceCommand.RecordChampion ||
             command is VoiceCommand.HighestHealth ||
             command == VoiceCommand.HighestValue ||
@@ -265,6 +304,8 @@ class VoiceAccessibilityService : AccessibilityService() {
             ScreenReadTarget.INVENTORY, ScreenReadTarget.CAROUSEL
         )
         val needsGeometry = !safeOutsideGame &&
+            command != VoiceCommand.CollectOrbs &&
+            command != VoiceCommand.AutoCalibrate &&
             !(command is VoiceCommand.ReadScreen && command.target in geometryFreeReads)
         if (needsGeometry &&
             !store.isCalibrationGeometryCurrent(displayWidth, displayHeight, displayRotation())
@@ -312,6 +353,21 @@ class VoiceAccessibilityService : AccessibilityService() {
                 val point = store.getRegion(ProfileStore.REGION_CHOICES)?.horizontalChoice(command.index, 3)
                 if (point == null) message("Marque a região de escolhas primeiro") else tap(point)
             }
+            is VoiceCommand.BenchToTactical -> {
+                val from = TftLayout.benchSlotToPoint(command.bench, store.getBenchLine())
+                val to = TftLayout.tacticalPoint(command.position, store.getBoardRows())
+                dragOrExplain(from, to, "Calibre banco e tabuleiro")
+            }
+            is VoiceCommand.BoardToTactical -> {
+                val rows = store.getBoardRows()
+                val from = TftLayout.boardSquareToPoint(command.square, rows)
+                val to = TftLayout.tacticalPoint(command.position, rows)
+                dragOrExplain(from, to, "Calibre o tabuleiro")
+            }
+            is VoiceCommand.ReadChoice -> readSelectionChoice(command.index)
+            VoiceCommand.StopReading -> stopCurrentReading()
+            VoiceCommand.CollectOrbs -> collectOrbs()
+            VoiceCommand.AutoCalibrate -> runAutoCalibration()
             is VoiceCommand.ReadScreen -> readScreen(command.target)
             VoiceCommand.RepeatLastRead -> speakLastRead()
             is VoiceCommand.RecordChampion -> recordChampion(command.observation)
@@ -354,9 +410,15 @@ class VoiceAccessibilityService : AccessibilityService() {
         is VoiceCommand.BenchToBoard -> "B${command.bench}>${command.square.uppercase()}"
         is VoiceCommand.BoardToBench -> "${command.square.uppercase()}>B${command.bench}"
         is VoiceCommand.BoardToBoard -> "${command.from.uppercase()}>${command.to.uppercase()}"
+        is VoiceCommand.BenchToTactical -> "B${command.bench}>POSIÇÃO TÁTICA"
+        is VoiceCommand.BoardToTactical -> "${command.square.uppercase()}>POSIÇÃO TÁTICA"
         is VoiceCommand.SellBench -> "VENDER B${command.bench}"
         is VoiceCommand.SellBoard -> "VENDER ${command.square.uppercase()}"
         is VoiceCommand.Choice -> "ESCOLHA ${command.index}"
+        is VoiceCommand.ReadChoice -> "LER OPÇÃO ${command.index}"
+        VoiceCommand.StopReading -> "PARAR LEITURA"
+        VoiceCommand.CollectOrbs -> "PEGAR ORBES"
+        VoiceCommand.AutoCalibrate -> "AUTO CALIBRAR"
         is VoiceCommand.ReadScreen -> "LER ${command.target.spokenName.uppercase()}"
         VoiceCommand.RepeatLastRead -> "REPETIR"
         is VoiceCommand.RecordChampion -> "REGISTRAR ${command.observation.name.uppercase()}"
@@ -380,6 +442,9 @@ class VoiceAccessibilityService : AccessibilityService() {
             "rolar", "rerrolar", "comprar um", "comprar dois", "comprar três", "comprar quatro", "comprar cinco",
             "subir nível", "comprar xp", "abrir loja", "fechar loja", "pausar controle", "retomar controle",
             "aprimoramento um", "aprimoramento dois", "aprimoramento três",
+            "leia um", "leia dois", "leia três", "parar", "parar leitura",
+            "pegar orbes", "coletar orbes",
+            "auto calibrar", "calibrar automaticamente",
             "vender banco um", "vender banco dois", "vender banco três",
             "ler loja", "ler itens", "ler sinergias", "ler escolhas", "ler aprimoramentos",
             "ler tela", "ler recompensas", "ler orbes", "repetir leitura",
@@ -388,6 +453,11 @@ class VoiceAccessibilityService : AccessibilityService() {
             "registrar campeão vida valor", "ler tabuleiro", "ler inventário", "ler carrossel",
             "quais componentes fazem", "receita de", "quais itens existem",
             "quem não faz parte das sinergias", "registrar sinergias ativas"
+        )
+        values += listOf(
+            "banco um para linha de frente", "banco dois para retaguarda",
+            "banco três para segunda linha de frente", "linha de frente na esquerda",
+            "retaguarda no meio", "linha de frente na direita"
         )
         val ranks = listOf("um", "dois", "três", "quatro")
         for (file in 'A'..'G') {
@@ -809,6 +879,10 @@ class VoiceAccessibilityService : AccessibilityService() {
             message("Aguarde: uma leitura ainda está em andamento")
             return
         }
+        if (target == ScreenReadTarget.CAROUSEL) {
+            readCarouselDynamic()
+            return
+        }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             message("Leitura da tela exige Android 11 ou superior")
             return
@@ -931,6 +1005,222 @@ class VoiceAccessibilityService : AccessibilityService() {
         speakReadout(text)
     }
 
+    private fun readSelectionChoice(index: Int) {
+        val selection = activeSelection
+        if (selection == null) {
+            message("Nenhuma escolha está aberta agora")
+            return
+        }
+        val option = selection.options.firstOrNull { it.index == index }
+        if (option == null) {
+            message("A opção $index não foi reconhecida nessa tela")
+            return
+        }
+        textToSpeech?.stop()
+        selectionReading = true
+        visionBusy = true
+        handler.removeCallbacks(restartListening)
+        val text = "Opção $index. ${option.text}"
+        store.lastReadText = text
+        speakReadout(text)
+        handler.postDelayed({ if (selectionReading) startListening() }, 450)
+    }
+
+    private fun stopCurrentReading() {
+        textToSpeech?.stop()
+        selectionReading = false
+        visionBusy = false
+        handler.removeCallbacks(restartListening)
+        message("Leitura interrompida")
+        scheduleContinuousRestart(300)
+    }
+
+    private fun collectOrbs() {
+        if (visionBusy) {
+            message("Aguarde: uma leitura ainda está em andamento")
+            return
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            message("A coleta visual de orbes exige Android 11 ou superior")
+            return
+        }
+        visionBusy = true
+        listening = false
+        speechRecognizer?.cancel()
+        handler.removeCallbacks(restartListening)
+        AppNotifications.showStatus(this, "Procurando orbes visíveis...")
+        takeScreenshot(
+            Display.DEFAULT_DISPLAY,
+            mainExecutor,
+            object : AccessibilityService.TakeScreenshotCallback {
+                override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
+                    val bitmap = bitmapFromScreenshot(screenshot)
+                    if (bitmap == null) {
+                        failVisionRead("A imagem para procurar orbes não pôde ser convertida")
+                        return
+                    }
+                    val scaledWidth = min(360, bitmap.width)
+                    val scaledHeight = max(1, bitmap.height * scaledWidth / bitmap.width)
+                    val sample = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
+                    if (sample !== bitmap) bitmap.recycle()
+                    val pixels = IntArray(sample.width * sample.height)
+                    sample.getPixels(pixels, 0, sample.width, 0, 0, sample.width, sample.height)
+                    val search = VisionRegion.boardFromRows(store.getBoardRows())
+                        ?.let { NormalizedRect(
+                            (it.left - 0.08f).coerceAtLeast(0.02f),
+                            (it.top - 0.18f).coerceAtLeast(0.10f),
+                            (it.right + 0.08f).coerceAtMost(0.98f),
+                            (it.bottom + 0.08f).coerceAtMost(0.90f)
+                        ) } ?: NormalizedRect(0.04f, 0.14f, 0.96f, 0.86f)
+                    val points = OrbDetector.detect(pixels, sample.width, sample.height, search)
+                    sample.recycle()
+                    if (points.isEmpty()) {
+                        speakFact("Não encontrei uma orbe com confiança suficiente. Mova a câmera ou tente novamente.")
+                    } else {
+                        AppNotifications.showStatus(
+                            this@VoiceAccessibilityService,
+                            "${points.size} orbe ou orbes detectadas; iniciando coleta."
+                        )
+                        collectOrbSequence(points)
+                    }
+                }
+
+                override fun onFailure(errorCode: Int) {
+                    failVisionRead("O Android recusou a imagem para procurar orbes. Código $errorCode")
+                }
+            }
+        )
+    }
+
+    private fun runAutoCalibration() {
+        if (visionBusy) {
+            message("Aguarde: uma leitura ainda está em andamento")
+            return
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            message("Auto calibrar exige Android 11 ou superior")
+            return
+        }
+        visionBusy = true
+        listening = false
+        speechRecognizer?.cancel()
+        handler.removeCallbacks(restartListening)
+        AppNotifications.showStatus(this, "Auto calibração: analisando os controles visíveis.")
+        takeScreenshot(
+            Display.DEFAULT_DISPLAY,
+            mainExecutor,
+            object : AccessibilityService.TakeScreenshotCallback {
+                override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
+                    val bitmap = bitmapFromScreenshot(screenshot)
+                    if (bitmap == null) {
+                        failVisionRead("A imagem da auto calibração não pôde ser convertida")
+                        return
+                    }
+                    screenTextReader.readDetailed(
+                        bitmap,
+                        onSuccess = { result ->
+                            bitmap.recycle()
+                            val detected = AutoCalibrationDetector.detect(result.lines)
+                            val saved = mutableListOf<String>()
+                            detected.shopLine?.takeIf { store.saveShopLine(it.first, it.last) }
+                                ?.let { saved += "loja" }
+                            detected.reroll?.takeIf { store.savePoint(ProfileStore.POINT_REROLL, it) }
+                                ?.let { saved += "rolar" }
+                            detected.xp?.takeIf { store.savePoint(ProfileStore.POINT_XP, it) }
+                                ?.let { saved += "XP" }
+                            detected.contexts.filter { it.confidence >= 0.85f }.forEach { context ->
+                                if (store.saveRegion(context.kind.regionName, context.region)) {
+                                    saved += context.kind.spokenName
+                                }
+                            }
+                            if (saved.isNotEmpty()) {
+                                val (width, height) = displaySize()
+                                store.saveCalibrationGeometry(width, height, displayRotation())
+                            }
+                            val readout = if (saved.isEmpty()) {
+                                "Auto calibração não encontrou controles com confiança suficiente. Abra a loja ou uma tela de escolha e tente novamente. A calibração anterior foi preservada."
+                            } else {
+                                "Auto calibração atualizada para ${spokenList(saved.distinct())}. Tabuleiro e banco continuam usando a calibração guiada para evitar movimentos errados."
+                            }
+                            store.autoCalibrationStatus = readout
+                            speakFact(readout)
+                        },
+                        onFailure = { error ->
+                            bitmap.recycle()
+                            failVisionRead("Auto calibração falhou no OCR: ${error.javaClass.simpleName}")
+                        }
+                    )
+                }
+
+                override fun onFailure(errorCode: Int) {
+                    failVisionRead("O Android recusou a imagem da auto calibração. Código $errorCode")
+                }
+            }
+        )
+    }
+
+    private fun collectOrbSequence(points: List<NormalizedPoint>, index: Int = 0) {
+        if (index >= points.size) {
+            speakFact("Coleta de orbes concluída. Verifiquei ${points.size} posição ou posições.")
+            return
+        }
+        tap(points[index]) {
+            handler.postDelayed({ collectOrbSequence(points, index + 1) }, 1050)
+        }
+    }
+
+    private fun readCarouselDynamic() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            message("Leitura do carrossel exige Android 11 ou superior")
+            return
+        }
+        visionBusy = true
+        listening = false
+        speechRecognizer?.cancel()
+        handler.removeCallbacks(restartListening)
+        showMicTemporary("GIRO", 12_000)
+        captureCarouselFrames(mutableListOf(), 0)
+    }
+
+    private fun captureCarouselFrames(frames: MutableList<ScreenTextResult>, index: Int) {
+        takeScreenshot(
+            Display.DEFAULT_DISPLAY,
+            mainExecutor,
+            object : AccessibilityService.TakeScreenshotCallback {
+                override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
+                    val bitmap = bitmapFromScreenshot(screenshot)
+                    if (bitmap == null) {
+                        failVisionRead("Uma imagem do carrossel não pôde ser convertida")
+                        return
+                    }
+                    screenTextReader.readDetailed(
+                        bitmap,
+                        onSuccess = { result ->
+                            bitmap.recycle()
+                            frames += result
+                            if (index < 2) {
+                                handler.postDelayed({ captureCarouselFrames(frames, index + 1) }, 520)
+                            } else {
+                                val readout = CarouselReader.describe(frames)
+                                store.lastReadText = readout
+                                AppNotifications.showStatus(this@VoiceAccessibilityService, readout.take(900))
+                                speakReadout(readout)
+                            }
+                        },
+                        onFailure = { error ->
+                            bitmap.recycle()
+                            failVisionRead("Falha ao acompanhar o carrossel: ${error.message ?: error.javaClass.simpleName}")
+                        }
+                    )
+                }
+
+                override fun onFailure(errorCode: Int) {
+                    failVisionRead("O Android recusou uma imagem do carrossel. Código $errorCode")
+                }
+            }
+        )
+    }
+
     private fun speakReadout(text: String) {
         if (!ttsReady) {
             message("Leitura concluída, mas a voz em português não está disponível")
@@ -978,6 +1268,125 @@ class VoiceAccessibilityService : AccessibilityService() {
         handler.postDelayed(contextScanRunnable, 900)
     }
 
+    private fun scheduleGameMonitor(delayMs: Long = 1800L) {
+        if (!::store.isInitialized || gameMonitorScheduled) return
+        gameMonitorScheduled = true
+        handler.postDelayed(gameMonitorRunnable, delayMs)
+    }
+
+    private fun scanGameFlow() {
+        if (!::store.isInitialized || !isTftForeground()) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || gameMonitorBusy || contextScanBusy ||
+            visionBusy || captureOverlay != null ||
+            store.pendingCalibration != ProfileStore.PENDING_NONE
+        ) {
+            scheduleGameMonitor(420)
+            return
+        }
+        gameMonitorBusy = true
+        takeScreenshot(
+            Display.DEFAULT_DISPLAY,
+            mainExecutor,
+            object : AccessibilityService.TakeScreenshotCallback {
+                override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
+                    val bitmap = bitmapFromScreenshot(screenshot)
+                    if (bitmap == null) {
+                        finishGameMonitor()
+                        return
+                    }
+                    screenTextReader.readDetailed(
+                        bitmap,
+                        onSuccess = { result ->
+                            if (store.autoContextCalibration) {
+                                ContextScreenDetector.detect(result.lines)
+                                    .filter { it.confidence >= 0.85f }
+                                    .filter { store.getRegion(it.kind.regionName) == null }
+                                    .forEach { store.saveRegion(it.kind.regionName, it.region) }
+                            }
+                            bitmap.recycle()
+                            handleGameFlow(result.lines)
+                            finishGameMonitor()
+                        },
+                        onFailure = {
+                            bitmap.recycle()
+                            finishGameMonitor()
+                        }
+                    )
+                }
+
+                override fun onFailure(errorCode: Int) = finishGameMonitor()
+            }
+        )
+    }
+
+    private fun finishGameMonitor() {
+        gameMonitorBusy = false
+        scheduleGameMonitor(1750)
+    }
+
+    private fun handleGameFlow(lines: List<RecognizedTextLine>) {
+        val announcements = mutableListOf<String>()
+        GameFlowDetector.stageRound(lines)?.let { round ->
+            if (round.key != lastRoundKey) {
+                lastRoundKey = round.key
+                announcements += round.announcement()
+            }
+        }
+
+        val selection = GameFlowDetector.selection(lines)
+        var startedSelection = false
+        if (selection != null) {
+            selectionMissingScans = 0
+            val previous = activeSelection
+            activeSelection = if (selection.options.isNotEmpty() || previous == null) selection else previous
+            if (previous == null || previous.kind != selection.kind) {
+                startedSelection = true
+                selectionWarningFired = false
+                handler.removeCallbacks(selectionWarningRunnable)
+                scheduleSelectionWarning(selection)
+                announcements += selection.announcementText()
+            }
+        } else if (activeSelection != null) {
+            selectionMissingScans++
+            if (selectionMissingScans >= 2) {
+                activeSelection = null
+                selectionMissingScans = 0
+                selectionWarningFired = false
+                handler.removeCallbacks(selectionWarningRunnable)
+            }
+        }
+
+        if (announcements.isEmpty()) return
+        val text = announcements.joinToString(". ")
+        store.lastReadText = text
+        AppNotifications.showStatus(this, text.take(900))
+        visionBusy = true
+        listening = false
+        speechRecognizer?.cancel()
+        handler.removeCallbacks(restartListening)
+        selectionReading = startedSelection
+        speakReadout(text)
+        if (startedSelection) handler.postDelayed({ if (selectionReading) startListening() }, 450)
+    }
+
+    private fun SelectionScreen.announcementText(): String {
+        if (options.isEmpty()) {
+            return "${kind.announcement}. A leitura automática não encontrou texto suficiente. Diga leia um, leia dois ou leia três para tentar novamente."
+        }
+        val choices = options.joinToString(". ") { "Opção ${it.index}. ${it.text}" }
+        return "${kind.announcement}. $choices. Diga parar para interromper, ou leia e o número da opção."
+    }
+
+    private fun scheduleSelectionWarning(selection: SelectionScreen) {
+        val remaining = selection.remainingSeconds ?: DEFAULT_SELECTION_SECONDS
+        handler.postDelayed(selectionWarningRunnable, (remaining - 10).coerceAtLeast(0) * 1000L)
+    }
+
+    private fun playSelectionWarning() {
+        warningTone?.startTone(ToneGenerator.TONE_PROP_BEEP2, 750)
+        AppNotifications.showStatus(this, "Atenção: faltam cerca de 10 segundos para escolher.")
+    }
+
     private fun hasMissingContextRegions(): Boolean =
         store.getRegion(ProfileStore.REGION_ITEMS) == null ||
             store.getRegion(ProfileStore.REGION_TRAITS) == null ||
@@ -985,7 +1394,7 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     private fun scanForContextCalibration() {
         if (!store.autoContextCalibration || !isTftForeground() || !hasMissingContextRegions()) return
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || contextScanBusy || visionBusy ||
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || contextScanBusy || gameMonitorBusy || visionBusy ||
             listening || captureOverlay != null || store.pendingCalibration != ProfileStore.PENDING_NONE
         ) {
             return
@@ -1087,6 +1496,7 @@ class VoiceAccessibilityService : AccessibilityService() {
 
     private fun releaseVisionAndResume() {
         visionBusy = false
+        selectionReading = false
         showMicTemporary("🎙")
         scheduleContinuousRestart(650)
     }
@@ -1372,6 +1782,7 @@ class VoiceAccessibilityService : AccessibilityService() {
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     companion object {
+        private const val DEFAULT_SELECTION_SECONDS = 30
         private const val TFT_PACKAGE = "com.riotgames.league.teamfighttactics"
         private const val TFT_PBE_PACKAGE = "com.riotgames.league.teamfighttactics.pbe"
     }

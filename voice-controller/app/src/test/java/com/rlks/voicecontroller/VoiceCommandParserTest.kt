@@ -160,4 +160,46 @@ class VoiceCommandParserTest {
         assertEquals(0.9f, TftLayout.benchSlotToPoint(9, line)!!.x, 0.0001f)
         assertEquals(0.5f, TftLayout.shopSlotToPoint(3, line)!!.x, 0.0001f)
     }
+
+    @Test
+    fun reinterpretsRecognitionErrorsAndAccessibleFlowCommands() {
+        assertEquals(
+            VoiceCommand.ReadScreen(ScreenReadTarget.CAROUSEL),
+            VoiceCommandParser.parse("lê carrocel")
+        )
+        assertEquals(VoiceCommand.CollectOrbs, VoiceCommandParser.parse("pega os orbes"))
+        assertEquals(VoiceCommand.StopReading, VoiceCommandParser.parse("para de ler"))
+        assertEquals(VoiceCommand.ReadChoice(2), VoiceCommandParser.parse("leia dois"))
+        assertEquals(VoiceCommand.AutoCalibrate, VoiceCommandParser.parse("auto calibrar"))
+    }
+
+    @Test
+    fun parsesTacticalBoardPositions() {
+        assertEquals(
+            VoiceCommand.BenchToTactical(2, TacticalPosition(1, HorizontalZone.LEFT)),
+            VoiceCommandParser.parse("banco dois para linha de frente na esquerda")
+        )
+        assertEquals(
+            VoiceCommand.BenchToTactical(3, TacticalPosition(4, HorizontalZone.CENTER)),
+            VoiceCommandParser.parse("banco três para retaguarda no meio")
+        )
+        assertEquals(
+            VoiceCommand.BoardToTactical("c2", TacticalPosition(2, HorizontalZone.RIGHT)),
+            VoiceCommandParser.parse("C2 para segunda linha de frente na direita")
+        )
+    }
+
+    @Test
+    fun mapsTacticalRowsByVisualFrontAndBack() {
+        val rows = mapOf(
+            1 to TftRow(NormalizedPoint(0.1f, 0.8f), NormalizedPoint(0.9f, 0.8f)),
+            2 to TftRow(NormalizedPoint(0.1f, 0.7f), NormalizedPoint(0.9f, 0.7f)),
+            3 to TftRow(NormalizedPoint(0.1f, 0.6f), NormalizedPoint(0.9f, 0.6f)),
+            4 to TftRow(NormalizedPoint(0.1f, 0.5f), NormalizedPoint(0.9f, 0.5f))
+        )
+        val frontLeft = TftLayout.tacticalPoint(TacticalPosition(1, HorizontalZone.LEFT), rows)!!
+        val backRight = TftLayout.tacticalPoint(TacticalPosition(4, HorizontalZone.RIGHT), rows)!!
+        assertTrue(frontLeft.y < backRight.y)
+        assertTrue(frontLeft.x < backRight.x)
+    }
 }

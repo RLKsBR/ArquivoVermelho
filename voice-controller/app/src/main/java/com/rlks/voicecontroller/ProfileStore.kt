@@ -171,6 +171,13 @@ class ProfileStore(context: Context) {
             rotation == storedRotation
     }
 
+    fun saveCalibrationGeometry(width: Int, height: Int, rotation: Int): Boolean =
+        prefs.edit()
+            .putInt(KEY_CALIBRATION_WIDTH, width)
+            .putInt(KEY_CALIBRATION_HEIGHT, height)
+            .putInt(KEY_CALIBRATION_ROTATION, rotation)
+            .commit()
+
     fun calibrationSummary(): String {
         fun mark(ok: Boolean) = if (ok) "✓" else "—"
         val width = prefs.getInt(KEY_CALIBRATION_WIDTH, 0)
