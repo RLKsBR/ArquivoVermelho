@@ -2095,7 +2095,13 @@ class VoiceAccessibilityService : AccessibilityService() {
             resources.displayMetrics.let { it.widthPixels to it.heightPixels }
         }
 
-    private fun displayRotation(): Int = display?.rotation ?: Surface.ROTATION_0
+    private fun displayRotation(): Int =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            display?.rotation ?: Surface.ROTATION_0
+        } else {
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay.rotation
+        }
 
     private fun showCaptureOverlay(view: View) {
         val params = WindowManager.LayoutParams(
