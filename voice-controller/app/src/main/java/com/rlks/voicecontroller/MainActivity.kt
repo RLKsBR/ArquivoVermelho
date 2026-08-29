@@ -3,6 +3,9 @@ package com.rlks.voicecontroller
 import android.Manifest
 import android.app.Activity
 import android.content.ComponentName
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -34,6 +37,8 @@ class MainActivity : Activity() {
     private lateinit var saveSamplesButton: Button
     private lateinit var rosterStatus: TextView
     private lateinit var autoCalibrationButton: Button
+    private lateinit var confirmationButton: Button
+    private lateinit var diagnosticsStatus: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,7 +93,7 @@ class MainActivity : Activity() {
             setPadding(0, dp(6), 0, dp(14))
         })
 
-        status = bodyBox()
+        status = bodyBox().apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         root.addView(status)
         root.addView(button("1. Permitir microfone e notificações") { requestRequiredPermissions(true) })
         root.addView(button("2. Ativar Voice Controller na Acessibilidade") {
@@ -103,14 +108,23 @@ class MainActivity : Activity() {
 
         root.addView(section("CALIBRAÇÃO TFT"))
         root.addView(TextView(this).apply {
-            text = "A etapa principal salva 16 pontos. Depois o app não bloqueia a partida: fica aguardando as primeiras telas de itens, sinergias e aprimoramentos para reconhecer e salvar as regiões automaticamente."
+            text = "Método principal: abra o TFT, ative o microfone e diga “auto calibrar”. O app observa três imagens e só confirma partes estáveis. A marcação de pontos continua disponível como fallback com ajuda visual."
             textSize = 13f
             setTextColor(Color.LTGRAY)
             setPadding(0, 0, 0, dp(8))
         })
-        calibrationStatus = bodyBox()
+        calibrationStatus = bodyBox().apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         root.addView(calibrationStatus)
-        root.addView(button("Iniciar calibração guiada") { startCalibrationWizard() })
+        root.addView(button("Preparar autocalibração sem toques") {
+            store.autoContextCalibration = true
+            Toast.makeText(
+                this,
+                "Abra o TFT, toque no controle de acessibilidade e diga auto calibrar.",
+                Toast.LENGTH_LONG
+            ).show()
+            refreshAll()
+        })
+        root.addView(button("Iniciar calibração manual (fallback)") { startCalibrationWizard() })
         autoCalibrationButton = button("") {
             store.autoContextCalibration = !store.autoContextCalibration
             refreshAll()
@@ -120,6 +134,11 @@ class MainActivity : Activity() {
         root.addView(skipButton)
         cancelButton = button("Cancelar calibração guiada") { cancelCalibrationWizard() }
         root.addView(cancelButton)
+        confirmationButton = button("") {
+            store.sensitiveConfirmationEnabled = !store.sensitiveConfirmationEnabled
+            refreshAll()
+        }
+        root.addView(confirmationButton)
 
         root.addView(section("TESTE DE VISÃO"))
         root.addView(TextView(this).apply {
@@ -183,7 +202,7 @@ class MainActivity : Activity() {
 
         root.addView(section("COMANDOS INICIAIS"))
         root.addView(TextView(this).apply {
-            text = "• “ler loja”, “ler itens”, “ler sinergias”\n• “ler tabuleiro”, “ler inventário”, “ler carrossel” (experimental)\n• “ler aviso”, “por que não pegou”\n• “ler escolhas”, “ler tela”, “repetir leitura”\n• “quais componentes fazem o Gume do Infinito?”\n• “o que faz com arco?”, “quais itens existem?”\n• “quem não faz parte das sinergias?”\n• “maior vida”, “maior vida sem item”\n• “maior valor”, “listar frontline”\n• “rolar”\n• “comprar um”, “comprar dois quatro cinco”\n• “subir nível” / “XP”\n• “banco dois para D4”\n• “D4 para banco três”\n• “C3 para F4”\n• “vender banco dois”\n• “vender D2”\n• “aprimoramento dois”\n• “pausar controle”"
+            text = "• “auto calibrar”, “testar calibração”\n• “status da calibração”, “o que falta calibrar?”\n• “recalibrar esta tela”, “parar autocalibração”\n• “ler loja”, “ler itens”, “ler sinergias”\n• “ler tabuleiro”, “ler inventário”, “ler carrossel” (experimental)\n• “ler aviso”, “por que não pegou”\n• “ler escolhas”, “ler tela”, “repetir leitura”\n• “quais componentes fazem o Gume do Infinito?”\n• “o que faz com arco?”, “quais itens existem?”\n• “quem não faz parte das sinergias?”\n• “maior vida”, “maior vida sem item”\n• “maior valor”, “listar frontline”\n• “rolar”\n• “comprar um”, “comprar dois quatro cinco”\n• “subir nível” / “XP”\n• “banco dois para D4”\n• “D4 para banco três”\n• “C3 para F4”\n• “vender banco dois”; depois “confirmar”\n• “aprimoramento dois”; depois “confirmar”\n• “pausar controle”"
             textSize = 14f
             setTextColor(Color.WHITE)
             setPadding(0, dp(2), 0, dp(10))
@@ -196,6 +215,12 @@ class MainActivity : Activity() {
             store.clearRecognitionLog()
             refreshAll()
         })
+
+        root.addView(section("DIAGNÓSTICO"))
+        diagnosticsStatus = bodyBox().apply { accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        root.addView(diagnosticsStatus)
+        root.addView(button("Copiar relatório de diagnóstico") { copyDiagnostics() })
+        root.addView(button("Compartilhar relatório de diagnóstico") { shareDiagnostics() })
 
         root.addView(TextView(this).apply {
             text = "Voice Controller não é endossado pela Riot Games e não reflete as opiniões da Riot Games ou de qualquer pessoa oficialmente envolvida na produção ou administração de suas propriedades. Riot Games e todas as propriedades associadas são marcas comerciais ou registradas da Riot Games, Inc."
@@ -317,6 +342,8 @@ class MainActivity : Activity() {
             "\n${store.autoCalibrationStatus}"
         autoCalibrationButton.text =
             "Autocalibração contextual: ${if (store.autoContextCalibration) "LIGADA" else "DESLIGADA"}"
+        confirmationButton.text =
+            "Confirmação para venda e escolha: ${if (store.sensitiveConfirmationEnabled) "LIGADA" else "DESLIGADA"}"
         skipButton.isEnabled = store.calibrationWizardActive && pending in CONTEXT_STAGES
         cancelButton.isEnabled = store.calibrationWizardActive
 
@@ -335,6 +362,28 @@ class MainActivity : Activity() {
         saveSamplesButton.text = "Salvar amostras de OCR: ${if (store.saveReadingScreenshots) "LIGADO" else "DESLIGADO"}"
         rosterStatus.text = store.rosterSummary()
         speechLog.text = store.getRecognitionLog()
+        diagnosticsStatus.text = store.diagnosticsSummary()
+    }
+
+    private fun copyDiagnostics() {
+        val report = store.diagnosticsSummary()
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("Diagnóstico Voice Controller", report))
+        Toast.makeText(this, "Relatório copiado sem screenshots", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun shareDiagnostics() {
+        val report = store.diagnosticsSummary()
+        startActivity(
+            Intent.createChooser(
+                Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, "Diagnóstico Voice Controller TFT")
+                    putExtra(Intent.EXTRA_TEXT, report)
+                },
+                "Compartilhar diagnóstico"
+            )
+        )
     }
 
     private fun isAccessibilityEnabled(): Boolean {

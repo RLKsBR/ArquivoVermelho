@@ -6,6 +6,8 @@ data class AutoCalibrationResult(
     val shopLine: TftLine?,
     val reroll: NormalizedPoint?,
     val xp: NormalizedPoint?,
+    val shopToggle: NormalizedPoint?,
+    val sell: NormalizedPoint?,
     val contexts: List<ContextDetection>
 )
 
@@ -17,6 +19,14 @@ object AutoCalibrationDetector {
         }?.first?.region?.center()
         val xp = normalized.firstOrNull { (line, text) ->
             line.region.top > 0.55f && (text == "xp" || "comprar xp" in text || "nivel" in text)
+        }?.first?.region?.center()
+        val shopToggle = normalized.firstOrNull { (line, text) ->
+            line.region.top > 0.5f &&
+                (text == "loja" || "abrir loja" in text || "fechar loja" in text)
+        }?.first?.region?.center()
+        val sell = normalized.firstOrNull { (line, text) ->
+            line.region.top > 0.58f &&
+                (text == "vender" || "venda" in text || "arraste para vender" in text)
         }?.first?.region?.center()
 
         val lowerCenters = lines.filter { line ->
@@ -45,6 +55,8 @@ object AutoCalibrationDetector {
             if (span >= 0.42f) TftLine(points.first(), points.last()) else null
         } else null
 
-        return AutoCalibrationResult(shopLine, reroll, xp, ContextScreenDetector.detect(lines))
+        return AutoCalibrationResult(
+            shopLine, reroll, xp, shopToggle, sell, ContextScreenDetector.detect(lines)
+        )
     }
 }

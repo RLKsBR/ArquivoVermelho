@@ -29,9 +29,12 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Test and build debug APK
+      - name: Test, lint and build debug APK
         working-directory: voice-controller
-        run: gradle --no-daemon testDebugUnitTest assembleDebug
+        run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug
+
+      - name: Verify APK output
+        run: test -s voice-controller/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

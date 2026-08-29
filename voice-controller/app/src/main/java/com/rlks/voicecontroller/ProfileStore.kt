@@ -9,6 +9,10 @@ import kotlin.math.abs
 class ProfileStore(context: Context) {
     private val prefs = context.getSharedPreferences("voice_controller", Context.MODE_PRIVATE)
 
+    init {
+        migrateLegacyCalibration()
+    }
+
     var continuousMode: Boolean
         get() = prefs.getBoolean(KEY_CONTINUOUS_MODE, false)
         set(value) = prefs.edit().putBoolean(KEY_CONTINUOUS_MODE, value).apply()
@@ -47,6 +51,58 @@ class ProfileStore(context: Context) {
             "Autocalibração aguardando telas contextuais."
         ).orEmpty()
         set(value) = prefs.edit().putString(KEY_AUTO_CALIBRATION_STATUS, value).apply()
+
+    var sensitiveConfirmationEnabled: Boolean
+        get() = prefs.getBoolean(KEY_SENSITIVE_CONFIRMATION, true)
+        set(value) = prefs.edit().putBoolean(KEY_SENSITIVE_CONFIRMATION, value).apply()
+
+    var lastGestureBlockedReason: String
+        get() = prefs.getString(KEY_LAST_GESTURE_BLOCKED, "Nenhum gesto bloqueado.").orEmpty()
+        set(value) = prefs.edit().putString(KEY_LAST_GESTURE_BLOCKED, value).apply()
+
+    var lastRecognizedScreen: String
+        get() = prefs.getString(KEY_LAST_RECOGNIZED_SCREEN, "Desconhecida").orEmpty()
+        set(value) = prefs.edit().putString(KEY_LAST_RECOGNIZED_SCREEN, value).apply()
+
+    fun recordScreenshot(success: Boolean) {
+        val key = if (success) KEY_SCREENSHOT_COUNT else KEY_SCREENSHOT_FAILURES
+        prefs.edit().putLong(key, prefs.getLong(key, 0L) + 1L).apply()
+    }
+
+    fun recordOcr(durationMillis: Long) {
+        prefs.edit()
+            .putLong(KEY_OCR_COUNT, prefs.getLong(KEY_OCR_COUNT, 0L) + 1L)
+            .putLong(KEY_OCR_TOTAL_MS, prefs.getLong(KEY_OCR_TOTAL_MS, 0L) + durationMillis.coerceAtLeast(0L))
+            .putLong(KEY_OCR_MAX_MS, maxOf(prefs.getLong(KEY_OCR_MAX_MS, 0L), durationMillis))
+            .apply()
+    }
+
+    fun recordSkippedFrame() {
+        prefs.edit().putLong(KEY_SKIPPED_FRAMES, prefs.getLong(KEY_SKIPPED_FRAMES, 0L) + 1L).apply()
+    }
+
+    var captureQueueDepth: Int
+        get() = prefs.getInt(KEY_CAPTURE_QUEUE_DEPTH, 0)
+        set(value) = prefs.edit().putInt(KEY_CAPTURE_QUEUE_DEPTH, value.coerceAtLeast(0)).apply()
+
+    fun diagnosticsSummary(): String {
+        val ocrCount = prefs.getLong(KEY_OCR_COUNT, 0L)
+        val total = prefs.getLong(KEY_OCR_TOTAL_MS, 0L)
+        val average = if (ocrCount == 0L) 0L else total / ocrCount
+        return buildString {
+            append("Screenshots: ${prefs.getLong(KEY_SCREENSHOT_COUNT, 0L)}\n")
+            append("Falhas de screenshot: ${prefs.getLong(KEY_SCREENSHOT_FAILURES, 0L)}\n")
+            append("OCRs executados: $ocrCount\n")
+            append("Frames sem mudança ignorados: ${prefs.getLong(KEY_SKIPPED_FRAMES, 0L)}\n")
+            append("OCR médio: ${average} ms; máximo: ${prefs.getLong(KEY_OCR_MAX_MS, 0L)} ms\n")
+            append("Fila de captura: $captureQueueDepth\n")
+            append("Tela reconhecida: $lastRecognizedScreen\n")
+            val metadata = CalibrationComponent.entries.mapNotNull(::getCalibrationMetadata)
+            val confidence = metadata.minOfOrNull { it.confidence }
+            append("Menor confiança calibrada: ${confidence?.let(::percent) ?: "indisponível"}\n")
+            append("Último gesto bloqueado: $lastGestureBlockedReason")
+        }
+    }
 
     fun saveActiveSynergies(names: Set<String>) {
         prefs.edit().putStringSet(KEY_ACTIVE_SYNERGIES, names).apply()
@@ -105,6 +161,17 @@ class ProfileStore(context: Context) {
         return editor.commit()
     }
 
+    fun saveBoardRows(
+        rows: Map<Int, TftRow>,
+        metadata: CalibrationMetadata
+    ): Boolean {
+        if ((1..4).any { rows[it] == null } || metadata.component != CalibrationComponent.BOARD) return false
+        val editor = prefs.edit()
+        putBoardRows(editor, rows)
+        putCalibrationMetadata(editor, metadata)
+        return editor.commit()
+    }
+
     fun saveCoreCalibration(
         calibration: TftCoreCalibration,
         displayWidth: Int,
@@ -125,6 +192,29 @@ class ProfileStore(context: Context) {
         editor.putInt(KEY_CALIBRATION_WIDTH, displayWidth)
         editor.putInt(KEY_CALIBRATION_HEIGHT, displayHeight)
         editor.putInt(KEY_CALIBRATION_ROTATION, rotation)
+        val geometry = DisplayGeometry(displayWidth, displayHeight, rotation)
+        val now = System.currentTimeMillis()
+        listOf(
+            CalibrationComponent.BOARD,
+            CalibrationComponent.BENCH,
+            CalibrationComponent.SHOP,
+            CalibrationComponent.REROLL,
+            CalibrationComponent.XP,
+            CalibrationComponent.SHOP_TOGGLE,
+            CalibrationComponent.SELL
+        ).forEach { component ->
+            putCalibrationMetadata(
+                editor,
+                CalibrationMetadata(
+                    component = component,
+                    geometry = geometry,
+                    source = CalibrationSource.MANUAL,
+                    confidence = 0.99f,
+                    validatedAt = now,
+                    interfaceProfileId = geometry.profileId()
+                )
+            )
+        }
         return editor.commit()
     }
 
@@ -143,8 +233,38 @@ class ProfileStore(context: Context) {
     fun saveShopLine(first: NormalizedPoint, last: NormalizedPoint): Boolean = saveLine(KEY_SHOP_LINE, first, last)
     fun getShopLine(): TftLine? = getLine(KEY_SHOP_LINE)
 
+    fun saveLineWithMetadata(
+        component: CalibrationComponent,
+        first: NormalizedPoint,
+        last: NormalizedPoint,
+        metadata: CalibrationMetadata
+    ): Boolean {
+        val lineKey = when (component) {
+            CalibrationComponent.BENCH -> KEY_BENCH_LINE
+            CalibrationComponent.SHOP -> KEY_SHOP_LINE
+            else -> return false
+        }
+        if (metadata.component != component) return false
+        val editor = prefs.edit()
+            .putString("${lineKey}_first", encodePoint(first))
+            .putString("${lineKey}_last", encodePoint(last))
+        putCalibrationMetadata(editor, metadata)
+        return editor.commit()
+    }
+
     fun savePoint(name: String, point: NormalizedPoint): Boolean =
         prefs.edit().putString("tft_point_${key(name)}", encodePoint(point)).commit()
+
+    fun savePointWithMetadata(
+        name: String,
+        point: NormalizedPoint,
+        metadata: CalibrationMetadata
+    ): Boolean {
+        if (componentForPoint(name) != metadata.component) return false
+        val editor = prefs.edit().putString("tft_point_${key(name)}", encodePoint(point))
+        putCalibrationMetadata(editor, metadata)
+        return editor.commit()
+    }
 
     fun getPoint(name: String): NormalizedPoint? =
         decodePoint(prefs.getString("tft_point_${key(name)}", null))
@@ -153,6 +273,17 @@ class ProfileStore(context: Context) {
 
     fun saveRegion(name: String, rect: NormalizedRect): Boolean =
         prefs.edit().putString("tft_region_${key(name)}", encodeRect(rect)).commit()
+
+    fun saveRegionWithMetadata(
+        name: String,
+        rect: NormalizedRect,
+        metadata: CalibrationMetadata
+    ): Boolean {
+        if (componentForRegion(name) != metadata.component) return false
+        val editor = prefs.edit().putString("tft_region_${key(name)}", encodeRect(rect))
+        putCalibrationMetadata(editor, metadata)
+        return editor.commit()
+    }
 
     fun getRegion(name: String): NormalizedRect? {
         val raw = prefs.getString("tft_region_${key(name)}", null) ?: return null
@@ -169,6 +300,47 @@ class ProfileStore(context: Context) {
         return abs(width - storedWidth) <= maxOf(8, storedWidth / 100) &&
             abs(height - storedHeight) <= maxOf(8, storedHeight / 100) &&
             rotation == storedRotation
+    }
+
+    fun getCalibrationMetadata(component: CalibrationComponent): CalibrationMetadata? {
+        val raw = prefs.getString(metadataKey(component), null) ?: return null
+        return runCatching {
+            val json = JSONObject(raw)
+            CalibrationMetadata(
+                component = component,
+                geometry = DisplayGeometry(
+                    json.getInt("width"),
+                    json.getInt("height"),
+                    json.getInt("rotation")
+                ),
+                source = CalibrationSource.valueOf(json.getString("source")),
+                confidence = json.getDouble("confidence").toFloat(),
+                validatedAt = json.getLong("validatedAt"),
+                interfaceProfileId = json.getString("profileId"),
+                formatVersion = json.getInt("formatVersion")
+            )
+        }.getOrNull()
+    }
+
+    fun isComponentCalibrationCurrent(
+        component: CalibrationComponent,
+        geometry: DisplayGeometry,
+        minimumConfidence: Float = CalibrationMetadata.MIN_GESTURE_CONFIDENCE
+    ): Boolean = componentHasCoordinates(component) &&
+        getCalibrationMetadata(component)?.isCurrent(geometry, minimumConfidence) == true
+
+    fun missingOrUnsafeComponents(geometry: DisplayGeometry): List<CalibrationComponent> =
+        CalibrationComponent.entries.filterNot { isComponentCalibrationCurrent(it, geometry) }
+
+    fun componentStatus(component: CalibrationComponent, geometry: DisplayGeometry? = null): String {
+        if (!componentHasCoordinates(component)) return "pendente"
+        val metadata = getCalibrationMetadata(component) ?: return "legada; revalidação necessária"
+        if (metadata.source == CalibrationSource.LEGACY) return "legada; revalidação necessária"
+        if (geometry != null && !metadata.geometry.matches(geometry)) return "de outra tela; revalidação necessária"
+        if (metadata.confidence < CalibrationMetadata.MIN_GESTURE_CONFIDENCE) {
+            return "confiança ${percent(metadata.confidence)}; bloqueada"
+        }
+        return "${metadata.source.name.lowercase()}, confiança ${percent(metadata.confidence)}"
     }
 
     fun saveCalibrationGeometry(width: Int, height: Int, rotation: Int): Boolean =
@@ -191,6 +363,9 @@ class ProfileStore(context: Context) {
             append("${mark(getRegion(REGION_CHOICES) != null)} Escolhas/aprimoramentos\n")
             append(if (width > 0 && height > 0) "✓ Tela salva: ${width}×${height}" else "— Tela/orientação ainda não registradas")
             append("\nAutocalibração contextual: ${if (autoContextCalibration) "ligada" else "desligada"}")
+            append("\nPerfis v${CalibrationMetadata.CURRENT_FORMAT_VERSION}: ")
+            append(CalibrationComponent.entries.count { getCalibrationMetadata(it)?.source != CalibrationSource.LEGACY })
+            append("/${CalibrationComponent.entries.size} revalidados")
         }
     }
 
@@ -220,6 +395,87 @@ class ProfileStore(context: Context) {
             editor.putString("tft_board_${rank}_right", encodePoint(row.right))
         }
     }
+
+    private fun putCalibrationMetadata(
+        editor: SharedPreferences.Editor,
+        metadata: CalibrationMetadata
+    ) {
+        val json = JSONObject()
+            .put("width", metadata.geometry.width)
+            .put("height", metadata.geometry.height)
+            .put("rotation", metadata.geometry.rotation)
+            .put("source", metadata.source.name)
+            .put("confidence", metadata.confidence.coerceIn(0f, 1f).toDouble())
+            .put("validatedAt", metadata.validatedAt)
+            .put("profileId", metadata.interfaceProfileId)
+            .put("formatVersion", metadata.formatVersion)
+        editor.putString(metadataKey(metadata.component), json.toString())
+    }
+
+    private fun migrateLegacyCalibration() {
+        val geometry = DisplayGeometry(
+            prefs.getInt(KEY_CALIBRATION_WIDTH, 0),
+            prefs.getInt(KEY_CALIBRATION_HEIGHT, 0),
+            prefs.getInt(KEY_CALIBRATION_ROTATION, -1)
+        )
+        if (!geometry.isUsable()) return
+        val editor = prefs.edit()
+        var changed = false
+        val withCoordinates = CalibrationComponent.entries.filter { componentHasCoordinates(it) }.toSet()
+        val withMetadata = CalibrationComponent.entries.filter {
+            prefs.getString(metadataKey(it), null) != null
+        }.toSet()
+        LegacyCalibrationMigration.componentsToMarkLegacy(
+            geometry.isUsable(), withCoordinates, withMetadata
+        ).forEach { component ->
+                putCalibrationMetadata(
+                    editor,
+                    CalibrationMetadata(
+                        component = component,
+                        geometry = geometry,
+                        source = CalibrationSource.LEGACY,
+                        confidence = 0.35f,
+                        validatedAt = 0L,
+                        interfaceProfileId = "legacy_${geometry.profileId()}"
+                    )
+                )
+                changed = true
+        }
+        if (changed) editor.commit()
+    }
+
+    private fun componentHasCoordinates(component: CalibrationComponent): Boolean = when (component) {
+        CalibrationComponent.BOARD -> getBoardRows().size == 4
+        CalibrationComponent.BENCH -> getBenchLine() != null
+        CalibrationComponent.SHOP -> getShopLine() != null
+        CalibrationComponent.REROLL -> hasPoint(POINT_REROLL)
+        CalibrationComponent.XP -> hasPoint(POINT_XP)
+        CalibrationComponent.SHOP_TOGGLE -> hasPoint(POINT_SHOP_TOGGLE)
+        CalibrationComponent.SELL -> hasPoint(POINT_SELL)
+        CalibrationComponent.ITEMS -> getRegion(REGION_ITEMS) != null
+        CalibrationComponent.TRAITS -> getRegion(REGION_TRAITS) != null
+        CalibrationComponent.CHOICES -> getRegion(REGION_CHOICES) != null
+    }
+
+    private fun componentForPoint(name: String): CalibrationComponent? = when (name) {
+        POINT_REROLL -> CalibrationComponent.REROLL
+        POINT_XP -> CalibrationComponent.XP
+        POINT_SHOP_TOGGLE -> CalibrationComponent.SHOP_TOGGLE
+        POINT_SELL -> CalibrationComponent.SELL
+        else -> null
+    }
+
+    private fun componentForRegion(name: String): CalibrationComponent? = when (name) {
+        REGION_ITEMS -> CalibrationComponent.ITEMS
+        REGION_TRAITS -> CalibrationComponent.TRAITS
+        REGION_CHOICES -> CalibrationComponent.CHOICES
+        else -> null
+    }
+
+    private fun metadataKey(component: CalibrationComponent): String =
+        "${KEY_COMPONENT_METADATA}_${component.name.lowercase()}"
+
+    private fun percent(value: Float): String = "%.0f%%".format(value.coerceIn(0f, 1f) * 100f)
 
     private fun saveLine(key: String, first: NormalizedPoint, last: NormalizedPoint): Boolean =
         prefs.edit().putString("${key}_first", encodePoint(first))
@@ -325,12 +581,23 @@ class ProfileStore(context: Context) {
         private const val KEY_SAVE_READING_SCREENSHOTS = "tft_save_reading_screenshots"
         private const val KEY_AUTO_CONTEXT_CALIBRATION = "tft_auto_context_calibration"
         private const val KEY_AUTO_CALIBRATION_STATUS = "tft_auto_calibration_status"
+        private const val KEY_SENSITIVE_CONFIRMATION = "tft_sensitive_confirmation"
+        private const val KEY_LAST_GESTURE_BLOCKED = "tft_last_gesture_blocked"
+        private const val KEY_LAST_RECOGNIZED_SCREEN = "tft_last_recognized_screen"
+        private const val KEY_SCREENSHOT_COUNT = "tft_diagnostic_screenshots"
+        private const val KEY_SCREENSHOT_FAILURES = "tft_diagnostic_screenshot_failures"
+        private const val KEY_OCR_COUNT = "tft_diagnostic_ocr_count"
+        private const val KEY_OCR_TOTAL_MS = "tft_diagnostic_ocr_total_ms"
+        private const val KEY_OCR_MAX_MS = "tft_diagnostic_ocr_max_ms"
+        private const val KEY_SKIPPED_FRAMES = "tft_diagnostic_skipped_frames"
+        private const val KEY_CAPTURE_QUEUE_DEPTH = "tft_diagnostic_capture_queue_depth"
         private const val KEY_ACTIVE_SYNERGIES = "tft_active_synergies"
         private const val KEY_ROSTER_OBSERVATIONS = "tft_roster_observations"
         private const val KEY_BENCH_LINE = "tft_bench_line"
         private const val KEY_SHOP_LINE = "tft_shop_line"
         private const val KEY_RECOGNITION_LOG = "recognition_log"
         private const val KEY_VISION_STATUS = "tft_vision_status"
+        private const val KEY_COMPONENT_METADATA = "tft_component_metadata"
         private const val LOG_SEPARATOR = "\n---VC-ENTRY---\n"
     }
 }

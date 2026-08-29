@@ -2,6 +2,21 @@
 
 Protótipo de acessibilidade por voz para controlar o TFT com o serviço de Acessibilidade do Android.
 
+## v0.17
+
+- perfis de calibração v2 independentes por componente, com resolução, rotação, origem, confiança e data de validação;
+- migração não destrutiva da v0.16: coordenadas antigas ficam preservadas, mas legadas não autorizam gestos até revalidação;
+- autocalibração principal observa três frames e só confirma candidatos estáveis em imagens consecutivas;
+- detector visual experimental e conservador para tabuleiro e banco; baixa confiança preserva a calibração anterior e bloqueia o gesto;
+- autocalibração contextual compartilha o monitor da partida e exige confirmação temporal antes de substituir uma região;
+- hash visual e frequência adaptativa reduzem OCR de telas que não mudaram;
+- `CaptureCoordinator`, `CalibrationManager`, `GameStateRepository` e `GestureController` separam responsabilidades antes concentradas no serviço;
+- venda e escolha exigem confirmação por voz por padrão;
+- coleta de orbes exige confirmação em dois frames e revalida antes e depois de cada toque;
+- comandos acessíveis para consultar, testar, pausar e retomar a calibração;
+- relatório local de diagnóstico copiável/compartilhável, sem anexar screenshots automaticamente;
+- tabuleiro e banco automáticos continuam experimentais até validação em TFT real, modo horizontal e TalkBack.
+
 ## v0.16
 
 - reinterpretação conservadora de erros comuns do reconhecimento de voz, sem remover a validação dos gestos;

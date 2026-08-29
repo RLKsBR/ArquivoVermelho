@@ -31,6 +31,14 @@ sealed class VoiceCommand {
     data object StopReading : VoiceCommand()
     data object CollectOrbs : VoiceCommand()
     data object AutoCalibrate : VoiceCommand()
+    data object CalibrationStatus : VoiceCommand()
+    data object MissingCalibration : VoiceCommand()
+    data object TestCalibration : VoiceCommand()
+    data object RecalibrateCurrentScreen : VoiceCommand()
+    data object StopAutoCalibration : VoiceCommand()
+    data object ResumeAutoCalibration : VoiceCommand()
+    data object ConfirmAction : VoiceCommand()
+    data object CancelAction : VoiceCommand()
     data class ReadScreen(val target: ScreenReadTarget) : VoiceCommand()
     data object RepeatLastRead : VoiceCommand()
     data class RecordChampion(val observation: ChampionObservation) : VoiceCommand()
@@ -86,6 +94,30 @@ object VoiceCommandParser {
         ) return VoiceCommand.CollectOrbs
         if (text in setOf("auto calibrar", "autocalibrar", "calibrar automaticamente", "melhorar calibracao")) {
             return VoiceCommand.AutoCalibrate
+        }
+        if (text in setOf("status da calibracao", "status de calibracao", "como esta a calibracao")) {
+            return VoiceCommand.CalibrationStatus
+        }
+        if (text in setOf("o que falta calibrar", "que falta calibrar", "calibracao pendente")) {
+            return VoiceCommand.MissingCalibration
+        }
+        if (text in setOf("testar calibracao", "verificar calibracao", "validar calibracao")) {
+            return VoiceCommand.TestCalibration
+        }
+        if (text in setOf("recalibrar esta tela", "recalibrar tela atual", "calibrar esta tela")) {
+            return VoiceCommand.RecalibrateCurrentScreen
+        }
+        if (text in setOf("parar autocalibracao", "desligar autocalibracao", "pausar autocalibracao")) {
+            return VoiceCommand.StopAutoCalibration
+        }
+        if (text in setOf("retomar autocalibracao", "ligar autocalibracao", "continuar autocalibracao")) {
+            return VoiceCommand.ResumeAutoCalibration
+        }
+        if (text in setOf("confirmar", "confirmo", "pode confirmar", "sim confirmar")) {
+            return VoiceCommand.ConfirmAction
+        }
+        if (text in setOf("cancelar acao", "nao confirmar", "cancela", "cancelar")) {
+            return VoiceCommand.CancelAction
         }
         if (text in setOf("ajuda", "comandos", "help")) return VoiceCommand.Help
         if (text in setOf("rolar", "rerrolar", "reroll", "rerolar")) return VoiceCommand.Reroll
@@ -154,7 +186,8 @@ object VoiceCommandParser {
         val vocabulary = setOf(
             "comprar", "vender", "banco", "aprimoramento", "aprimoramentos", "carrossel", "orbes",
             "parar", "rolar", "itens", "sinergias", "inventario", "tabuleiro",
-            "escolha", "registrar", "repetir", "coletar"
+            "escolha", "registrar", "repetir", "coletar",
+            "confirmar", "cancelar", "calibracao", "autocalibracao"
         )
         return normalized.split(' ').joinToString(" ") { token ->
             shortAliases[token] ?: token.takeIf { it in vocabulary } ?: vocabulary.firstOrNull { candidate ->

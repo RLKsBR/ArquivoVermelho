@@ -7,6 +7,22 @@ import org.junit.Test
 
 class VoiceCommandParserTest {
     @Test
+    fun parsesAccessibleCalibrationCommands() {
+        assertEquals(VoiceCommand.CalibrationStatus, VoiceCommandParser.parse("status da calibração"))
+        assertEquals(VoiceCommand.MissingCalibration, VoiceCommandParser.parse("o que falta calibrar?"))
+        assertEquals(VoiceCommand.TestCalibration, VoiceCommandParser.parse("testar calibração"))
+        assertEquals(VoiceCommand.RecalibrateCurrentScreen, VoiceCommandParser.parse("recalibrar esta tela"))
+        assertEquals(VoiceCommand.StopAutoCalibration, VoiceCommandParser.parse("parar autocalibração"))
+        assertEquals(VoiceCommand.ResumeAutoCalibration, VoiceCommandParser.parse("retomar autocalibração"))
+    }
+
+    @Test
+    fun parsesSensitiveActionConfirmation() {
+        assertEquals(VoiceCommand.ConfirmAction, VoiceCommandParser.parse("confirmar"))
+        assertEquals(VoiceCommand.CancelAction, VoiceCommandParser.parse("cancelar ação"))
+    }
+
+    @Test
     fun parsesShopCommands() {
         assertEquals(VoiceCommand.Reroll, VoiceCommandParser.parse("rolar"))
         assertEquals(VoiceCommand.BuyXp, VoiceCommandParser.parse("subir nível"))
