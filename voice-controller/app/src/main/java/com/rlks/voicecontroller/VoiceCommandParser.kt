@@ -152,12 +152,12 @@ object VoiceCommandParser {
             "aprimorament" to "aprimoramento", "augmento" to "augment"
         )
         val vocabulary = setOf(
-            "comprar", "vender", "banco", "aprimoramento", "carrossel", "orbes",
+            "comprar", "vender", "banco", "aprimoramento", "aprimoramentos", "carrossel", "orbes",
             "parar", "rolar", "itens", "sinergias", "inventario", "tabuleiro",
             "escolha", "registrar", "repetir", "coletar"
         )
         return normalized.split(' ').joinToString(" ") { token ->
-            shortAliases[token] ?: vocabulary.firstOrNull { candidate ->
+            shortAliases[token] ?: token.takeIf { it in vocabulary } ?: vocabulary.firstOrNull { candidate ->
                 token.length >= 5 && kotlin.math.abs(token.length - candidate.length) <= 1 &&
                     editDistance(token, candidate) <= 1
             } ?: token
