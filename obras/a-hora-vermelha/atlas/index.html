@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#151b1d">
+  <meta name="description" content="Explore a geografia, os censos e a cronologia de A Hora Vermelha.">
+  <title>Atlas de A Hora Vermelha · Arquivo Vermelho</title>
+  <link rel="stylesheet" href="./vendor/leaflet.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">◈</span>
+      <div><p class="eyebrow">ARQUIVO VERMELHO / CARTOGRAFIA</p><h1>Atlas de A Hora Vermelha</h1></div>
+    </div>
+    <div class="top-actions"><a class="quiet" href="../">Voltar para a obra</a><button id="help-open" type="button">Como usar</button></div>
+  </header>
+  <main>
+    <div class="toolbar">
+      <div class="segmented" role="group" aria-label="Conjunto de dados">
+        <button data-view="canon" aria-pressed="true">Documental</button>
+        <button data-view="legacy" aria-pressed="false">Atlas V2</button>
+        <button data-view="demo" aria-pressed="false">Demonstração</button>
+      </div>
+      <div class="utilities">
+        <div class="search-box"><input id="search" type="search" aria-label="Buscar local ou sociedade" placeholder="Buscar local ou sociedade" autocomplete="off"><ul id="results" class="search-results" hidden></ul></div>
+        <button id="layers-open" type="button">Camadas</button>
+      </div>
+    </div>
+    <div class="workspace">
+      <section class="chart" aria-label="Mapa da Terra">
+        <div id="map" role="region" aria-label="Mapa interativo da Terra"></div>
+        <div class="map-top">
+          <div class="map-tag"><strong id="map-level">GRADE · EA1</strong><span id="map-cell-area"></span></div>
+          <div class="map-actions">
+            <button id="world" type="button" title="Reenquadrar o mundo">Mundo</button>
+            <button id="demo-center" type="button" title="Abrir amostra em Alagoas">Alagoas</button>
+          </div>
+        </div>
+        <div class="map-bottom"><button id="mode" type="button" aria-pressed="false">Grade regional</button><span>Terra · projeção Behrmann</span></div>
+      </section>
+      <section class="inspector" id="inspector" aria-label="Painel de informações">
+        <div class="inspector-head"><p class="eyebrow" id="panel-tag">SÉRIE DOCUMENTAL</p><button type="button" id="summary">Resumo</button></div>
+        <div id="panel" aria-live="polite"></div>
+      </section>
+      <section class="timeline" aria-label="Linha do tempo">
+        <div class="time-head">
+          <div><p class="eyebrow">LINHA DO TEMPO</p><strong id="period-title"></strong></div>
+          <div class="time-controls"><button type="button" id="previous" aria-label="Marco anterior">‹</button><button type="button" id="next" aria-label="Próximo marco">›</button>
+            <label class="date-box">Data <input id="date" type="date" aria-label="Escolher data"></label>
+            <button type="button" id="compare-toggle" aria-expanded="false">Comparar</button></div>
+        </div>
+        <div class="range-row"><span>2068</span><input id="timeline-range" type="range" min="0" value="4" aria-label="Selecionar marco histórico"><span>2155</span></div>
+        <div id="quick-periods" class="quick-periods" aria-label="Marcos principais"></div>
+        <div id="compare-controls" class="compare-controls" hidden><label>Comparar com <select id="compare-date"></select></label><small>Diferença = data selecionada menos referência.</small></div>
+      </section>
+    </div>
+    <footer><a href="../">Voltar para A Hora Vermelha</a><span>Universo ficcional de Ruan Lukas</span><span>Geografia física e fronteiras opcionais © dados em domínio público <a href="https://www.naturalearthdata.com/">Natural Earth</a></span><button type="button" id="edits-open">Edições locais</button></footer>
+  </main>
+
+  <dialog id="layers-dialog" aria-labelledby="layers-title">
+    <div class="dialog-head"><h2 id="layers-title">Camadas do atlas</h2><form method="dialog"><button aria-label="Fechar camadas">×</button></form></div>
+    <div class="dialog-content">
+      <div class="control-grid">
+        <label><input id="show-grid" type="checkbox" checked> Grade espacial</label>
+        <label><input id="show-borders" type="checkbox"> Fronteiras atuais</label>
+        <label><input id="show-uncertain" type="checkbox" checked> Exibir datas incertas</label>
+        <label><input id="show-legacy-records" type="checkbox" checked> Núcleos cadastrados no V2</label>
+      </div>
+      <label class="wide-label">Indicador nas células da demonstração <select id="metric"><option value="human">Humanos vivos</option><option value="converted">Convertidos vivos</option><option value="deaths">Mortes acumuladas</option><option value="missing">Desaparecidos</option><option value="">Ocultar contagens</option></select></label>
+      <label class="wide-label">Aplicação de eventos demonstrativos <select id="policy"><option value="end">Último dia possível</option><option value="start">Primeiro dia possível</option></select></label>
+      <h3>Temas</h3><div id="layer-options" class="control-grid"></div>
+      <p class="muted">Cinza pontilhado indica informação incompleta. Camadas sem registros continuam disponíveis para expansão.</p>
+    </div>
+  </dialog>
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <div class="dialog-head"><h2 id="help-title">Como explorar</h2><form method="dialog"><button aria-label="Fechar ajuda">×</button></form></div>
+    <div class="dialog-content"><ol>
+      <li>Arraste o mapa e aproxime com dois dedos. Toque em uma célula para ver o identificador, a área e a cobertura.</li>
+      <li>Na linha do tempo, escolha um marco, uma data ou uma referência para comparação. Datas exatas e janelas ficam indicadas nas fichas.</li>
+      <li><strong>Documental</strong> reúne referências verificadas. <strong>Atlas V2</strong> mostra o modelo anterior e suas divergências. <strong>Demonstração</strong> usa dados sintéticos em geografia real.</li>
+      <li>Em <strong>Camadas</strong>, escolha o que aparece. Em <strong>Edições locais</strong>, ajuste uma célula demonstrativa ou um evento e exporte as alterações em JSON.</li>
+    </ol><p class="muted">A grade usa áreas iguais no modelo esférico. Os mapas-base têm resolução continental e regional. Endereços, relevo e contornos de edificações dependem de camadas locais futuras.</p></div>
+  </dialog>
+  <dialog id="edits-dialog" aria-labelledby="edits-title">
+    <div class="dialog-head"><h2 id="edits-title">Edições locais · demonstração</h2><form method="dialog"><button aria-label="Fechar edição">×</button></form></div>
+    <div class="dialog-content">
+      <p class="muted">Os ajustes alteram somente o cenário sintético deste navegador. Exporte o JSON para transferir ou revisar as mudanças.</p>
+      <form id="edit-form">
+        <label class="wide-label">Operação <select id="edit-kind"><option value="replace-estimate">Substituir estimativa inicial de uma célula</option><option value="add-event">Adicionar evento</option><option value="correct-event">Corrigir evento existente</option></select></label>
+        <div id="edit-cell-fields" class="form-grid"><label>Célula <select id="edit-cell"></select></label><label>Humanos vivos <input id="edit-value" type="number" min="0" step="1" value="10000"></label></div>
+        <div id="edit-event-fields" hidden>
+          <div class="form-grid"><label>Evento existente <select id="edit-existing"></select></label><label>Título <input id="edit-title" maxlength="110"></label>
+          <label>Tipo <select id="edit-type"><option value="birth">Nascimento</option><option value="conversion">Conversão</option><option value="death">Morte</option><option value="disappearance">Desaparecimento</option><option value="migration">Migração</option></select></label><label>Pessoas <input id="edit-amount" type="number" min="1" step="1" value="1"></label>
+          <label>Data inicial <input id="edit-start" type="date"></label><label>Data final <input id="edit-end" type="date"></label>
+          <label>Célula de origem <select id="edit-from"></select></label><label>Célula de destino <select id="edit-to"></select></label>
+          <label>Grupo de origem <select id="edit-stock"><option value="human">Humanos</option><option value="converted">Convertidos</option></select></label></div>
+          <p class="muted">Deixe as duas datas vazias para manter o evento pendente. Use a mesma data nos dois campos quando o dia for conhecido.</p>
+        </div>
+        <button class="primary" type="submit">Aplicar ajuste</button>
+      </form>
+      <div class="file-actions"><button id="export" type="button">Exportar JSON</button><label class="file-button">Importar JSON<input id="import" type="file" accept=".json,application/json"></label><button id="clear-edits" type="button">Restaurar demo</button></div>
+      <output id="edit-status" aria-live="polite"></output>
+    </div>
+  </dialog>
+  <div id="fatal" hidden role="alert"></div>
+  <script src="./vendor/leaflet.js"></script>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>

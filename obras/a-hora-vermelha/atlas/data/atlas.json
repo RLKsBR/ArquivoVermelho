@@ -1,0 +1,1106 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "audit",
+      "title": "Auditoria demográfica · 1 nov 2026"
+    },
+    {
+      "id": "notes",
+      "title": "NOTAS — Reescrita"
+    },
+    {
+      "id": "mortality",
+      "title": "Quadro de mortes e conversões · 4 nov 2026"
+    },
+    {
+      "id": "v2",
+      "title": "Atlas mundial V2 · cenário anterior"
+    },
+    {
+      "id": "correction",
+      "title": "Relatório corretivo V2"
+    },
+    {
+      "id": "chron",
+      "title": "Cronologia canônica terrestre"
+    },
+    {
+      "id": "geography",
+      "title": "Geografia — Brasil e evolução técnica da fazenda"
+    },
+    {
+      "id": "robots",
+      "title": "Revisão dos robôs de segurança · 4 nov 2026"
+    },
+    {
+      "id": "demo",
+      "title": "Dados sintéticos do protótipo, em geografia real"
+    }
+  ],
+  "layers": [
+    {
+      "id": "societies",
+      "title": "Sociedades",
+      "color": "#ff6759"
+    },
+    {
+      "id": "occupation",
+      "title": "Presença territorial",
+      "color": "#80bdaa"
+    },
+    {
+      "id": "resources",
+      "title": "Recursos naturais",
+      "color": "#d4bb81"
+    },
+    {
+      "id": "production",
+      "title": "Agro e indústria",
+      "color": "#c7d175"
+    },
+    {
+      "id": "energy",
+      "title": "Energia",
+      "color": "#f6aa50"
+    },
+    {
+      "id": "data-centers",
+      "title": "Centros de dados",
+      "color": "#bf99f4"
+    },
+    {
+      "id": "communications",
+      "title": "Comunicações",
+      "color": "#8dbbf2"
+    },
+    {
+      "id": "military",
+      "title": "Instalações e efetivos militares",
+      "color": "#df9877"
+    },
+    {
+      "id": "nuclear",
+      "title": "Instalações e armamento nuclear",
+      "color": "#d8d78a"
+    },
+    {
+      "id": "vehicles",
+      "title": "Veículos e robôs",
+      "color": "#91a9da"
+    },
+    {
+      "id": "places",
+      "title": "Propriedades e construções",
+      "color": "#c7d5d9"
+    },
+    {
+      "id": "history",
+      "title": "Eventos e conflitos",
+      "color": "#f58784"
+    },
+    {
+      "id": "routes",
+      "title": "Rotas",
+      "color": "#69c7e3"
+    }
+  ],
+  "milestones": [
+    {
+      "id": "prehistory",
+      "date": "2068-06-30",
+      "title": "Antecedentes",
+      "era": "PRÉ-COLAPSO"
+    },
+    {
+      "id": "transition",
+      "date": "2084-11-30",
+      "title": "Transição brasileira",
+      "era": "PRÉ-COLAPSO"
+    },
+    {
+      "id": "treaty",
+      "date": "2090-04-30",
+      "title": "Tratado das prisões",
+      "era": "PRÉ-COLAPSO"
+    },
+    {
+      "id": "PRE",
+      "date": "2131-12-31",
+      "title": "Antes do Dia Zero",
+      "era": "PRÉ-COLAPSO"
+    },
+    {
+      "id": "D0",
+      "date": "2132-01-01",
+      "title": "Dia Zero",
+      "era": "COLAPSO"
+    },
+    {
+      "id": "D5",
+      "date": "2132-01-06",
+      "title": "Dia +5",
+      "era": "COLAPSO"
+    },
+    {
+      "id": "D10",
+      "date": "2132-01-11",
+      "title": "Dia +10",
+      "era": "COLAPSO"
+    },
+    {
+      "id": "M1",
+      "date": "2132-01-31",
+      "title": "Primeiro mês",
+      "era": "COLAPSO"
+    },
+    {
+      "id": "M6",
+      "date": "2132-06-30",
+      "title": "Sexto mês",
+      "era": "COLAPSO"
+    },
+    {
+      "id": "Y1",
+      "date": "2133-01-01",
+      "title": "Ano 1",
+      "era": "PÓS-COLAPSO"
+    },
+    {
+      "id": "Y3",
+      "date": "2135-01-01",
+      "title": "Ano 3",
+      "era": "PÓS-COLAPSO"
+    },
+    {
+      "id": "Y5",
+      "date": "2137-01-01",
+      "title": "Ano 5",
+      "era": "PÓS-COLAPSO"
+    },
+    {
+      "id": "Y9",
+      "date": "2141-01-01",
+      "title": "Ano 9",
+      "era": "PÓS-COLAPSO"
+    },
+    {
+      "id": "Y10",
+      "date": "2142-01-01",
+      "title": "Ano 10",
+      "era": "PÓS-COLAPSO"
+    },
+    {
+      "id": "Y13",
+      "date": "2145-01-01",
+      "title": "Ano 13",
+      "era": "PÓS-COLAPSO"
+    },
+    {
+      "id": "Y15",
+      "date": "2147-01-01",
+      "title": "Ano 15",
+      "era": "PÓS-COLAPSO"
+    },
+    {
+      "id": "Y17",
+      "date": "2149-01-01",
+      "title": "Ano 17",
+      "era": "PÓS-COLAPSO"
+    },
+    {
+      "id": "Y20",
+      "date": "2152-01-01",
+      "title": "Ano 20",
+      "era": "PÓS-COLAPSO"
+    },
+    {
+      "id": "Y23",
+      "date": "2155-01-01",
+      "title": "Ano 23",
+      "era": "PÓS-COLAPSO"
+    },
+    {
+      "id": "front",
+      "date": "2155-03-31",
+      "title": "Frente francesa",
+      "era": "PÓS-COLAPSO"
+    }
+  ],
+  "observations": [
+    {
+      "id": "human-PRE",
+      "metric": "human",
+      "milestone": "PRE",
+      "value": 22700000000,
+      "when": {
+        "start": "2131-01-01",
+        "end": "2131-12-31"
+      },
+      "detail": "Base imediatamente pré-colapso. O aumento relativo de natalidade de 2131 já está incluído.",
+      "title": "Humanos vivos sem conversão permanente",
+      "scope": "Terra",
+      "unit": "pessoas",
+      "source": "audit",
+      "confidence": "canon"
+    },
+    {
+      "id": "human-D0",
+      "metric": "human",
+      "milestone": "D0",
+      "value": 21338000000,
+      "when": {
+        "start": "2132-01-01",
+        "end": "2132-01-01"
+      },
+      "detail": "94% da base pré-colapso. O Atlas V2 usou 18,5 bilhões como projeção distinta.",
+      "title": "Humanos vivos sem conversão permanente",
+      "scope": "Terra",
+      "unit": "pessoas",
+      "source": "audit",
+      "confidence": "canon"
+    },
+    {
+      "id": "human-M1",
+      "metric": "human",
+      "milestone": "M1",
+      "value": 7945000000,
+      "when": {
+        "start": "2132-01-01",
+        "end": "2132-01-31"
+      },
+      "detail": "35% da base pré-colapso. O documento registra o primeiro mês.",
+      "title": "Humanos vivos sem conversão permanente",
+      "scope": "Terra",
+      "unit": "pessoas",
+      "source": "audit",
+      "confidence": "canon"
+    },
+    {
+      "id": "human-M6",
+      "metric": "human",
+      "milestone": "M6",
+      "value": 1816000000,
+      "when": {
+        "start": "2132-06-01",
+        "end": "2132-06-30"
+      },
+      "detail": "8% da base pré-colapso. O documento registra o sexto mês.",
+      "title": "Humanos vivos sem conversão permanente",
+      "scope": "Terra",
+      "unit": "pessoas",
+      "source": "audit",
+      "confidence": "canon"
+    },
+    {
+      "id": "human-Y1",
+      "metric": "human",
+      "milestone": "Y1",
+      "value": 681000000,
+      "when": {
+        "start": "2133-01-01",
+        "end": "2133-12-31"
+      },
+      "detail": "3% da base pré-colapso. A data no seletor identifica o marco anual.",
+      "title": "Humanos vivos sem conversão permanente",
+      "scope": "Terra",
+      "unit": "pessoas",
+      "source": "audit",
+      "confidence": "canon"
+    },
+    {
+      "id": "human-Y5",
+      "metric": "human",
+      "milestone": "Y5",
+      "value": 158900000,
+      "when": {
+        "start": "2137-01-01",
+        "end": "2137-12-31"
+      },
+      "detail": "0,7% da base pré-colapso. A data no seletor identifica o marco anual.",
+      "title": "Humanos vivos sem conversão permanente",
+      "scope": "Terra",
+      "unit": "pessoas",
+      "source": "audit",
+      "confidence": "canon"
+    },
+    {
+      "id": "converted-unknown",
+      "metric": "converted",
+      "title": "Convertidos vivos",
+      "scope": "Terra",
+      "value": null,
+      "when": null,
+      "unit": "pessoas",
+      "source": "audit",
+      "confidence": "unknown",
+      "detail": "Total mundial indeterminado nas fontes revisadas."
+    },
+    {
+      "id": "deaths-unknown",
+      "metric": "deaths",
+      "title": "Mortes acumuladas",
+      "scope": "Terra",
+      "value": null,
+      "when": null,
+      "unit": "pessoas",
+      "source": "audit",
+      "confidence": "unknown",
+      "detail": "Total mundial indeterminado nas fontes revisadas."
+    },
+    {
+      "id": "missing-unknown",
+      "metric": "missing",
+      "title": "Desaparecidos",
+      "scope": "Terra",
+      "value": null,
+      "when": null,
+      "unit": "pessoas",
+      "source": "audit",
+      "confidence": "unknown",
+      "detail": "Total mundial indeterminado nas fontes revisadas."
+    },
+    {
+      "id": "military-pre",
+      "milestone": "PRE",
+      "title": "Efetivo militar de referência",
+      "scope": "Terra",
+      "value": 68100000,
+      "when": {
+        "start": "2131-01-01",
+        "end": "2131-12-31"
+      },
+      "unit": "pessoas",
+      "source": "mortality",
+      "confidence": "estimate",
+      "detail": "Referência mundial de planejamento."
+    },
+    {
+      "id": "military-y5",
+      "milestone": "Y5",
+      "title": "Militares vivos sem conversão permanente",
+      "scope": "Terra",
+      "value": 119175,
+      "when": {
+        "start": "2137-01-01",
+        "end": "2137-12-31"
+      },
+      "unit": "pessoas",
+      "source": "mortality",
+      "confidence": "estimate",
+      "detail": "0,175% do efetivo de referência. A fonte não separa mortes e conversões."
+    }
+  ],
+  "features": [
+    {
+      "id": "dictatorship",
+      "layer": "history",
+      "title": "Início da ditadura brasileira",
+      "geometry": null,
+      "start": {
+        "start": "2068-06-01",
+        "end": "2068-06-30"
+      },
+      "end": null,
+      "detail": "Cronologia registra o mês. Escopo nacional, disponível no catálogo.",
+      "source": "chron",
+      "presence": "present",
+      "confidence": "canon"
+    },
+    {
+      "id": "transition-br",
+      "layer": "history",
+      "title": "Conclusão da transição brasileira",
+      "geometry": null,
+      "start": {
+        "start": "2084-11-01",
+        "end": "2084-11-30"
+      },
+      "end": null,
+      "detail": "Encerramento da ditadura brasileira. Escopo nacional, com mês documentado.",
+      "source": "chron",
+      "presence": "present",
+      "confidence": "canon"
+    },
+    {
+      "id": "prison-treaty",
+      "layer": "history",
+      "title": "Tratado mundial das prisões",
+      "geometry": null,
+      "start": {
+        "start": "2090-04-01",
+        "end": "2090-04-30"
+      },
+      "end": null,
+      "detail": "Aplicação única da anistia prevista no planejamento.",
+      "source": "chron",
+      "presence": "present",
+      "confidence": "canon"
+    },
+    {
+      "id": "france-front",
+      "layer": "history",
+      "title": "Início da frente francesa",
+      "geometry": null,
+      "start": {
+        "start": "2155-03-01",
+        "end": "2155-03-31"
+      },
+      "end": null,
+      "detail": "A cronologia fixa o mês. O recorte importado não fixa coordenadas.",
+      "source": "chron",
+      "presence": "present",
+      "confidence": "canon"
+    },
+    {
+      "id": "mega",
+      "layer": "societies",
+      "title": "Megapropriedade de Zeus",
+      "geometry": null,
+      "start": null,
+      "end": null,
+      "detail": "Núcleo documentado. A posição de referência aparece somente no cenário Atlas V2, com a proveniência do cadastro.",
+      "source": "geography",
+      "presence": "present",
+      "confidence": "canon"
+    },
+    {
+      "id": "robot-policy",
+      "layer": "vehicles",
+      "title": "Robôs de segurança blindados",
+      "geometry": null,
+      "start": null,
+      "end": null,
+      "detail": "A revisão editorial de 4 nov 2026 é retroativa. Todos os robôs de segurança e combate são blindados. A revisão não é um evento da cronologia.",
+      "source": "robots",
+      "presence": "present",
+      "confidence": "canon"
+    },
+    {
+      "id": "shelter-demo",
+      "layer": "societies",
+      "title": "Refúgio Costeiro (demo)",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -35.735,
+          -9.665
+        ]
+      },
+      "start": {
+        "start": "2132-01-02",
+        "end": "2132-01-06"
+      },
+      "end": null,
+      "detail": "Comunidade sintética para demonstrar busca, fundação e filtros.",
+      "source": "demo",
+      "presence": "present",
+      "confidence": "demo"
+    },
+    {
+      "id": "station-demo",
+      "layer": "energy",
+      "title": "Estação Vento (demo)",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -36.66,
+          -9.75
+        ]
+      },
+      "start": {
+        "start": "2132-01-11",
+        "end": "2132-01-11"
+      },
+      "end": {
+        "start": "2133-05-01",
+        "end": "2133-05-31"
+      },
+      "detail": "Instalação sintética com janela de desativação.",
+      "source": "demo",
+      "presence": "present",
+      "confidence": "demo"
+    },
+    {
+      "id": "radio-demo",
+      "layer": "communications",
+      "title": "Antena da Serra (demo)",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -37.28,
+          -9.56
+        ]
+      },
+      "start": {
+        "start": "2132-01-01",
+        "end": "2132-01-01"
+      },
+      "end": null,
+      "detail": "Estação sintética de retransmissão.",
+      "source": "demo",
+      "presence": "present",
+      "confidence": "demo"
+    },
+    {
+      "id": "route-demo",
+      "layer": "routes",
+      "title": "Travessia do Agreste (demo)",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -35.735,
+            -9.665
+          ],
+          [
+            -36.14,
+            -9.67
+          ],
+          [
+            -36.66,
+            -9.75
+          ]
+        ]
+      },
+      "start": {
+        "start": "2132-01-06",
+        "end": "2132-01-06"
+      },
+      "end": null,
+      "detail": "Rota ilustrativa sobre geografia real.",
+      "source": "demo",
+      "presence": "present",
+      "confidence": "demo"
+    },
+    {
+      "id": "area-absent",
+      "layer": "occupation",
+      "title": "Faixa de ausência registrada (demo)",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -36.26,
+              -9.18
+            ],
+            [
+              -36.04,
+              -9.18
+            ],
+            [
+              -36.04,
+              -9.04
+            ],
+            [
+              -36.26,
+              -9.04
+            ],
+            [
+              -36.26,
+              -9.18
+            ]
+          ]
+        ]
+      },
+      "start": {
+        "start": "2132-01-11",
+        "end": "2132-01-11"
+      },
+      "end": null,
+      "detail": "Exemplo de vistoria local sintética.",
+      "source": "demo",
+      "presence": "absent",
+      "confidence": "demo"
+    },
+    {
+      "id": "area-probable",
+      "layer": "occupation",
+      "title": "Faixa de baixa presença (demo)",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -37.4,
+              -9.7
+            ],
+            [
+              -37.18,
+              -9.7
+            ],
+            [
+              -37.18,
+              -9.54
+            ],
+            [
+              -37.4,
+              -9.54
+            ],
+            [
+              -37.4,
+              -9.7
+            ]
+          ]
+        ]
+      },
+      "start": {
+        "start": "2132-01-01",
+        "end": "2132-01-01"
+      },
+      "end": null,
+      "detail": "Exemplo sintético de ausência inferida.",
+      "source": "demo",
+      "presence": "estimatedAbsent",
+      "confidence": "demo"
+    },
+    {
+      "id": "area-unknown",
+      "layer": "occupation",
+      "title": "Faixa sem vistoria (demo)",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -36.17,
+              -9.48
+            ],
+            [
+              -35.95,
+              -9.48
+            ],
+            [
+              -35.95,
+              -9.3
+            ],
+            [
+              -36.17,
+              -9.3
+            ],
+            [
+              -36.17,
+              -9.48
+            ]
+          ]
+        ]
+      },
+      "start": {
+        "start": "2132-01-01",
+        "end": "2132-01-01"
+      },
+      "end": null,
+      "detail": "Exemplo sintético de cobertura desconhecida.",
+      "source": "demo",
+      "presence": "unknown",
+      "confidence": "demo"
+    },
+    {
+      "id": "archive-demo",
+      "layer": "places",
+      "title": "Depósito do Porto (demo)",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -35.741,
+          -9.673
+        ]
+      },
+      "start": {
+        "start": "2132-01-06",
+        "end": "2132-01-06"
+      },
+      "end": null,
+      "detail": "Ponto sintético para inspecionar em escala de construção.",
+      "source": "demo",
+      "presence": "present",
+      "confidence": "demo"
+    }
+  ],
+  "demo": {
+    "start": "2131-12-31",
+    "dataLevel": 10,
+    "initialGlobal": 180000,
+    "countries": [
+      {
+        "id": "br",
+        "title": "Brasil · recortes",
+        "weight": 74
+      },
+      {
+        "id": "ao",
+        "title": "Angola · recortes",
+        "weight": 26
+      }
+    ],
+    "regions": [
+      {
+        "id": "coast",
+        "country": "br",
+        "title": "Alagoas · faixa costeira",
+        "weight": 46,
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -36.26,
+                -10.15
+              ],
+              [
+                -35.35,
+                -10.15
+              ],
+              [
+                -35.35,
+                -9.2
+              ],
+              [
+                -36.26,
+                -9.2
+              ],
+              [
+                -36.26,
+                -10.15
+              ]
+            ]
+          ]
+        },
+        "cells": [
+          {
+            "id": "EA1/10/410/597",
+            "weight": 90
+          },
+          {
+            "id": "EA1/10/410/596",
+            "weight": 12
+          },
+          {
+            "id": "EA1/10/409/598",
+            "weight": 24
+          }
+        ],
+        "replacements": {}
+      },
+      {
+        "id": "interior",
+        "country": "br",
+        "title": "Alagoas · Agreste e Sertão",
+        "weight": 30,
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -37.75,
+                -10.1
+              ],
+              [
+                -36.26,
+                -10.1
+              ],
+              [
+                -36.26,
+                -8.8
+              ],
+              [
+                -37.75,
+                -8.8
+              ],
+              [
+                -37.75,
+                -10.1
+              ]
+            ]
+          ]
+        },
+        "cells": [
+          {
+            "id": "EA1/10/407/598",
+            "weight": 55
+          },
+          {
+            "id": "EA1/10/408/598",
+            "weight": 18
+          },
+          {
+            "id": "EA1/10/405/597",
+            "weight": 11
+          }
+        ],
+        "replacements": {}
+      },
+      {
+        "id": "recife",
+        "country": "br",
+        "title": "Pernambuco · faixa metropolitana",
+        "weight": 24,
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -35.4,
+                -8.5
+              ],
+              [
+                -34.7,
+                -8.5
+              ],
+              [
+                -34.7,
+                -7.7
+              ],
+              [
+                -35.4,
+                -7.7
+              ],
+              [
+                -35.4,
+                -8.5
+              ]
+            ]
+          ]
+        },
+        "cells": [
+          {
+            "id": "EA1/10/412/583",
+            "weight": 80
+          },
+          {
+            "id": "EA1/10/412/585",
+            "weight": 20
+          },
+          {
+            "id": "EA1/10/412/582",
+            "weight": 14
+          }
+        ],
+        "replacements": {}
+      },
+      {
+        "id": "luanda",
+        "country": "ao",
+        "title": "Luanda · recorte metropolitano",
+        "weight": 70,
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                12.9,
+                -9.3
+              ],
+              [
+                13.8,
+                -9.3
+              ],
+              [
+                13.8,
+                -8.55
+              ],
+              [
+                12.9,
+                -8.55
+              ],
+              [
+                12.9,
+                -9.3
+              ]
+            ]
+          ]
+        },
+        "cells": [
+          {
+            "id": "EA1/10/549/590",
+            "weight": 85
+          },
+          {
+            "id": "EA1/10/549/591",
+            "weight": 22
+          },
+          {
+            "id": "EA1/10/549/592",
+            "weight": 11
+          }
+        ],
+        "replacements": {}
+      },
+      {
+        "id": "bengo",
+        "country": "ao",
+        "title": "Bengo · recorte do interior",
+        "weight": 30,
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                13.85,
+                -9.55
+              ],
+              [
+                14.8,
+                -9.55
+              ],
+              [
+                14.8,
+                -8.45
+              ],
+              [
+                13.85,
+                -8.45
+              ],
+              [
+                13.85,
+                -9.55
+              ]
+            ]
+          ]
+        },
+        "cells": [
+          {
+            "id": "EA1/10/551/591",
+            "weight": 35
+          },
+          {
+            "id": "EA1/10/552/593",
+            "weight": 24
+          },
+          {
+            "id": "EA1/10/552/589",
+            "weight": 8
+          }
+        ],
+        "replacements": {}
+      }
+    ],
+    "events": [
+      {
+        "id": "c0",
+        "title": "Conversões no litoral",
+        "type": "conversion",
+        "when": {
+          "start": "2132-01-01",
+          "end": "2132-01-01"
+        },
+        "order": 0,
+        "ops": [
+          {
+            "cell": "EA1/10/410/597",
+            "metric": "human",
+            "delta": -7200
+          },
+          {
+            "cell": "EA1/10/410/597",
+            "metric": "converted",
+            "delta": 7200
+          }
+        ]
+      },
+      {
+        "id": "d10",
+        "title": "Óbitos registrados no litoral",
+        "type": "death",
+        "when": {
+          "start": "2132-01-05",
+          "end": "2132-01-11"
+        },
+        "order": 0,
+        "ops": [
+          {
+            "cell": "EA1/10/410/597",
+            "metric": "human",
+            "delta": -590
+          },
+          {
+            "cell": "EA1/10/410/597",
+            "metric": "deaths",
+            "delta": 590
+          }
+        ]
+      },
+      {
+        "id": "m10",
+        "title": "Migração para o Agreste",
+        "type": "migration",
+        "when": {
+          "start": "2132-01-11",
+          "end": "2132-01-11"
+        },
+        "order": 1,
+        "ops": [
+          {
+            "cell": "EA1/10/410/597",
+            "metric": "human",
+            "delta": -1700
+          },
+          {
+            "cell": "EA1/10/407/598",
+            "metric": "human",
+            "delta": 1700
+          }
+        ]
+      },
+      {
+        "id": "missing",
+        "title": "Desaparecimentos no Agreste",
+        "type": "disappearance",
+        "when": {
+          "start": "2132-01-31",
+          "end": "2132-01-31"
+        },
+        "order": 0,
+        "ops": [
+          {
+            "cell": "EA1/10/407/598",
+            "metric": "human",
+            "delta": -37
+          },
+          {
+            "cell": "EA1/10/407/598",
+            "metric": "missing",
+            "delta": 37
+          }
+        ]
+      },
+      {
+        "id": "births",
+        "title": "Nascimentos em Luanda",
+        "type": "birth",
+        "when": {
+          "start": "2132-06-01",
+          "end": "2132-06-30"
+        },
+        "order": 0,
+        "ops": [
+          {
+            "cell": "EA1/10/549/590",
+            "metric": "human",
+            "delta": 240
+          }
+        ]
+      },
+      {
+        "id": "undated",
+        "title": "Conversões aguardando data",
+        "type": "conversion",
+        "when": null,
+        "order": 0,
+        "ops": [
+          {
+            "cell": "EA1/10/549/590",
+            "metric": "human",
+            "delta": -100
+          },
+          {
+            "cell": "EA1/10/549/590",
+            "metric": "converted",
+            "delta": 100
+          }
+        ]
+      }
+    ]
+  }
+}
