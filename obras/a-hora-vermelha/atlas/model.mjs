@@ -136,6 +136,24 @@ export function validate(data) {
     assert(!f.start || !f.end || f.start.end < f.end.start,`Janela de operação ambígua: ${f.id}`);
   }
 
+  unique(data.localCensuses??[],'censos locais');
+  for (const site of data.localCensuses??[]) {
+    assert(typeof site.title==='string' && typeof site.where==='string' && ['site','event','society'].includes(site.kind)
+      && (site.coordinates===null || locationValid(site.coordinates))
+      && Array.isArray(site.records) && site.records.length>0, `Ficha local inválida: ${site.id}`);
+    const dates=new Set();
+    let previous='';
+    for (const row of site.records) {
+      sourceRecord(row);
+      assert((row.at===null || (validDate(row.at) && row.at>previous)) && !dates.has(row.at), `Datas dos censos inválidas: ${site.id}`);
+      dates.add(row.at);
+      if (row.at) previous=row.at;
+      assert(typeof row.label==='string' && typeof row.detail==='string' && plain(row.counts)
+        && Object.keys(row.counts).length>0 && Object.entries(row.counts).every(([key,value])=>owns(censusMetrics,key) && count(value)),
+      `Contagem local inválida: ${site.id}`);
+    }
+  }
+
   const d = data.demo;
   assert(count(d.initialGlobal) && count(d.unallocatedGlobal ?? 0) && (d.unallocatedGlobal ?? 0) <= d.initialGlobal && validDate(d.start), 'Base demonstrativa inválida.');
   unique(d.countries,'países demo'); unique(d.regions,'regiões demo'); unique(d.events,'eventos demo');
@@ -194,6 +212,31 @@ export function queryCell(state,id,dataLevel) {
     .filter(([child])=>parentAt(child,level)===id).map(([,row])=>row);
   return rows.length ? {metrics:combine(rows),count:rows.length,partial:rows.length<4**(dataLevel-level)} : null;
 }
+export const censusMetrics = {
+  human:'Humanos vivos sem conversão permanente',
+  converted:'Convertidos vivos',
+  conversions:'Conversões acumuladas',
+  deaths:'Mortes acumuladas',
+  missing:'Desaparecidos',
+  fled:'Fugitivos',
+  civilians:'Civis de referência para evacuação',
+  captives:'Cativos humanos não convertidos'
+};
+
+export function livingPresence({human,converted}, complete=false) {
+  if (human>0 && converted>0) return 'mixed';
+  if (converted>0) return 'converted';
+  if (human>0) return 'human';
+  if (complete && human===0 && converted===0) return 'empty';
+  return 'unknown';
+}
+
+export function censusRecord(site, day) {
+  return site.records.find(row=>row.at===day)
+    ?? site.records.findLast(row=>row.at!==null && row.at<day)
+    ?? site.records.find(row=>row.at===null);
+}
+
 export function featureStatus(f,date) {
   if (f.start && date < f.start.start) return 'future';
   if (f.start && date < f.start.end) return 'uncertain';

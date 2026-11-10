@@ -106,3 +106,39 @@ dialog::backdrop{background:#0b1013bb}
   .time-controls .date-box input{width:100%;min-width:0}
   .top-actions button{white-space:nowrap}
 }
+
+:root{--base:#101918;--panel:#162321;--line:#364b45;--text:#f2f1e8;--muted:#b3c7be;--accent:#f3ce8a;--sea:#101f25;--land:#253b38;--human:#63d999;--converted:#ff625c;--society:#f8ce7c}
+body{background:radial-gradient(ellipse at 14% 0%,#1c2c28 0,transparent 37rem),var(--base)}
+.brand-mark{color:#f1c685;border-color:#98734f;background:#332b22}
+a{color:#f8dba8}
+button[aria-pressed=true],button.primary{background:#3e3525;border-color:#a48758;color:#ffe7b8}
+:focus-visible{outline-color:#f4cb86}
+#map{background:radial-gradient(ellipse at 46% 39%,#1a3035,#101e24 72%)}
+.chart{grid-area:map;border-bottom-left-radius:0;border-bottom-right-radius:0}
+.workspace{grid-template-areas:"map inspector" "legend inspector" "timeline timeline";row-gap:0}
+.inspector{grid-area:inspector;height:auto;max-height:max(550px,calc(min(60vh,670px) + 60px));border-color:#3d544c}
+.timeline{grid-area:timeline;margin-top:13px}
+.map-legend{grid-area:legend;display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1.15rem;padding:.64rem .9rem;
+  background:#1b2927;border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;font-size:.77rem;color:#e3eae2}
+.legend-key{display:inline-flex;align-items:center;gap:.36rem;white-space:nowrap}
+.legend-key i{display:inline-block;width:.88rem;height:.72rem;border-radius:2px;border:1px solid transparent}
+.legend-key .legend-human{background:var(--human)}
+.legend-key .legend-converted{background:var(--converted)}
+.legend-key .legend-mixed{background:linear-gradient(90deg,var(--human) 50%,var(--converted) 50%)}
+.legend-key .legend-society{width:.72rem;border-radius:100%;background:var(--society);box-shadow:0 0 0 2px #8e7446}
+.legend-key .legend-empty{border-color:#a6b9ad}
+.legend-key .legend-unknown{border:1px dashed #a6b9ad}
+.source-note{color:var(--muted);font-size:.77rem}
+.census-cards button{border-color:#445a50;background:#20312c}
+.census-cards button small{display:block;margin-top:.14rem;font-size:.72rem}
+.stat.hero strong{color:#ffe0ab}
+.map-tag,.map-bottom>span{background:#142525ed;border-color:#5e736b}
+.map-top button,.map-bottom button{background:#1d302c}
+.ocean-label{color:#a7c2bd}
+@media(max-width:790px){
+  .workspace{grid-template-areas:"map" "legend" "timeline" "inspector"}
+  .chart{height:44svh}
+  .map-legend{padding:.52rem .62rem;gap:.37rem .7rem;font-size:.70rem}
+  .inspector{max-height:none;margin-top:9px}
+  .timeline{margin-top:9px}
+}

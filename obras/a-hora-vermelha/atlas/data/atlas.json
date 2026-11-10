@@ -36,13 +36,21 @@
     {
       "id": "demo",
       "title": "Dados sintéticos do protótipo, em geografia real"
+    },
+    {
+      "id": "inventory",
+      "title": "Inventário canônico — Condomínio Urbano, JP População e Censo Anos"
+    },
+    {
+      "id": "refuge",
+      "title": "Demografia, Idades e Evolução até o Ano 10 · 7 out 2026"
     }
   ],
   "layers": [
     {
       "id": "societies",
       "title": "Sociedades",
-      "color": "#ff6759"
+      "color": "#f8ce7c"
     },
     {
       "id": "occupation",
@@ -576,7 +584,7 @@
     {
       "id": "area-absent",
       "layer": "occupation",
-      "title": "Faixa de ausência registrada (demo)",
+      "title": "Trecho vistoriado sem presença (demo)",
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -609,7 +617,7 @@
         "end": "2132-01-11"
       },
       "end": null,
-      "detail": "Exemplo de vistoria local sintética.",
+      "detail": "Vistoria sintética registra zero humanos e zero convertidos vivos dentro deste recorte.",
       "source": "demo",
       "presence": "absent",
       "confidence": "demo"
@@ -1102,5 +1110,285 @@
         ]
       }
     ]
-  }
+  },
+  "localCensuses": [
+    {
+      "id": "sony-kibi",
+      "title": "Sony Japão · campus de Kibi",
+      "kind": "society",
+      "coordinates": [
+        133.8,
+        34.86
+      ],
+      "where": "Posição de referência do campus no Atlas V2, sem limite territorial.",
+      "records": [
+        {
+          "at": "2132-01-01",
+          "label": "Dia Zero",
+          "counts": {
+            "human": 180000
+          },
+          "source": "inventory",
+          "detail": "Série do campus de Kibi. As conversões e mortes somam os intervalos da planilha desde D0. O destino dos convertidos não está quantificado.",
+          "confidence": "canon"
+        },
+        {
+          "at": "2132-06-30",
+          "label": "Sexto mês",
+          "counts": {
+            "human": 69500,
+            "conversions": 85312,
+            "deaths": 25188
+          },
+          "source": "inventory",
+          "detail": "Série do campus de Kibi. As conversões e mortes somam os intervalos da planilha desde D0. O destino dos convertidos não está quantificado.",
+          "confidence": "canon"
+        },
+        {
+          "at": "2133-01-01",
+          "label": "Ano 1",
+          "counts": {
+            "human": 68000,
+            "conversions": 85812,
+            "deaths": 26688
+          },
+          "source": "inventory",
+          "detail": "Série do campus de Kibi. As conversões e mortes somam os intervalos da planilha desde D0. O destino dos convertidos não está quantificado.",
+          "confidence": "canon"
+        },
+        {
+          "at": "2137-01-01",
+          "label": "Ano 5",
+          "counts": {
+            "human": 69500,
+            "conversions": 86412,
+            "deaths": 29088
+          },
+          "source": "inventory",
+          "detail": "Série do campus de Kibi. As conversões e mortes somam os intervalos da planilha desde D0. O destino dos convertidos não está quantificado.",
+          "confidence": "canon"
+        },
+        {
+          "at": "2142-01-01",
+          "label": "Ano 10",
+          "counts": {
+            "human": 75000,
+            "conversions": 86712,
+            "deaths": 31788
+          },
+          "source": "inventory",
+          "detail": "Série do campus de Kibi. As conversões e mortes somam os intervalos da planilha desde D0. O destino dos convertidos não está quantificado.",
+          "confidence": "canon"
+        }
+      ]
+    },
+    {
+      "id": "zeus-farm",
+      "title": "Megapropriedade de Zeus",
+      "kind": "society",
+      "coordinates": [
+        -48.75,
+        -7.25
+      ],
+      "where": "Posição aproximada de referência do Atlas V2.",
+      "records": [
+        {
+          "at": "2132-04-22",
+          "label": "Dia +112",
+          "counts": {
+            "human": 56
+          },
+          "source": "refuge",
+          "detail": "Censo de moradores permanentes. O estoque local de convertidos não consta neste censo.",
+          "confidence": "canon"
+        },
+        {
+          "at": "2132-06-29",
+          "label": "Dia +180",
+          "counts": {
+            "human": 62
+          },
+          "source": "refuge",
+          "detail": "Censo de moradores permanentes. O estoque local de convertidos não consta neste censo.",
+          "confidence": "canon"
+        },
+        {
+          "at": "2132-12-31",
+          "label": "Dia +365",
+          "counts": {
+            "human": 72
+          },
+          "source": "refuge",
+          "detail": "Censo de moradores permanentes. O estoque local de convertidos não consta neste censo.",
+          "confidence": "canon"
+        },
+        {
+          "at": "2133-12-31",
+          "label": "Dia +730",
+          "counts": {
+            "human": 88
+          },
+          "source": "refuge",
+          "detail": "Censo de moradores permanentes. O estoque local de convertidos não consta neste censo.",
+          "confidence": "canon"
+        },
+        {
+          "at": "2134-08-18",
+          "label": "Dia +960",
+          "counts": {
+            "human": 104
+          },
+          "source": "refuge",
+          "detail": "Censo de moradores permanentes. O estoque local de convertidos não consta neste censo.",
+          "confidence": "canon"
+        },
+        {
+          "at": "2135-01-01",
+          "label": "Ano 3 · referência anual",
+          "counts": {
+            "human": 122
+          },
+          "source": "inventory",
+          "detail": "Estoque de moradores da Megapropriedade. Não soma os refugiados novamente.",
+          "confidence": "canon"
+        },
+        {
+          "at": "2137-01-01",
+          "label": "Ano 5 · referência anual",
+          "counts": {
+            "human": 171
+          },
+          "source": "inventory",
+          "detail": "Censo da série anual de moradores.",
+          "confidence": "canon"
+        }
+      ]
+    },
+    {
+      "id": "natal-domain",
+      "title": "Natal · domínio e evacuação",
+      "kind": "society",
+      "coordinates": [
+        -35.21,
+        -5.8
+      ],
+      "where": "Marcador na cidade de Natal, no Rio Grande do Norte. Os registros têm alcances diferentes.",
+      "records": [
+        {
+          "at": "2138-11-30",
+          "label": "Após a primeira guerra · out–nov de 2138",
+          "counts": {
+            "converted": 38720
+          },
+          "source": "geography",
+          "detail": "Subtotal dos grandões que restaram no domínio. A fonte não fecha o estoque das demais classes de convertidos.",
+          "confidence": "canon"
+        },
+        {
+          "at": "2149-04-30",
+          "label": "Campanha de Natal · fev–abr de 2149",
+          "counts": {
+            "civilians": 321931,
+            "captives": 76212
+          },
+          "source": "geography",
+          "detail": "Base provisória de evacuação civil e coorte militar separada. Nenhuma das duas é um censo de todos os habitantes de Natal.",
+          "confidence": "estimate"
+        }
+      ]
+    },
+    {
+      "id": "windsor-action",
+      "title": "Windsor · contingente após a batalha",
+      "kind": "event",
+      "coordinates": [
+        -0.6,
+        51.48
+      ],
+      "where": "Marcador de referência no castelo de Windsor, Inglaterra.",
+      "records": [
+        {
+          "at": "2149-04-20",
+          "label": "20 de abril de 2149",
+          "counts": {
+            "converted": 806
+          },
+          "source": "chron",
+          "detail": "800 convertidos comuns e 6 grandões sobreviventes no contingente. A contagem cobre os sobreviventes desse contingente, não toda a área de Windsor.",
+          "confidence": "canon"
+        }
+      ]
+    },
+    {
+      "id": "polar-group",
+      "title": "Sociedade polar da Antártida",
+      "kind": "society",
+      "coordinates": null,
+      "where": "Continente conhecido. Local dos alojamentos e do cativeiro em aberto.",
+      "records": [
+        {
+          "at": "2142-01-01",
+          "label": "Ano 10",
+          "counts": {
+            "human": 5000
+          },
+          "source": "v2",
+          "detail": "Moradores livres no censo de referência adotado. A coorte de cativos chega depois, no ano 17.",
+          "confidence": "canon"
+        },
+        {
+          "at": "2149-10-31",
+          "label": "Junho a outubro de 2149",
+          "counts": {
+            "captives": 76212
+          },
+          "source": "chron",
+          "detail": "Pessoas não convertidas transportadas em etapas após a guerra. O número se refere à coorte transportada, não à população total do refúgio.",
+          "confidence": "canon"
+        }
+      ]
+    },
+    {
+      "id": "urban-condo",
+      "title": "Condomínio urbano · quatro torres",
+      "kind": "site",
+      "coordinates": null,
+      "where": "A planilha mantém a cidade em aberto.",
+      "records": [
+        {
+          "at": null,
+          "label": "Quadro inicial de apresentação das quatro torres",
+          "counts": {
+            "human": 249,
+            "converted": 440,
+            "deaths": 183,
+            "fled": 293
+          },
+          "source": "inventory",
+          "detail": "Referência da planilha, com base de 1.165 moradores. Cerca de 440 convertidos biologicamente vivos. O quadro não fixa uma data exata.",
+          "confidence": "estimate"
+        }
+      ]
+    },
+    {
+      "id": "underground-network",
+      "title": "Rede subterrânea · cinco centros",
+      "kind": "society",
+      "coordinates": null,
+      "where": "Nordeste da Tasmânia é uma localização proposta. Coordenadas e aprovação definitiva seguem em aberto.",
+      "records": [
+        {
+          "at": null,
+          "label": "Censo de referência · data em aberto",
+          "counts": {
+            "human": 150320,
+            "converted": 3100
+          },
+          "source": "geography",
+          "detail": "Os 3.100 estavam vivos e confinados. O total dos dois grupos é 153.420. A fonte distingue este censo da projeção do Ano 10.",
+          "confidence": "canon"
+        }
+      ]
+    }
+  ]
 }

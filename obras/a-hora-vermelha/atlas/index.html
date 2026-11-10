@@ -41,6 +41,14 @@
         </div>
         <div class="map-bottom"><button id="mode" type="button" aria-pressed="false">Grade regional</button><span>Terra · projeção Behrmann</span></div>
       </section>
+      <aside class="map-legend" aria-label="Legenda do mapa">
+        <span class="legend-key"><i aria-hidden="true" class="legend-human"></i> Humanos</span>
+        <span class="legend-key"><i aria-hidden="true" class="legend-converted"></i> Convertidos</span>
+        <span class="legend-key"><i aria-hidden="true" class="legend-mixed"></i> Ambos</span>
+        <span class="legend-key"><i aria-hidden="true" class="legend-society"></i> Sociedade</span>
+        <span class="legend-key"><i aria-hidden="true" class="legend-empty"></i> Vazio verificado</span>
+        <span class="legend-key"><i aria-hidden="true" class="legend-unknown"></i> Sem dados</span>
+      </aside>
       <section class="inspector" id="inspector" aria-label="Painel de informações">
         <div class="inspector-head"><p class="eyebrow" id="panel-tag">SÉRIE DOCUMENTAL</p><button type="button" id="summary">Resumo</button></div>
         <div id="panel" aria-live="polite"></div>
@@ -69,10 +77,10 @@
         <label><input id="show-uncertain" type="checkbox" checked> Exibir datas incertas</label>
         <label><input id="show-legacy-records" type="checkbox" checked> Núcleos cadastrados no V2</label>
       </div>
-      <label class="wide-label">Indicador nas células da demonstração <select id="metric"><option value="human">Humanos vivos</option><option value="converted">Convertidos vivos</option><option value="deaths">Mortes acumuladas</option><option value="missing">Desaparecidos</option><option value="">Ocultar contagens</option></select></label>
+      <label class="wide-label">Indicador nas células da demonstração <select id="metric"><option value="presence">Presença humana e de convertidos</option><option value="human">Humanos vivos</option><option value="converted">Convertidos vivos</option><option value="deaths">Mortes acumuladas</option><option value="missing">Desaparecidos</option><option value="">Ocultar contagens</option></select></label>
       <label class="wide-label">Aplicação de eventos demonstrativos <select id="policy"><option value="end">Último dia possível</option><option value="start">Primeiro dia possível</option></select></label>
       <h3>Temas</h3><div id="layer-options" class="control-grid"></div>
-      <p class="muted">Cinza pontilhado indica informação incompleta. Camadas sem registros continuam disponíveis para expansão.</p>
+      <p class="muted">Contorno pontilhado indica informação incompleta ou estimada. Áreas verificadas como vazias ficam sem preenchimento. Marcadores de sociedade indicam pontos de referência, sem delimitar territórios.</p>
     </div>
   </dialog>
   <dialog id="help-dialog" aria-labelledby="help-title">

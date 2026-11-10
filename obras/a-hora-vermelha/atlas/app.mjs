@@ -1,5 +1,5 @@
 import {ASPECT, cellAt, cellId, cellArea, cellBounds, gridForViewport, parseCell, parentAt, project, unproject} from './geo.mjs';
-import {applyChanges, confidence, featureStatus, metrics, presences, queryCell, ratio, snapshot, validate} from './model.mjs';
+import {applyChanges, censusMetrics, censusRecord, confidence, featureStatus, livingPresence, metrics, presences, queryCell, ratio, snapshot, validate} from './model.mjs';
 
 const $ = id => document.getElementById(id);
 const fmt = new Intl.NumberFormat('pt-BR');
@@ -9,8 +9,8 @@ const number = value => value == null ? 'Sem dados' : fmt.format(value);
 const signs = value => (value>0?'+':'') + fmt.format(value);
 const normalize = text => text.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
 const metricNames = {human:'Humanos vivos',converted:'Convertidos vivos',deaths:'Mortes acumuladas',missing:'Desaparecidos'};
-const metricColors = {human:'#ff8a78',converted:'#9acc9e',deaths:'#e7b479',missing:'#96b4ed'};
-const legacyColors = ['#ff7567','#7fa9ed','#e6b06d','#86c29b','#bbc3c2'];
+const metricColors = {human:'#63d999',converted:'#ff625c',deaths:'#b8a9f0',missing:'#7dc8e6'};
+const societyColor = '#f8ce7c';
 const legacyCategories = ['Grandes concentrações','Comunidades aliadas','Núcleos intermediários','Grupos dispersos','Urbano ou transição'];
 const statusNames = {future:'Futuro na data selecionada',past:'Encerrado na data selecionada',uncertain:'Janela de data incerta',active:'Vigente na data selecionada',undated:'Sem data definida'};
 const viewNames = {canon:'SÉRIE DOCUMENTAL',legacy:'ATLAS V2 · CENÁRIO ANTERIOR',demo:'DEMONSTRAÇÃO · DADOS SINTÉTICOS'};
@@ -81,6 +81,7 @@ async function start() {
   let state;
   let referenceState;
   const active = new Set(['societies','history','energy','places','routes','occupation','communications']);
+  const censuses = data.localCensuses??[];
   const sources = Object.fromEntries(data.sources.map(s=>[s.id,s]));
   const layers = Object.fromEntries(data.layers.map(l=>[l.id,l]));
   const map = L.map('map',{
@@ -112,7 +113,7 @@ async function start() {
   const themeGroup=L.layerGroup().addTo(map);
   const selectionGroup=L.layerGroup().addTo(map);
   const oceanGroup=L.layerGroup();
-  const landOptions={pane:physicalPane,renderer:physical,interactive:false,style:{fillColor:'#33454b',fillOpacity:1,color:'#5e7479',weight:.7,opacity:.75},smoothFactor:.65};
+  const landOptions={pane:physicalPane,renderer:physical,interactive:false,style:{fillColor:'#253b38',fillOpacity:1,color:'#60817a',weight:.9,opacity:.85},smoothFactor:.65};
   const landLow=L.geoJSON(geography.land,landOptions);
   let landDetail;
   let landDisplayed;
@@ -124,7 +125,10 @@ async function start() {
 
   function sourceLink(target, id) {
     const source=sources[id];
-    if (!source.url) return;
+    if (!source.url) {
+      target.append(element('p',`Fonte · ${source.title}`,'source-note'));
+      return;
+    }
     const link=element('a',source.title);
     link.href=source.url;
     link.target='_blank';
@@ -175,24 +179,40 @@ async function start() {
     gridGroup.clearLayers();
     if (!$('show-grid').checked) return;
     const metric=$('metric').value;
-    const maximum=state && metric ? state.global[metric] : 0;
+    const visible = [];
     for (let x=grid.first.col;x<=grid.last.col;x++) {
       for (let y=grid.first.row;y<=grid.last.row;y++) {
         const id=cellId(grid.level,x,y);
-        const result=view==='demo' && metric ? queryCell(state,id,data.demo.dataLevel):null;
-        const value=result?.metrics[metric]??0;
-        L.rectangle(cellBounds(id),{pane:gridPane,renderer:gridRenderer,interactive:false,
-          color:result ? '#bf9d83' : '#6d888e',opacity:result ? .72 : .36,weight:.7,
-          fillColor:metricColors[metric],fillOpacity:value && maximum ? .14+.55*Math.sqrt(value/maximum) : 0
-        }).addTo(gridGroup);
+        visible.push({bounds:cellBounds(id),result:view==='demo' && metric ? queryCell(state,id,data.demo.dataLevel):null});
       }
+    }
+    const max = Object.fromEntries(metrics.map(key=>[key,Math.max(1,...visible.map(c=>c.result?.metrics[key]??0))]));
+    const options={pane:gridPane,renderer:gridRenderer,interactive:false};
+    for (const {bounds,result} of visible) {
+      const values=result?.metrics??{};
+      const presence=livingPresence(values,Boolean(result&&!result.partial));
+      L.rectangle(bounds,{...options,color:presence==='empty'?'#9cb1a3':'#6d888e',
+        opacity:result?.partial ? .52 : .29,weight:.7,fill:false,dashArray:view==='demo'&&!result?'2 4':undefined
+      }).addTo(gridGroup);
+      const fill = (key,box) => {
+        if (values[key]>0) L.rectangle(box,{...options,stroke:false,fillColor:metricColors[key],
+          fillOpacity:.28+.47*Math.sqrt(values[key]/max[key])}).addTo(gridGroup);
+      };
+      if (metric==='presence') {
+        if (presence==='mixed') {
+          const [sw,ne]=bounds;
+          const middle=(sw[1]+ne[1])/2;
+          fill('human',[sw,[ne[0],middle]]);
+          fill('converted',[[sw[0],middle],ne]);
+        } else if (presence==='human'||presence==='converted') fill(presence,bounds);
+      } else if (metric) fill(metric,bounds);
     }
   }
   function epochFor(day) {
     return data.milestones.find(t=>t.date===day)?.id;
   }
   function currentFeatures() {
-    return data.features.filter(f=>view==='demo'?f.confidence==='demo':f.confidence!=='demo');
+    return data.features.filter(f=>view==='demo'?f.confidence==='demo':f.confidence!=='demo'&&!censuses.some(site=>site.title===f.title));
   }
   function visibleStatus(status) {
     return status==='active' || ($('show-uncertain').checked && ['uncertain','undated'].includes(status));
@@ -209,12 +229,12 @@ async function start() {
       if (!epoch) return;
       for (const [id,row] of Object.entries(epoch.rows)) {
         const [, ,lon,lat]=legacy.regions[id];
-        showMarker([lat,lon],{color:row[5]?'#ffe0a5':'#202629',fillColor:legacyColors[row[4]],weight:row[5]?2:1,fillOpacity:.85,radius:Math.max(4,Math.min(13,Math.log10(Math.max(1,row[0]))*1.1))},{kind:'legacy-region',id});
+        showMarker([lat,lon],{color:row[5]?'#ffe0a5':row[0]>0?'#7ce1ac':'#96a9a5',fillColor:metricColors.human,weight:row[5]?2:1,fillOpacity:row[0]>0?.40:0,radius:Math.max(4,Math.min(13,Math.log10(Math.max(1,row[0]))*1.1))},{kind:'legacy-region',id});
       }
       if ($('show-legacy-records').checked && active.has('societies')) {
         legacy.records.forEach((r,index)=>{
-          if (r.epoch!==epochFor(date)) return;
-          showMarker([...r.coordinates].reverse(),{color:'#eee2d0',fillColor:'#322a29',weight:1.6,fillOpacity:.95,radius:5},{kind:'legacy-record',id:index});
+          if (r.epoch!==epochFor(date) || !r.coordinates) return;
+          showMarker([...r.coordinates].reverse(),{color:'#46391e',fillColor:societyColor,weight:1.3,fillOpacity:.98,radius:5},{kind:'legacy-record',id:index});
         });
       }
       return;
@@ -225,6 +245,7 @@ async function start() {
           style:{color:'#d6af82',weight:1,fillOpacity:0,dashArray:'6 5'}}).addTo(themeGroup);
       }
     }
+    if (view==='canon') drawCensusMarkers();
     for (const f of currentFeatures()) {
       const status=featureStatus(f,date);
       if (!f.geometry || !active.has(f.layer) || !visibleStatus(status)) continue;
@@ -233,11 +254,75 @@ async function start() {
       if (f.geometry.type==='Point') {
         showMarker([...f.geometry.coordinates].reverse(),{color:'#272526',fillColor:color,weight:1.3,fillOpacity:status==='active'?.95:.52,radius:7},next);
       } else {
-        const stroke=f.presence==='unknown'?'#b7c3bf':color;
+        const surveyed=f.layer==='occupation' && f.presence==='absent';
+        const stroke=surveyed?'#9cb1a3':f.presence==='unknown'||f.presence==='estimatedAbsent'?'#a1b3b2':color;
         L.geoJSON(f.geometry,{pane:themePane,renderer:themeRenderer,bubblingMouseEvents:false,
-          style:{color:stroke,weight:2,fillOpacity:f.presence==='unknown'?.06:.22,
-            dashArray:f.presence==='absent'?undefined:'5 5'}}).on('click',()=>choose(next,true)).addTo(themeGroup);
+          style:{color:stroke,weight:2,fillOpacity:surveyed||f.presence==='unknown'||f.presence==='estimatedAbsent'?0:.22,
+            dashArray:surveyed?undefined:'5 5'}}).on('click',()=>choose(next,true)).addTo(themeGroup);
       }
+    }
+  }
+
+  function drawCensusMarkers() {
+    for (const site of censuses) {
+      if (!site.coordinates || (site.kind==='society'&&!active.has('societies')) || (site.kind==='event'&&!active.has('history'))) continue;
+      const record=censusRecord(site,date);
+      const current=record?.at===date;
+      const presence=current?livingPresence(record.counts):'unknown';
+      const latlng=[...site.coordinates].reverse();
+      const next={kind:'census',id:site.id};
+      if (presence==='human'||presence==='converted'||presence==='mixed') {
+        const color=presence==='converted'?metricColors.converted:metricColors.human;
+        showMarker(latlng,{color,fillColor:color,weight:1.8,fillOpacity:.27,radius:11},next);
+        if (presence==='mixed') showMarker(latlng,{color:metricColors.converted,weight:2,fill:false,radius:8},next);
+      }
+      if (site.kind==='society') {
+        showMarker(latlng,{color:current?'#fff1c4':societyColor,fillColor:societyColor,weight:1.3,
+          fillOpacity:current?1:.20,radius:5.3},next);
+      } else if (presence==='unknown') {
+        showMarker(latlng,{color:'#96a9a5',weight:1.2,fillOpacity:0,dashArray:'2 3',radius:5.3},next);
+      }
+    }
+  }
+
+  function localCensusList(panel) {
+    if (!censuses.length) return;
+    const entries=element('div',undefined,'record-buttons census-cards');
+    panel.append(element('h3','Censos por lugar'),element('p','Abra uma ficha para consultar seus marcos e as contagens de cada grupo.','muted'),entries);
+    for (const site of censuses) {
+      const open=button(site.title,()=>focusItem({kind:'census',id:site.id}));
+      open.append(element('small',site.coordinates?'Ver ficha e referência no mapa':'Ver ficha · posição em aberto'));
+      entries.append(open);
+    }
+  }
+
+  function showCensus(panel,site) {
+    const record=censusRecord(site,date);
+    panel.append(badge(record?.confidence??'unknown'),element('h2',site.title),element('p',site.where,'muted'));
+    if (record) {
+      const selected=record.at===date;
+      const caption=record.at ? (selected?'Marco consultado':'Último registro anterior') : 'Sem data definida';
+      stat(panel,caption,record.label,record.at&&!selected?'O registro não confirma a situação na data selecionada.':undefined);
+      for (const key of ['human','converted']) {
+        stat(panel,censusMetrics[key],number(record.counts[key]),undefined,key==='converted'&&record.counts[key]!==undefined);
+      }
+      for (const [key,value] of Object.entries(record.counts)) {
+        if (key!=='human'&&key!=='converted') stat(panel,censusMetrics[key],number(value));
+      }
+      panel.append(element('p',record.detail,'notice'));
+      sourceLink(panel,record.source);
+    } else {
+      panel.append(element('p','Sem observação local até a data selecionada. Escolha um registro da ficha.','muted'));
+    }
+    const options=site.records.filter(row=>row.at);
+    if (options.length) {
+      const label=element('label','Registros da ficha','wide-label');
+      const select=element('select');
+      addOptions(select,[['','Escolher registro'],...options.map(row=>[row.at,row.label])]);
+      if (record?.at) select.value=record.at;
+      select.addEventListener('change',()=>{if (select.value) chooseDate(select.value);});
+      label.append(select);
+      panel.append(label);
     }
   }
 
@@ -259,6 +344,7 @@ async function start() {
       const reference=data.observations.find(r=>r.metric==='human'&&r.milestone===epochFor($('compare-date').value));
       compareStat(panel,human?.value,reference?.value);
     }
+    localCensusList(panel);
     for (const row of rows.filter(r=>r!==human)) stat(panel,row.title,number(row.value),row.detail);
     const cards=currentFeatures().filter(f=>active.has(f.layer) && (f.start ? date>=f.start.start && date.slice(0,7)===f.start.start.slice(0,7) : visibleStatus('undated')));
     if (cards.length) {
@@ -267,15 +353,6 @@ async function start() {
       for (const f of cards) entries.append(button(f.title,()=>choose({kind:'feature',id:f.id})));
       panel.append(entries);
     }
-  }
-  function legacyLegend(panel) {
-    const legend=element('ul',undefined,'list-compact');
-    legacyCategories.forEach((name,i)=>{
-      const li=element('li',name);
-      li.style.color=legacyColors[i];
-      legend.append(li);
-    });
-    panel.append(legend);
   }
   function summaryLegacy(panel) {
     const epoch=legacy.epochs[epochFor(date)];
@@ -289,7 +366,7 @@ async function start() {
     }
     if (comparing) compareStat(panel,epoch?.total,legacy.epochs[epochFor($('compare-date').value)]?.total);
     panel.append(element('p','Os símbolos são centros aproximados. As classes do V2 descrevem organização e presença, sem delimitar soberania.','muted'));
-    legacyLegend(panel);
+    panel.append(element('p','O verde resume humanos não convertidos do cenário. Os pontos dourados indicam núcleos de referência. O V2 não fornece um estoque regional de convertidos vivos.','muted'));
     sourceLink(panel,'v2');
   }
   function balancesPanel(panel, row, reference, coverage) {
@@ -322,6 +399,8 @@ async function start() {
       if (view==='canon') summaryCanon(panel);
       if (view==='legacy') summaryLegacy(panel);
       if (view==='demo') summaryDemo(panel);
+    } else if (selection.kind==='census') {
+      showCensus(panel,censuses.find(site=>site.id===id));
     } else if (selection.kind==='cell') {
       const level=parseCell(id).level;
       const values=view==='demo'?queryCell(state,id,data.demo.dataLevel):null;
@@ -368,7 +447,8 @@ async function start() {
       const r=legacy.records[id];
       panel.append(badge('hypothesis'),element('h2',r.title));
       stat(panel,r.scope,number(r.value),`${r.epoch} · ${r.status}`,true);
-      panel.append(element('p','Ficha histórica do V2. O ponto é uma localização de referência e o valor pertence ao marco indicado.','muted'));
+      panel.append(element('p',r.where??'Localização de referência do cadastro V2.','muted'));
+      if (!r.coordinates) panel.append(element('p','Sem ponto geográfico definido.','muted'));
       sourceLink(panel,'v2');
     }
   }
@@ -420,7 +500,12 @@ async function start() {
   function focusItem(item) {
     let location;
     let targetZoom=9;
-    if (item.kind==='feature') {
+    if (item.kind==='census') {
+      const site=censuses.find(row=>row.id===item.id);
+      if (!censusRecord(site,date) && site.records[0].at) chooseDate(site.records[0].at);
+      if (site.coordinates) location=[...site.coordinates].reverse();
+      targetZoom=site.kind==='event'?8:6;
+    } else if (item.kind==='feature') {
       const f=data.features.find(row=>row.id===item.id);
       if (featureStatus(f,date)==='future' && f.start) chooseDate(f.start.end);
       if (f.geometry) {
@@ -440,7 +525,7 @@ async function start() {
       const record=legacy.records[item.id];
       const target=data.milestones.find(t=>t.id===record.epoch);
       if (target) chooseDate(target.date);
-      location=[...record.coordinates].reverse();
+      if (record.coordinates) location=[...record.coordinates].reverse();
       targetZoom=6;
     } else if (item.kind==='cell') {
       const [sw,ne]=cellBounds(item.id);
@@ -467,6 +552,7 @@ async function start() {
       candidates.push(...legacy.records.map((r,index)=>[`${r.title} · ${r.epoch}`,{kind:'legacy-record',id:index}]));
     } else {
       candidates=currentFeatures().map(f=>[f.title,{kind:'feature',id:f.id}]);
+      if (view==='canon') candidates.unshift(...censuses.map(site=>[site.title,{kind:'census',id:site.id}]));
       if (view==='demo') candidates.push(...data.demo.regions.map(r=>[r.title,{kind:'demo-region',id:r.id}]));
     }
     const cell=raw.toUpperCase();
