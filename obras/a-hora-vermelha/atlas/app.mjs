@@ -14,7 +14,8 @@ const metricColors = {human:'#63d999',converted:'#ff625c',deaths:'#b8a9f0',missi
 const societyColor = '#f8ce7c';
 const groupColor = '#64b5ff';
 const territoryLabels = {property:'Propriedade',building:'Edifício',city:'Cidade ou aglomeração',port:'Porto'};
-const territoryColors = {property:'#c4a7fa',building:'#c4a7fa',city:'#a6cfc8',port:'#f09e63'};
+const propertyCategories = ['property','building'];
+const territoryColors = {property:'#c4a7fa',building:'#c4a7fa',city:'#c8b69a',port:'#f09e63'};
 const legacyCategories = ['Grandes concentrações','Comunidades aliadas','Núcleos intermediários','Grupos dispersos','Urbano ou transição'];
 const statusNames = {future:'Futuro na data selecionada',past:'Encerrado na data selecionada',uncertain:'Janela de data incerta',active:'Vigente na data selecionada',undated:'Sem data definida'};
 const viewNames = {canon:'SÉRIE DOCUMENTAL',legacy:'ATLAS V2 · CENÁRIO ANTERIOR',demo:'DEMONSTRAÇÃO · DADOS SINTÉTICOS'};
@@ -62,6 +63,17 @@ async function start() {
   ]);
   const [territoryRows, dispersed] = await Promise.all([readJson('./data/territories.json'),readJson('./data/dispersed-v2.json')]);
   const territories=validateTerritories(territoryRows);
+  const propertySelect=$('property-select');
+  for (const category of propertyCategories) {
+    const group=element('optgroup');
+    group.label=category==='property'?'Propriedades':'Prédios';
+    for (const record of territories.filter(row=>row.category===category)) group.append(new Option(record.title,record.id));
+    propertySelect.append(group);
+  }
+  propertySelect.addEventListener('change',()=>{
+    if (propertySelect.value) focusItem({kind:'territory',id:propertySelect.value});
+    else choose(null);
+  });
   let changes = {version:1,operations:[]};
   let data = base;
   let owners = validate(base);
@@ -294,7 +306,7 @@ async function start() {
       const next={kind:'territory',id:record.id};
       if (geometry) {
         const shape=L.geoJSON(geometry,{pane:themePane,renderer:themeRenderer,bubblingMouseEvents:false,
-          style:{color,weight:selected?2.6:1.5,fillColor:color,fillOpacity:selected?.21:.095,dashArray:record.geometry?undefined:'5 4'}});
+          style:{color,weight:selected?3.3:1.5,fillColor:color,fillOpacity:selected?.26:.095,dashArray:record.geometry?undefined:'5 4'}});
         const bounds=shape.getBounds();
         const size=map.latLngToLayerPoint(bounds.getNorthEast()).distanceTo(map.latLngToLayerPoint(bounds.getSouthWest()));
         if (size>=12) {
@@ -303,7 +315,7 @@ async function start() {
         }
       }
       if (!record.anchor) continue;
-      const icon=L.divIcon({className:`territory-marker territory-${record.category}`,iconSize:[10,8],iconAnchor:[5,4]});
+      const icon=L.divIcon({className:`territory-marker territory-${record.category}${selected?' territory-selected':''}`,iconSize:[10,8],iconAnchor:[5,4]});
       L.marker([...record.anchor].reverse(),{pane:themePane,icon,title:record.title,alt:record.title,bubblingMouseEvents:false})
         .on('click',()=>focusItem(next)).addTo(themeGroup);
     }
@@ -343,15 +355,29 @@ async function start() {
 
   function showTerritory(panel,record) {
     panel.append(element('span',territoryLabels[record.category],'badge'),element('h2',record.title));
-    if (record.reference) panel.append(element('p',record.reference,'muted'));
     const shape=footprint(record);
-    stat(panel,record.category==='building'?'Área da base do prédio':record.category==='city'?'Área urbana de referência':'Área por terreno ou instalação',
-      areaLabel(record.area),record.dimensions?`${number(record.dimensions[0])} × ${number(record.dimensions[1])} m`:undefined,true);
-    if (shape) {
-      panel.append(footprintDiagram(record,shape),element('p',`Planta · ${shape.method}`,'source-note'));
+    const areaTitle={building:'Área da base',city:'Área urbana',port:'Área portuária',property:'Área por terreno'}[record.category];
+    const rows=[[areaTitle,areaLabel(record.area)]];
+    if (record.dimensions) rows.push(['Dimensões da base',`${number(record.dimensions[0])} × ${number(record.dimensions[1])} m`]);
+    if (record.reference) rows.push(['Referência temporal',record.reference]);
+    rows.push(...record.facts);
+    rows.push(['Posição',record.geometry?'Contorno cadastrado':record.anchor?'Ponto de referência disponível':'Localização exata em aberto']);
+    if (shape) rows.push(['Tipo de desenho',shape.method]);
+    rows.push(['Fonte',record.source]);
+    const table=element('table',undefined,'territory-table');
+    table.append(element('caption','Dados da ficha'));
+    const body=element('tbody');
+    for (const [label,value] of rows) {
+      const tr=element('tr');
+      const th=element('th',label);
+      th.scope='row';
+      tr.append(th,element('td',value));
+      body.append(tr);
     }
-    for (const [label,value] of record.facts) stat(panel,label,value);
-    panel.append(element('p',record.note,'notice'),element('p',`Fonte · ${record.source}`,'source-note'));
+    table.append(body);
+    panel.append(table);
+    if (shape) panel.append(footprintDiagram(record,shape));
+    panel.append(element('p',record.note,'notice'));
   }
 
   function showDispersed(panel,id) {
@@ -500,12 +526,14 @@ async function start() {
     panel.replaceChildren();
     $('panel-tag').textContent=viewNames[view];
     const id=selection?.id;
+    const record=selection?.kind==='territory'?territories.find(row=>row.id===id):null;
+    propertySelect.value=record&&propertyCategories.includes(record.category)?id:'';
     if (!selection) {
       if (view==='canon') summaryCanon(panel);
       if (view==='legacy') summaryLegacy(panel);
       if (view==='demo') summaryDemo(panel);
     } else if (selection.kind==='territory') {
-      showTerritory(panel,territories.find(row=>row.id===id));
+      showTerritory(panel,record);
     } else if (selection.kind==='dispersed') {
       showDispersed(panel,id);
     } else if (selection.kind==='census') {

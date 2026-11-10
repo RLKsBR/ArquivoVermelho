@@ -7,7 +7,7 @@
   <meta name="description" content="Explore a geografia, os censos e a cronologia de A Hora Vermelha.">
   <title>Atlas de A Hora Vermelha · Arquivo Vermelho</title>
   <link rel="stylesheet" href="./vendor/leaflet.css">
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=selecao-1">
 </head>
 <body>
   <header class="masthead">
@@ -49,11 +49,15 @@
         <span class="legend-key"><i aria-hidden="true" class="legend-society"></i> Sociedade</span>
         <span class="legend-key"><i aria-hidden="true" class="legend-group"></i> Grupos humanos · V2</span>
         <span class="legend-key"><i aria-hidden="true" class="legend-territory"></i> Área de referência</span>
+        <span class="legend-key"><i aria-hidden="true" class="legend-city"></i> Área urbana</span>
         <span class="legend-key"><i aria-hidden="true" class="legend-empty"></i> Vazio verificado</span>
         <span class="legend-key"><i aria-hidden="true" class="legend-unknown"></i> Sem dados</span>
       </aside>
       <section class="inspector" id="inspector" aria-label="Painel de informações">
         <div class="inspector-head"><p class="eyebrow" id="panel-tag">SÉRIE DOCUMENTAL</p><button type="button" id="summary">Resumo</button></div>
+        <label class="property-picker">Selecionar propriedade ou prédio
+          <select id="property-select"><option value="">Escolher propriedade ou prédio</option></select>
+        </label>
         <div id="panel" aria-live="polite"></div>
       </section>
       <section class="timeline" aria-label="Linha do tempo">
@@ -135,6 +139,6 @@
   </dialog>
   <div id="fatal" hidden role="alert"></div>
   <script src="./vendor/leaflet.js"></script>
-  <script type="module" src="./app.mjs"></script>
+  <script type="module" src="./app.mjs?v=selecao-1"></script>
 </body>
 </html>
