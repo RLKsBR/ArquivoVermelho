@@ -142,3 +142,22 @@ button[aria-pressed=true],button.primary{background:#3e3525;border-color:#a48758
   .inspector{max-height:none;margin-top:9px}
   .timeline{margin-top:9px}
 }
+
+.legend-key .legend-group{background:#28577b;border:1px dashed #64b5ff}
+.legend-key .legend-territory{background:transparent;border:1px dashed #c4a7fa}
+.territory-marker{border:1px solid currentColor;background:#322d39;border-radius:1px}
+.territory-property,.territory-building{color:#c4a7fa}
+.territory-city{color:#a6cfc8}
+.territory-port{color:#f09e63;background:#553c28}
+.territory-filters{display:grid;grid-template-columns:1fr 1.3fr;gap:8px}
+.territory-filters input{width:100%;min-width:0}
+#territory-list{margin-top:12px}
+.footprint-diagram{display:block;width:100%;max-height:180px;margin:.55rem 0;background:#1c2928;border:1px solid #4e5a59;border-radius:7px}
+.footprint-diagram polygon{stroke:#c4a7fa;fill:#9c7fd14a;stroke-width:1.6px}
+.leaflet-control-scale-line{color:#f1f2e9;background:#172528df;text-shadow:none;border-color:#94aaa4;border-top:0}
+.map-bottom{bottom:32px}
+@media(max-width:410px){
+  .utilities{display:grid;grid-template-columns:minmax(0,1fr) min-content min-content;gap:5px}
+  .utilities button{padding-inline:.47rem}
+  #search{min-width:0}
+}

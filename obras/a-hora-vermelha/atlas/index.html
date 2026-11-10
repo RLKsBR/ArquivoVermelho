@@ -26,6 +26,7 @@
       </div>
       <div class="utilities">
         <div class="search-box"><input id="search" type="search" aria-label="Buscar local ou sociedade" placeholder="Buscar local ou sociedade" autocomplete="off"><ul id="results" class="search-results" hidden></ul></div>
+        <button id="territory-open" type="button">Territórios</button>
         <button id="layers-open" type="button">Camadas</button>
       </div>
     </div>
@@ -46,6 +47,8 @@
         <span class="legend-key"><i aria-hidden="true" class="legend-converted"></i> Convertidos</span>
         <span class="legend-key"><i aria-hidden="true" class="legend-mixed"></i> Ambos</span>
         <span class="legend-key"><i aria-hidden="true" class="legend-society"></i> Sociedade</span>
+        <span class="legend-key"><i aria-hidden="true" class="legend-group"></i> Grupos humanos · V2</span>
+        <span class="legend-key"><i aria-hidden="true" class="legend-territory"></i> Área de referência</span>
         <span class="legend-key"><i aria-hidden="true" class="legend-empty"></i> Vazio verificado</span>
         <span class="legend-key"><i aria-hidden="true" class="legend-unknown"></i> Sem dados</span>
       </aside>
@@ -68,11 +71,28 @@
     <footer><a href="../">Voltar para A Hora Vermelha</a><span>Universo ficcional de Ruan Lukas</span><span>Geografia física e fronteiras opcionais © dados em domínio público <a href="https://www.naturalearthdata.com/">Natural Earth</a></span><button type="button" id="edits-open">Edições locais</button></footer>
   </main>
 
+  <dialog id="territory-dialog" aria-labelledby="territory-title">
+    <div class="dialog-head"><h2 id="territory-title">Territórios e infraestrutura</h2><form method="dialog"><button aria-label="Fechar territórios">×</button></form></div>
+    <div class="dialog-content">
+      <div class="territory-filters">
+        <label class="wide-label">Categoria <select id="territory-category"><option value="">Todas</option><option value="property">Propriedades</option><option value="building">Edifícios</option><option value="city">Cidades</option><option value="port">Portos</option></select></label>
+        <label class="wide-label">Buscar ficha <input id="territory-search" type="search" placeholder="Ex.: Sony, Santa Aurora"></label>
+      </div>
+      <p class="muted">Os desenhos mantêm a escala da metragem cadastrada. A localização e o contorno de cada ficha têm precisão própria.</p>
+      <button type="button" id="groups-open">Ver grupos humanos dispersos</button>
+      <div id="territory-list" class="record-buttons census-cards"></div>
+    </div>
+  </dialog>
   <dialog id="layers-dialog" aria-labelledby="layers-title">
     <div class="dialog-head"><h2 id="layers-title">Camadas do atlas</h2><form method="dialog"><button aria-label="Fechar camadas">×</button></form></div>
     <div class="dialog-content">
       <div class="control-grid">
-        <label><input id="show-grid" type="checkbox" checked> Grade espacial</label>
+        <label><input id="show-territories" type="checkbox" checked> Propriedades e infraestrutura</label>
+        <label><input id="show-cities" type="checkbox" checked> Cidades</label>
+        <label><input id="show-ports" type="checkbox" checked> Portos</label>
+        <label><input id="show-schematic" type="checkbox" checked> Contornos esquemáticos</label>
+        <label><input id="show-dispersed" type="checkbox" checked> Grupos dispersos · Atlas V2</label>
+        <label><input id="show-grid" type="checkbox" checked> Grade espacial (independente dos terrenos)</label>
         <label><input id="show-borders" type="checkbox"> Fronteiras atuais</label>
         <label><input id="show-uncertain" type="checkbox" checked> Exibir datas incertas</label>
         <label><input id="show-legacy-records" type="checkbox" checked> Núcleos cadastrados no V2</label>

@@ -1,5 +1,6 @@
 import {ASPECT, cellAt, cellId, cellArea, cellBounds, gridForViewport, parseCell, parentAt, project, unproject} from './geo.mjs';
 import {applyChanges, censusMetrics, censusRecord, confidence, featureStatus, livingPresence, metrics, presences, queryCell, ratio, snapshot, validate} from './model.mjs';
+import {footprint, territoryGeometry, validateTerritories} from './territory.mjs';
 
 const $ = id => document.getElementById(id);
 const fmt = new Intl.NumberFormat('pt-BR');
@@ -11,6 +12,9 @@ const normalize = text => text.normalize('NFD').replace(/\p{Diacritic}/gu,'').to
 const metricNames = {human:'Humanos vivos',converted:'Convertidos vivos',deaths:'Mortes acumuladas',missing:'Desaparecidos'};
 const metricColors = {human:'#63d999',converted:'#ff625c',deaths:'#b8a9f0',missing:'#7dc8e6'};
 const societyColor = '#f8ce7c';
+const groupColor = '#64b5ff';
+const territoryLabels = {property:'Propriedade',building:'Edifício',city:'Cidade ou aglomeração',port:'Porto'};
+const territoryColors = {property:'#c4a7fa',building:'#c4a7fa',city:'#a6cfc8',port:'#f09e63'};
 const legacyCategories = ['Grandes concentrações','Comunidades aliadas','Núcleos intermediários','Grupos dispersos','Urbano ou transição'];
 const statusNames = {future:'Futuro na data selecionada',past:'Encerrado na data selecionada',uncertain:'Janela de data incerta',active:'Vigente na data selecionada',undated:'Sem data definida'};
 const viewNames = {canon:'SÉRIE DOCUMENTAL',legacy:'ATLAS V2 · CENÁRIO ANTERIOR',demo:'DEMONSTRAÇÃO · DADOS SINTÉTICOS'};
@@ -56,6 +60,8 @@ async function start() {
   const [base, geography, legacy] = globalThis.ATLAS_PACKED ?? await Promise.all([
     readJson('./data/atlas.json'), readJson('./data/geography.json'), readJson('./data/atlas-v2.json')
   ]);
+  const [territoryRows, dispersed] = await Promise.all([readJson('./data/territories.json'),readJson('./data/dispersed-v2.json')]);
+  const territories=validateTerritories(territoryRows);
   let changes = {version:1,operations:[]};
   let data = base;
   let owners = validate(base);
@@ -91,7 +97,8 @@ async function start() {
         unproject(p) {return L.latLng(...unproject(p.x,p.y));},
         bounds:L.bounds([0,0],[1,ASPECT])
       },
-      transformation:new L.Transformation(1,0,1,0)
+      transformation:new L.Transformation(1,0,1,0),
+      distance:(a,b)=>L.CRS.Earth.distance(a,b)
     }),
     minZoom:0,maxZoom:19,zoomSnap:.25,zoomDelta:1,
     maxBounds:[[-90,-180],[90,180]],maxBoundsViscosity:1,
@@ -121,6 +128,7 @@ async function start() {
   for (const [label,lat,lon] of [['PACÍFICO',-12,-125],['ATLÂNTICO',-16,-25],['ÍNDICO',-27,85],['PACÍFICO',8,160],['ANTÁRTIDA',-76,0]]) {
     L.marker([lat,lon],{pane:labelPane,interactive:false,keyboard:false,icon:L.divIcon({className:'ocean-label',html:label,iconSize:[100,16],iconAnchor:[50,8]})}).addTo(oceanGroup);
   }
+  L.control.scale({position:'bottomleft',imperial:false,maxWidth:90}).addTo(map);
   L.control.zoom({position:'bottomright',zoomInTitle:'Aproximar',zoomOutTitle:'Afastar'}).addTo(map);
 
   function sourceLink(target, id) {
@@ -156,7 +164,9 @@ async function start() {
     if (map.getZoom()>3 && map.hasLayer(oceanGroup)) map.removeLayer(oceanGroup);
   }
   function choose(next, scroll=false) {
+    const territoryChanged=selection?.kind==='territory'||next?.kind==='territory';
     selection=next;
+    if (territoryChanged&&view==='canon') drawThemes();
     drawSelection();
     renderPanel();
     if (scroll && matchMedia('(max-width:790px)').matches) {
@@ -227,6 +237,7 @@ async function start() {
     if (view==='legacy') {
       const epoch=legacy.epochs[epochFor(date)];
       if (!epoch) return;
+      drawDispersed();
       for (const [id,row] of Object.entries(epoch.rows)) {
         const [, ,lon,lat]=legacy.regions[id];
         showMarker([lat,lon],{color:row[5]?'#ffe0a5':row[0]>0?'#7ce1ac':'#96a9a5',fillColor:metricColors.human,weight:row[5]?2:1,fillOpacity:row[0]>0?.40:0,radius:Math.max(4,Math.min(13,Math.log10(Math.max(1,row[0]))*1.1))},{kind:'legacy-region',id});
@@ -245,7 +256,10 @@ async function start() {
           style:{color:'#d6af82',weight:1,fillOpacity:0,dashArray:'6 5'}}).addTo(themeGroup);
       }
     }
-    if (view==='canon') drawCensusMarkers();
+    if (view==='canon') {
+      drawTerritories();
+      drawCensusMarkers();
+    }
     for (const f of currentFeatures()) {
       const status=featureStatus(f,date);
       if (!f.geometry || !active.has(f.layer) || !visibleStatus(status)) continue;
@@ -261,6 +275,97 @@ async function start() {
             dashArray:surveyed?undefined:'5 5'}}).on('click',()=>choose(next,true)).addTo(themeGroup);
       }
     }
+  }
+
+  function geographicFootprint(record) {
+    return territoryGeometry(record,$('show-schematic').checked && record.schematicOnMap!==false);
+  }
+
+  function drawTerritories() {
+    if (!$('show-territories').checked) return;
+    for (const record of territories) {
+      if (!record.anchor && !record.geometry) continue;
+      const selected=selection?.kind==='territory' && selection.id===record.id;
+      if (record.mapWhenSelected && !selected) continue;
+      if (record.category==='city' && (!$('show-cities').checked || (map.getZoom()<4 && !selected))) continue;
+      if (record.category==='port' && !$('show-ports').checked) continue;
+      const color=territoryColors[record.category];
+      const geometry=geographicFootprint(record);
+      const next={kind:'territory',id:record.id};
+      if (geometry) {
+        const shape=L.geoJSON(geometry,{pane:themePane,renderer:themeRenderer,bubblingMouseEvents:false,
+          style:{color,weight:selected?2.6:1.5,fillColor:color,fillOpacity:selected?.21:.095,dashArray:record.geometry?undefined:'5 4'}});
+        const bounds=shape.getBounds();
+        const size=map.latLngToLayerPoint(bounds.getNorthEast()).distanceTo(map.latLngToLayerPoint(bounds.getSouthWest()));
+        if (size>=12) {
+          shape.on('click',()=>choose(next,true)).addTo(themeGroup);
+          continue;
+        }
+      }
+      if (!record.anchor) continue;
+      const icon=L.divIcon({className:`territory-marker territory-${record.category}`,iconSize:[10,8],iconAnchor:[5,4]});
+      L.marker([...record.anchor].reverse(),{pane:themePane,icon,title:record.title,alt:record.title,bubblingMouseEvents:false})
+        .on('click',()=>focusItem(next)).addTo(themeGroup);
+    }
+  }
+
+  function drawDispersed() {
+    if (!$('show-dispersed').checked) return;
+    for (const group of dispersed[epochFor(date)]??[]) {
+      L.geoJSON({type:'Polygon',coordinates:group.rings},{pane:themePane,renderer:themeRenderer,bubblingMouseEvents:false,
+        style:{color:groupColor,weight:1.1,opacity:.68,fillColor:groupColor,fillOpacity:.16,dashArray:'4 5'}})
+        .on('click',()=>choose({kind:'dispersed',id:group.region},true)).addTo(themeGroup);
+    }
+  }
+
+  function areaLabel(area) {
+    if (area===null) return 'Sem dados';
+    return area>=1e6?`${decimal.format(area/1e6)} km²`:`${number(area)} m²`;
+  }
+
+  function footprintDiagram(record,shape) {
+    const svgNS='http://www.w3.org/2000/svg';
+    const points=shape.points.map(([x,y])=>[x,-y]);
+    const xs=points.map(p=>p[0]), ys=points.map(p=>p[1]);
+    const width=Math.max(...xs)-Math.min(...xs), height=Math.max(...ys)-Math.min(...ys);
+    const padding=Math.max(width,height)*.09;
+    const svg=document.createElementNS(svgNS,'svg');
+    const polygon=document.createElementNS(svgNS,'polygon');
+    svg.setAttribute('viewBox',`${Math.min(...xs)-padding} ${Math.min(...ys)-padding} ${width+padding*2} ${height+padding*2}`);
+    svg.setAttribute('role','img');
+    svg.setAttribute('aria-label',`Planta de ${record.title}: ${shape.method}`);
+    svg.classList.add('footprint-diagram');
+    polygon.setAttribute('points',points.map(p=>p.join(',')).join(' '));
+    polygon.setAttribute('vector-effect','non-scaling-stroke');
+    svg.append(polygon);
+    return svg;
+  }
+
+  function showTerritory(panel,record) {
+    panel.append(element('span',territoryLabels[record.category],'badge'),element('h2',record.title));
+    if (record.reference) panel.append(element('p',record.reference,'muted'));
+    const shape=footprint(record);
+    stat(panel,record.category==='building'?'Área da base do prédio':record.category==='city'?'Área urbana de referência':'Área por terreno ou instalação',
+      areaLabel(record.area),record.dimensions?`${number(record.dimensions[0])} × ${number(record.dimensions[1])} m`:undefined,true);
+    if (shape) {
+      panel.append(footprintDiagram(record,shape),element('p',`Planta · ${shape.method}`,'source-note'));
+    }
+    for (const [label,value] of record.facts) stat(panel,label,value);
+    panel.append(element('p',record.note,'notice'),element('p',`Fonte · ${record.source}`,'source-note'));
+  }
+
+  function showDispersed(panel,id) {
+    const region=legacy.regions[id];
+    const group=(dispersed[epochFor(date)]??[]).find(row=>row.region===id);
+    panel.append(badge('estimate'),element('h2',region[0]),element('p','Grupos humanos dispersos · Atlas V2','muted'));
+    if (!group) {
+      panel.append(element('p','Nenhuma mancha modelada no marco selecionado.','notice'));
+      return;
+    }
+    stat(panel,'Pessoas nos grupos dispersos',number(group.population),undefined,true);
+    stat(panel,'Número estimado de grupos',number(group.groups));
+    stat(panel,'Faixa de tamanho por grupo',`${number(group.min)} a ${number(group.max)} pessoas`);
+    panel.append(element('p','A mancha mostra uma região de referência. Os locais individuais e a distribuição dentro dela estão em aberto. Esta população já integra o cenário regional.','notice'));
   }
 
   function drawCensusMarkers() {
@@ -366,7 +471,7 @@ async function start() {
     }
     if (comparing) compareStat(panel,epoch?.total,legacy.epochs[epochFor($('compare-date').value)]?.total);
     panel.append(element('p','Os símbolos são centros aproximados. As classes do V2 descrevem organização e presença, sem delimitar soberania.','muted'));
-    panel.append(element('p','O verde resume humanos não convertidos do cenário. Os pontos dourados indicam núcleos de referência. O V2 não fornece um estoque regional de convertidos vivos.','muted'));
+    panel.append(element('p','O verde resume humanos não convertidos do cenário. O azul indica manchas de grupos dispersos. Os pontos dourados indicam núcleos de referência. O V2 não fornece um estoque regional de convertidos vivos.','muted'));
     sourceLink(panel,'v2');
   }
   function balancesPanel(panel, row, reference, coverage) {
@@ -399,6 +504,10 @@ async function start() {
       if (view==='canon') summaryCanon(panel);
       if (view==='legacy') summaryLegacy(panel);
       if (view==='demo') summaryDemo(panel);
+    } else if (selection.kind==='territory') {
+      showTerritory(panel,territories.find(row=>row.id===id));
+    } else if (selection.kind==='dispersed') {
+      showDispersed(panel,id);
     } else if (selection.kind==='census') {
       showCensus(panel,censuses.find(site=>site.id===id));
     } else if (selection.kind==='cell') {
@@ -440,6 +549,9 @@ async function start() {
         stat(panel,'Reserva modelada',number(row[2]),legacyCategories[row[4]]);
         stat(panel,'Cativos registrados separadamente',number(row[3]),'Componente já incluído no total acima.');
         if (row[5]) panel.append(element('p',`Divergência nas categorias: ${signs(row[5])} em relação à reserva modelada.`,'notice'));
+      }
+      if ((dispersed[epochFor(date)]??[]).some(group=>group.region===id)) {
+        panel.append(button('Consultar grupos dispersos desta região',()=>choose({kind:'dispersed',id},true)));
       }
       if (comparing) compareStat(panel,row?.[0],legacy.epochs[epochFor($('compare-date').value)]?.rows[id]?.[0]);
       sourceLink(panel,'v2');
@@ -500,7 +612,18 @@ async function start() {
   function focusItem(item) {
     let location;
     let targetZoom=9;
-    if (item.kind==='census') {
+    if (item.kind==='territory') {
+      const record=territories.find(row=>row.id===item.id);
+      if (view!=='canon') setView('canon');
+      const geometry=geographicFootprint(record);
+      if (geometry) {
+        worldFit=false;
+        map.fitBounds(L.geoJSON(geometry).getBounds(),{maxZoom:16,padding:[50,55],animate:false});
+      } else if (record.anchor) {
+        location=[...record.anchor].reverse();
+        targetZoom=10;
+      }
+    } else if (item.kind==='census') {
       const site=censuses.find(row=>row.id===item.id);
       if (!censusRecord(site,date) && site.records[0].at) chooseDate(site.records[0].at);
       if (site.coordinates) location=[...site.coordinates].reverse();
@@ -552,7 +675,10 @@ async function start() {
       candidates.push(...legacy.records.map((r,index)=>[`${r.title} · ${r.epoch}`,{kind:'legacy-record',id:index}]));
     } else {
       candidates=currentFeatures().map(f=>[f.title,{kind:'feature',id:f.id}]);
-      if (view==='canon') candidates.unshift(...censuses.map(site=>[site.title,{kind:'census',id:site.id}]));
+      if (view==='canon') {
+        candidates.unshift(...censuses.map(site=>[site.title,{kind:'census',id:site.id}]));
+        candidates.push(...territories.map(record=>[record.title,{kind:'territory',id:record.id}]));
+      }
       if (view==='demo') candidates.push(...data.demo.regions.map(r=>[r.title,{kind:'demo-region',id:r.id}]));
     }
     const cell=raw.toUpperCase();
@@ -626,9 +752,37 @@ async function start() {
     $('layer-options').append(label);
   }
   $('show-borders').addEventListener('change',()=>{if ($('show-borders').checked) borders.addTo(map);else map.removeLayer(borders);});
-  for (const id of ['show-grid','metric','policy','show-uncertain','show-legacy-records']) $(id).addEventListener('change',refresh);
+  for (const id of ['show-grid','metric','policy','show-uncertain','show-legacy-records','show-territories','show-cities','show-ports','show-schematic','show-dispersed']) $(id).addEventListener('change',refresh);
   $('help-open').addEventListener('click',()=>$('help-dialog').showModal());
   $('layers-open').addEventListener('click',()=>$('layers-dialog').showModal());
+
+  function populateTerritoryCatalog() {
+    const category=$('territory-category').value;
+    const container=$('territory-list');
+    container.replaceChildren();
+    const label=normalize($('territory-search').value.trim());
+    for (const record of territories) {
+      if ((category && record.category!==category) || !normalize(record.title).includes(label)) continue;
+      const item=button(record.title,()=>{
+        $('territory-dialog').close();
+        focusItem({kind:'territory',id:record.id});
+      });
+      item.append(element('small',`${territoryLabels[record.category]} · ${areaLabel(record.area)}`));
+      container.append(item);
+    }
+    if (!container.childElementCount) container.append(element('p','Nenhuma ficha encontrada.','muted'));
+  }
+  $('territory-open').addEventListener('click',()=>{
+    populateTerritoryCatalog();
+    $('territory-dialog').showModal();
+  });
+  $('territory-category').addEventListener('change',populateTerritoryCatalog);
+  $('territory-search').addEventListener('input',populateTerritoryCatalog);
+  $('groups-open').addEventListener('click',()=>{
+    $('territory-dialog').close();
+    setView('legacy');
+    if (!dispersed[epochFor(date)]) chooseDate(data.milestones.find(t=>t.id==='Y1').date);
+  });
 
   function persist(proposal) {
     const next=applyChanges(base,proposal);
@@ -770,6 +924,7 @@ async function start() {
   map.on('moveend',()=>{
     switchLand();
     drawGrid();
+    if (view==='canon') drawThemes();
   });
   map.on('click',e=>{
     if (!$('show-grid').checked || Math.abs(e.latlng.lat)>90 || Math.abs(e.latlng.lng)>180) return;

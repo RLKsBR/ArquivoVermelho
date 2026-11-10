@@ -1,0 +1,1611 @@
+[
+  {
+    "id": "cidade-sao-paulo-campinas-sorocaba",
+    "title": "São Paulo–Campinas–Sorocaba",
+    "category": "city",
+    "anchor": [
+      -46.62697,
+      -23.55673
+    ],
+    "area": 23380000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "92.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "14.000 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-rio-baixada-niteroi",
+    "title": "Rio–Baixada–Niterói",
+    "category": "city",
+    "anchor": [
+      -43.21212,
+      -22.90731
+    ],
+    "area": 10855000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "43.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "6.500 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-belo-horizonte",
+    "title": "Belo Horizonte",
+    "category": "city",
+    "anchor": [
+      -43.91695,
+      -19.91308
+    ],
+    "area": 7014000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "28.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "4.200 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-brasilia",
+    "title": "Brasília",
+    "category": "city",
+    "anchor": [
+      -47.918,
+      -15.78139
+    ],
+    "area": 10020000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "25.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "6.000 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-salvador",
+    "title": "Salvador",
+    "category": "city",
+    "anchor": [
+      -38.48193,
+      -12.96803
+    ],
+    "area": 5511000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "22.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "3.300 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-recife",
+    "title": "Recife",
+    "category": "city",
+    "anchor": [
+      -34.90877,
+      -8.06053
+    ],
+    "area": 5010000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "21.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "3.000 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-fortaleza",
+    "title": "Fortaleza",
+    "category": "city",
+    "anchor": [
+      -38.58193,
+      -3.74807
+    ],
+    "area": 5344000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "20.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "3.200 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-curitiba",
+    "title": "Curitiba",
+    "category": "city",
+    "anchor": [
+      -49.32194,
+      -25.41807
+    ],
+    "area": 5678000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "19.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "3.400 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-porto-alegre",
+    "title": "Porto Alegre",
+    "category": "city",
+    "anchor": [
+      -51.20196,
+      -30.04807
+    ],
+    "area": 5344000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "17.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "3.200 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-goiania-anapolis",
+    "title": "Goiânia–Anápolis",
+    "category": "city",
+    "anchor": [
+      -49.30197,
+      -16.71808
+    ],
+    "area": 6012000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "16.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "3.600 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-belem",
+    "title": "Belém",
+    "category": "city",
+    "anchor": [
+      -48.48197,
+      -1.44806
+    ],
+    "area": 4008000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "15.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "2.400 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-manaus",
+    "title": "Manaus",
+    "category": "city",
+    "anchor": [
+      -60.00196,
+      -3.09809
+    ],
+    "area": 3674000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "13.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "2.200 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-sao-luis",
+    "title": "São Luís",
+    "category": "city",
+    "anchor": [
+      -44.26794,
+      -2.51404
+    ],
+    "area": 3006000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "9.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "1.800 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-vitoria",
+    "title": "Vitória",
+    "category": "city",
+    "anchor": [
+      -40.35394,
+      -20.33204
+    ],
+    "area": 2338000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "8.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "1.400 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-natal",
+    "title": "Natal",
+    "category": "city",
+    "anchor": [
+      -35.24195,
+      -5.77808
+    ],
+    "area": 2087500000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "7.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "1.250 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-joao-pessoa",
+    "title": "João Pessoa",
+    "category": "city",
+    "anchor": [
+      -34.87802,
+      -7.09919
+    ],
+    "area": 2004000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "6.500.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "1.200 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-maceio",
+    "title": "Maceió",
+    "category": "city",
+    "anchor": [
+      -35.73192,
+      -9.61805
+    ],
+    "area": 1837000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "6.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "1.100 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-teresina-timon",
+    "title": "Teresina–Timon",
+    "category": "city",
+    "anchor": [
+      -42.78196,
+      -5.09305
+    ],
+    "area": 2505000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "6.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "1.500 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-cuiaba",
+    "title": "Cuiabá",
+    "category": "city",
+    "anchor": [
+      -56.08693,
+      -15.56766
+    ],
+    "area": 3006000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "6.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "1.800 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-florianopolis",
+    "title": "Florianópolis",
+    "category": "city",
+    "anchor": [
+      -48.52197,
+      -27.57804
+    ],
+    "area": 2338000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "5.500.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "1.400 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-campo-grande",
+    "title": "Campo Grande",
+    "category": "city",
+    "anchor": [
+      -54.61857,
+      -20.44809
+    ],
+    "area": 2839000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "5.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "1.700 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-aracaju",
+    "title": "Aracaju",
+    "category": "city",
+    "anchor": [
+      -37.11997,
+      -10.90002
+    ],
+    "area": 1419500000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "4.500.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "850 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-santarem",
+    "title": "Santarém",
+    "category": "city",
+    "anchor": [
+      -54.69998,
+      -2.43325
+    ],
+    "area": 1670000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "4.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "1.000 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-porto-velho",
+    "title": "Porto Velho",
+    "category": "city",
+    "anchor": [
+      -63.90001,
+      -8.75002
+    ],
+    "area": 1670000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "3.500.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "1.000 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-araguaina",
+    "title": "Araguaína",
+    "category": "city",
+    "anchor": [
+      -48.21001,
+      -7.19001
+    ],
+    "area": 1035400000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "3.100.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "620 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-macapa",
+    "title": "Macapá",
+    "category": "city",
+    "anchor": [
+      -51.05002,
+      0.03301
+    ],
+    "area": 1169000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "3.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "700 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-palmas",
+    "title": "Palmas",
+    "category": "city",
+    "anchor": [
+      -48.28779,
+      -10.23774
+    ],
+    "area": 1503000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "2.800.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "900 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-boa-vista",
+    "title": "Boa Vista",
+    "category": "city",
+    "anchor": [
+      -60.666,
+      2.81609
+    ],
+    "area": 1169000000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "2.200.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "700 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-rio-branco",
+    "title": "Rio Branco",
+    "category": "city",
+    "anchor": [
+      -67.80001,
+      -9.96659
+    ],
+    "area": 1085500000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "2.100.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "650 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-imperatriz",
+    "title": "Imperatriz",
+    "category": "city",
+    "anchor": [
+      -47.49001,
+      -5.52004
+    ],
+    "area": 751500000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "2.000.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "450 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-maraba-carajas",
+    "title": "Marabá/Carajás",
+    "category": "city",
+    "anchor": [
+      -49.11598,
+      -5.34997
+    ],
+    "area": 751500000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "1.800.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "450 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "cidade-balsas-riachao",
+    "title": "Balsas–Riachão",
+    "category": "city",
+    "anchor": [
+      -46.04999,
+      -7.52002
+    ],
+    "area": 300600000,
+    "source": "Inventário canônico · Cidades_Areas",
+    "note": "Centro urbano de referência no Natural Earth. O perímetro mostrado é um quadrado de área equivalente. A ficha registra a aglomeração ficcional em 2132.",
+    "facts": [
+      [
+        "População permanente pré-D0",
+        "620.000"
+      ],
+      [
+        "Área urbana anterior de referência",
+        "180 km²"
+      ]
+    ],
+    "reference": "2132 · população pré-D0"
+  },
+  {
+    "id": "jp-fazenda-masato",
+    "title": "Fazenda Masato",
+    "category": "building",
+    "anchor": null,
+    "area": 160000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "A planta mostra as dimensões da base em escala. A implantação geográfica deste prédio não está delimitada.",
+    "facts": [
+      [
+        "Níveis acima",
+        "20"
+      ],
+      [
+        "Subsolos",
+        "7"
+      ],
+      [
+        "Área bruta de todos os pisos",
+        "4,32 km²"
+      ]
+    ],
+    "dimensions": [
+      400,
+      400
+    ]
+  },
+  {
+    "id": "jp-empresa-tecnologica",
+    "title": "Empresa tecnológica",
+    "category": "building",
+    "anchor": null,
+    "area": 250000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "A planta mostra as dimensões da base em escala. A implantação geográfica deste prédio não está delimitada.",
+    "facts": [
+      [
+        "Níveis acima",
+        "10"
+      ],
+      [
+        "Subsolos",
+        "12"
+      ],
+      [
+        "Área bruta de todos os pisos",
+        "5,5 km²"
+      ]
+    ],
+    "dimensions": [
+      500,
+      500
+    ]
+  },
+  {
+    "id": "jp-biocombustiveis",
+    "title": "Biocombustíveis",
+    "category": "building",
+    "anchor": null,
+    "area": 40000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "A planta mostra as dimensões da base em escala. A implantação geográfica deste prédio não está delimitada.",
+    "facts": [
+      [
+        "Níveis acima",
+        "6"
+      ],
+      [
+        "Subsolos",
+        "4"
+      ],
+      [
+        "Área bruta de todos os pisos",
+        "0,4 km²"
+      ]
+    ],
+    "dimensions": [
+      200,
+      200
+    ]
+  },
+  {
+    "id": "jp-fabricante-de-chips",
+    "title": "Fabricante de chips",
+    "category": "building",
+    "anchor": null,
+    "area": 250000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "A planta mostra as dimensões da base em escala. A implantação geográfica deste prédio não está delimitada.",
+    "facts": [
+      [
+        "Níveis acima",
+        "10"
+      ],
+      [
+        "Subsolos",
+        "15"
+      ],
+      [
+        "Área bruta de todos os pisos",
+        "6,25 km²"
+      ]
+    ],
+    "dimensions": [
+      500,
+      500
+    ]
+  },
+  {
+    "id": "jp-sony-pesquisa-animal",
+    "title": "Sony Pesquisa animal",
+    "category": "building",
+    "anchor": null,
+    "area": 250000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "A planta mostra as dimensões da base em escala. A implantação geográfica deste prédio não está delimitada.",
+    "facts": [
+      [
+        "Níveis acima",
+        "45"
+      ],
+      [
+        "Subsolos",
+        "18"
+      ],
+      [
+        "Área bruta de todos os pisos",
+        "15,75 km²"
+      ]
+    ],
+    "dimensions": [
+      500,
+      500
+    ]
+  },
+  {
+    "id": "jp-sony-residencial",
+    "title": "Sony Residencial",
+    "category": "building",
+    "anchor": null,
+    "area": 250000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "A planta mostra as dimensões da base em escala. A implantação geográfica deste prédio não está delimitada.",
+    "facts": [
+      [
+        "Níveis acima",
+        "30"
+      ],
+      [
+        "Subsolos",
+        "13"
+      ],
+      [
+        "Área bruta de todos os pisos",
+        "10,75 km²"
+      ]
+    ],
+    "dimensions": [
+      500,
+      500
+    ]
+  },
+  {
+    "id": "jp-sony-industrias",
+    "title": "Sony Indústrias",
+    "category": "building",
+    "anchor": null,
+    "area": 250000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "A planta mostra as dimensões da base em escala. A implantação geográfica deste prédio não está delimitada.",
+    "facts": [
+      [
+        "Níveis acima",
+        "30"
+      ],
+      [
+        "Subsolos",
+        "43"
+      ],
+      [
+        "Área bruta de todos os pisos",
+        "18,25 km²"
+      ]
+    ],
+    "dimensions": [
+      500,
+      500
+    ]
+  },
+  {
+    "id": "jp-sony-computacao",
+    "title": "Sony Computação",
+    "category": "building",
+    "anchor": null,
+    "area": 250000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "A planta mostra as dimensões da base em escala. A implantação geográfica deste prédio não está delimitada.",
+    "facts": [
+      [
+        "Níveis acima",
+        "32"
+      ],
+      [
+        "Subsolos",
+        "21"
+      ],
+      [
+        "Área bruta de todos os pisos",
+        "13,25 km²"
+      ]
+    ],
+    "dimensions": [
+      500,
+      500
+    ]
+  },
+  {
+    "id": "jp-sony-saude-e-ensino",
+    "title": "Sony Saúde e Ensino",
+    "category": "building",
+    "anchor": null,
+    "area": 250000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "A planta mostra as dimensões da base em escala. A implantação geográfica deste prédio não está delimitada.",
+    "facts": [
+      [
+        "Níveis acima",
+        "22"
+      ],
+      [
+        "Subsolos",
+        "15"
+      ],
+      [
+        "Área bruta de todos os pisos",
+        "9,25 km²"
+      ]
+    ],
+    "dimensions": [
+      500,
+      500
+    ]
+  },
+  {
+    "id": "jp-sony-agricultura",
+    "title": "Sony Agricultura",
+    "category": "building",
+    "anchor": null,
+    "area": 250000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "A planta mostra as dimensões da base em escala. A implantação geográfica deste prédio não está delimitada.",
+    "facts": [
+      [
+        "Níveis acima",
+        "15"
+      ],
+      [
+        "Subsolos",
+        "6"
+      ],
+      [
+        "Área bruta de todos os pisos",
+        "5,25 km²"
+      ]
+    ],
+    "dimensions": [
+      500,
+      500
+    ]
+  },
+  {
+    "id": "jp-sony-megapredio",
+    "title": "Sony Japão · tipo dos 220 megaprédios",
+    "category": "building",
+    "anchor": null,
+    "area": 297500,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "Tipo posterior, distribuído pelos dez polos. O mapa não atribui endereços aos edifícios.",
+    "facts": [
+      [
+        "Unidades",
+        "220"
+      ],
+      [
+        "Níveis de superfície",
+        "34"
+      ],
+      [
+        "Subsolos",
+        "18"
+      ],
+      [
+        "Área de todos os pisos por unidade",
+        "15,47 km²"
+      ],
+      [
+        "Soma das bases incluída nos polos",
+        "65,45 km²"
+      ]
+    ],
+    "dimensions": [
+      350,
+      850
+    ]
+  },
+  {
+    "id": "jp-sony-kibi",
+    "title": "Sony Japão · campus de Kibi",
+    "category": "property",
+    "anchor": [
+      133.8,
+      34.86
+    ],
+    "area": 30000000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "Ponto de referência do Atlas V2. A área desenhada tem metragem equivalente. Os anexos são partes distintas do patrimônio.",
+    "facts": [
+      [
+        "Anexo espacial anterior",
+        "25 km²"
+      ],
+      [
+        "Anexo industrial e solar",
+        "15 km²"
+      ],
+      [
+        "Soma do campus e dos dois anexos",
+        "70 km²"
+      ],
+      [
+        "Terrenos próprios da rede Sony no Japão",
+        "1.026 km²"
+      ]
+    ]
+  },
+  {
+    "id": "jp-polos",
+    "title": "Sony Japão · polos agroindustriais",
+    "category": "property",
+    "anchor": null,
+    "area": 30000000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "Os 220 megaprédios ocupam parte dos 300 km². A área de cada polo é separada.",
+    "facts": [
+      [
+        "Propriedades",
+        "10"
+      ],
+      [
+        "Soma dos terrenos",
+        "300 km²"
+      ]
+    ],
+    "schematicOnMap": false
+  },
+  {
+    "id": "jp-nuclear",
+    "title": "Sony Japão · complexos nucleares",
+    "category": "property",
+    "anchor": null,
+    "area": 15000000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "Quarenta propriedades separadas. Endereços em aberto.",
+    "facts": [
+      [
+        "Propriedades",
+        "40"
+      ],
+      [
+        "Soma dos terrenos",
+        "600 km²"
+      ]
+    ],
+    "schematicOnMap": false
+  },
+  {
+    "id": "jp-conversoras",
+    "title": "Sony Japão · conversoras externas",
+    "category": "property",
+    "anchor": null,
+    "area": 250000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "Trinta e duas propriedades separadas das estações internas.",
+    "facts": [
+      [
+        "Propriedades",
+        "32"
+      ],
+      [
+        "Soma dos terrenos",
+        "8 km²"
+      ]
+    ],
+    "schematicOnMap": false
+  },
+  {
+    "id": "jp-bases",
+    "title": "Sony Japão · bases regionais",
+    "category": "property",
+    "anchor": null,
+    "area": 2000000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "Doze propriedades regionais de manutenção e logística.",
+    "facts": [
+      [
+        "Propriedades",
+        "12"
+      ],
+      [
+        "Soma dos terrenos",
+        "24 km²"
+      ]
+    ],
+    "schematicOnMap": false
+  },
+  {
+    "id": "jp-tanegashima",
+    "title": "Sony Japão · centro espacial de Tanegashima",
+    "category": "property",
+    "anchor": [
+      130.98,
+      30.58
+    ],
+    "area": 24000000,
+    "source": "Inventário canônico · JP_Estruturas e JP_Territorio_1002",
+    "note": "Localizado na ilha. O terreno da Sony é distinto do centro da JAXA; o perímetro exato está em aberto.",
+    "facts": [
+      [
+        "Propriedades",
+        "1"
+      ],
+      [
+        "Soma dos terrenos",
+        "24 km²"
+      ]
+    ],
+    "schematicOnMap": false
+  },
+  {
+    "id": "zeus-territorio",
+    "title": "Megapropriedade de Zeus · terreno principal",
+    "category": "property",
+    "anchor": [
+      -48.75,
+      -7.25
+    ],
+    "area": 1600000000,
+    "source": "Geografia e Inventário canônico · Territorio_Agricultura",
+    "note": "O ponto de referência em Aragominas/Araguaína corresponde à área do portão e da casa principal. A expansão para 1.600 km² não tem novo perímetro definido. O desenho equivalente serve como comparação de escala. O traçado no mapa é um quadrado de área equivalente.",
+    "facts": [
+      [
+        "Território na planta anterior",
+        "1.344 km²"
+      ],
+      [
+        "Terrenos vizinhos externos",
+        "60 km² separados"
+      ]
+    ]
+  },
+  {
+    "id": "zeus-planta-1344",
+    "title": "Megapropriedade de Zeus · planta de 1.344 km²",
+    "category": "property",
+    "anchor": [
+      -48.75,
+      -7.25
+    ],
+    "area": 1344000000,
+    "source": "Geografia · muro e capacidade industrial",
+    "note": "Três quadrados de 20 km de lado em L e um triângulo isósceles de 20 km por 14,4 km. Rotação e encaixe geográfico não definidos. Esta planta documenta a configuração anterior à de 1.600 km². Ao abrir esta ficha, o mapa posiciona o desenho esquemático junto à referência da base.",
+    "facts": [
+      [
+        "Perímetro externo do desenho",
+        "175,06 km"
+      ],
+      [
+        "Área de cada quadrado",
+        "400 km²"
+      ],
+      [
+        "Área do triângulo",
+        "144 km²"
+      ]
+    ],
+    "outline": [
+      [
+        -20000,
+        -20000
+      ],
+      [
+        0,
+        -20000
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        20000,
+        0
+      ],
+      [
+        20000,
+        20000
+      ],
+      [
+        -20000,
+        20000
+      ],
+      [
+        -20000,
+        0
+      ],
+      [
+        -34400,
+        -10000
+      ]
+    ],
+    "mapWhenSelected": true
+  },
+  {
+    "id": "zeus-v1",
+    "title": "V1 · propriedade vizinha de Zeus",
+    "category": "property",
+    "anchor": null,
+    "area": 8000000,
+    "source": "Inventário canônico · Propriedades_Vizinhas",
+    "note": "Propriedade agrícola externa à Megapropriedade. Os sete terrenos somam 60 km². O perímetro e as coordenadas individuais estão em aberto.",
+    "facts": [
+      [
+        "Culturas",
+        "Milho4, sorgo3, apoio1"
+      ],
+      [
+        "Alocação para animais",
+        "7 km²"
+      ],
+      [
+        "Fibras",
+        "0 km²"
+      ],
+      [
+        "Alimento humano",
+        "0 km²"
+      ],
+      [
+        "Apoio",
+        "1 km²"
+      ]
+    ]
+  },
+  {
+    "id": "zeus-v2",
+    "title": "V2 · propriedade vizinha de Zeus",
+    "category": "property",
+    "anchor": null,
+    "area": 9000000,
+    "source": "Inventário canônico · Propriedades_Vizinhas",
+    "note": "Propriedade agrícola externa à Megapropriedade. Os sete terrenos somam 60 km². O perímetro e as coordenadas individuais estão em aberto.",
+    "facts": [
+      [
+        "Culturas",
+        "Soja5, girassol2, milheto1, apoio1"
+      ],
+      [
+        "Alocação para animais",
+        "8 km²"
+      ],
+      [
+        "Fibras",
+        "0 km²"
+      ],
+      [
+        "Alimento humano",
+        "0 km²"
+      ],
+      [
+        "Apoio",
+        "1 km²"
+      ]
+    ]
+  },
+  {
+    "id": "zeus-v3",
+    "title": "V3 · propriedade vizinha de Zeus",
+    "category": "property",
+    "anchor": null,
+    "area": 10000000,
+    "source": "Inventário canônico · Propriedades_Vizinhas",
+    "note": "Propriedade agrícola externa à Megapropriedade. Os sete terrenos somam 60 km². O perímetro e as coordenadas individuais estão em aberto.",
+    "facts": [
+      [
+        "Culturas",
+        "Milho forrageiro4, sorgo3, capins2, apoio1"
+      ],
+      [
+        "Alocação para animais",
+        "9 km²"
+      ],
+      [
+        "Fibras",
+        "0 km²"
+      ],
+      [
+        "Alimento humano",
+        "0 km²"
+      ],
+      [
+        "Apoio",
+        "1 km²"
+      ]
+    ]
+  },
+  {
+    "id": "zeus-v4",
+    "title": "V4 · propriedade vizinha de Zeus",
+    "category": "property",
+    "anchor": null,
+    "area": 8000000,
+    "source": "Inventário canônico · Propriedades_Vizinhas",
+    "note": "Propriedade agrícola externa à Megapropriedade. Os sete terrenos somam 60 km². O perímetro e as coordenadas individuais estão em aberto.",
+    "facts": [
+      [
+        "Culturas",
+        "Milheto3, sorgo2, milho2, apoio1"
+      ],
+      [
+        "Alocação para animais",
+        "7 km²"
+      ],
+      [
+        "Fibras",
+        "0 km²"
+      ],
+      [
+        "Alimento humano",
+        "0 km²"
+      ],
+      [
+        "Apoio",
+        "1 km²"
+      ]
+    ]
+  },
+  {
+    "id": "zeus-v5",
+    "title": "V5 · propriedade vizinha de Zeus",
+    "category": "property",
+    "anchor": null,
+    "area": 8000000,
+    "source": "Inventário canônico · Propriedades_Vizinhas",
+    "note": "Propriedade agrícola externa à Megapropriedade. Os sete terrenos somam 60 km². O perímetro e as coordenadas individuais estão em aberto.",
+    "facts": [
+      [
+        "Culturas",
+        "Bambu3, eucalipto3, horta/frutíferas1, apoio1"
+      ],
+      [
+        "Alocação para animais",
+        "0 km²"
+      ],
+      [
+        "Fibras",
+        "6 km²"
+      ],
+      [
+        "Alimento humano",
+        "1 km²"
+      ],
+      [
+        "Apoio",
+        "1 km²"
+      ]
+    ]
+  },
+  {
+    "id": "zeus-v6",
+    "title": "V6 · propriedade vizinha de Zeus",
+    "category": "property",
+    "anchor": null,
+    "area": 9000000,
+    "source": "Inventário canônico · Propriedades_Vizinhas",
+    "note": "Propriedade agrícola externa à Megapropriedade. Os sete terrenos somam 60 km². O perímetro e as coordenadas individuais estão em aberto.",
+    "facts": [
+      [
+        "Culturas",
+        "Bambu1, eucalipto1, soja3, sorgo2, raízes1, apoio1"
+      ],
+      [
+        "Alocação para animais",
+        "5 km²"
+      ],
+      [
+        "Fibras",
+        "2 km²"
+      ],
+      [
+        "Alimento humano",
+        "1 km²"
+      ],
+      [
+        "Apoio",
+        "1 km²"
+      ]
+    ]
+  },
+  {
+    "id": "zeus-v7",
+    "title": "V7 · propriedade vizinha de Zeus",
+    "category": "property",
+    "anchor": null,
+    "area": 8000000,
+    "source": "Inventário canônico · Propriedades_Vizinhas",
+    "note": "Propriedade agrícola externa à Megapropriedade. Os sete terrenos somam 60 km². O perímetro e as coordenadas individuais estão em aberto.",
+    "facts": [
+      [
+        "Culturas",
+        "Capins2, milho1, sorgo1. Dos3 humanos, 0,005 km² para tabaco. Apoio1."
+      ],
+      [
+        "Alocação para animais",
+        "4 km²"
+      ],
+      [
+        "Fibras",
+        "0 km²"
+      ],
+      [
+        "Alimento humano",
+        "3 km²"
+      ],
+      [
+        "Apoio",
+        "1 km²"
+      ]
+    ]
+  },
+  {
+    "id": "admin-fazenda-248",
+    "title": "Administrador · fazenda de 248 km²",
+    "category": "property",
+    "anchor": null,
+    "area": 248000000,
+    "source": "Geografia · bases do Administrador",
+    "note": "A fazenda fica próxima de Balsas, a cerca de 110 km da propriedade inicial pela rota narrativa. O ponto e o contorno ainda não foram delimitados.",
+    "facts": []
+  },
+  {
+    "id": "admin-fortaleza-oeste",
+    "title": "Administrador · unidade Fortaleza Oeste",
+    "category": "property",
+    "anchor": null,
+    "area": 120000,
+    "source": "Geografia · unidade Fortaleza Oeste",
+    "note": "Indústria situada a cerca de 6 km rodoviários da primeira base urbana. O ponto exato está em aberto.",
+    "facts": [
+      [
+        "Área construída",
+        "18.000 m²"
+      ]
+    ]
+  },
+  {
+    "id": "porto-maceio",
+    "title": "Porto de Maceió",
+    "category": "port",
+    "anchor": [
+      -35.71666666666667,
+      -9.683333333333334
+    ],
+    "area": 12000000,
+    "source": "Inventário canônico · AHV_Portos_Estrutura e AHV_Portos_D0",
+    "note": "Referência no Porto de Maceió em Jaraguá. A expansão ficcional é representada por área equivalente, sem perímetro portuário exato.",
+    "facts": [
+      [
+        "Terreno",
+        "8 km²"
+      ],
+      [
+        "Águas internas",
+        "4 km²"
+      ],
+      [
+        "Cais somados",
+        "8 km"
+      ],
+      [
+        "Contêineres no Dia Zero",
+        "100.000"
+      ],
+      [
+        "Equivalência do estoque",
+        "160.000 TEU"
+      ]
+    ],
+    "reference": "2132 · estoque no Dia Zero"
+  },
+  {
+    "id": "porto-santa-aurora",
+    "title": "Porto de Santa Aurora",
+    "category": "port",
+    "anchor": [
+      -36.13754,
+      -10.15231
+    ],
+    "area": 60000000,
+    "source": "Inventário canônico · AHV_Portos_Estrutura e AHV_Portos_D0",
+    "note": "O mapa localiza o Pontal de Coruripe como referência. O porto ficcional fica ao sul; o ponto e o perímetro da instalação ainda estão em aberto.",
+    "facts": [
+      [
+        "Terreno",
+        "40 km²"
+      ],
+      [
+        "Águas internas",
+        "20 km²"
+      ],
+      [
+        "Cais somados",
+        "40 km"
+      ],
+      [
+        "Contêineres no Dia Zero",
+        "500.000"
+      ],
+      [
+        "Equivalência do estoque",
+        "800.000 TEU"
+      ]
+    ],
+    "schematicOnMap": false,
+    "reference": "2132 · estoque no Dia Zero"
+  },
+  {
+    "id": "porto-recife",
+    "title": "Porto do Recife",
+    "category": "port",
+    "anchor": [
+      -34.868,
+      -8.055
+    ],
+    "area": null,
+    "source": "Inventário canônico · Recife_Navios e Recife_Containers",
+    "note": "Ponto de referência no Recife Antigo. O inventário descreve a operação de recuperação sem fixar o novo perímetro portuário.",
+    "facts": [
+      [
+        "Embarcações incorporadas",
+        "17"
+      ],
+      [
+        "Porta-contêineres incorporados",
+        "6"
+      ]
+    ],
+    "reference": "Expedição de Recife"
+  },
+  {
+    "id": "porto-pacifico",
+    "title": "Porto da operação do Pacífico",
+    "category": "port",
+    "anchor": null,
+    "area": null,
+    "source": "Inventário canônico · Pacifico_Porto",
+    "note": "O planejamento descreve a operação no cais. A ficha consultada não fixa coordenadas nem metragem.",
+    "facts": [
+      [
+        "Janela planejada de operação",
+        "18 dias"
+      ]
+    ],
+    "reference": "Planejamento"
+  }
+]
