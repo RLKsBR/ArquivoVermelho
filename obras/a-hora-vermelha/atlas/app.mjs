@@ -1,3 +1,4 @@
+import {WORLD_CONTROL, CONVERSION_SHARE, CONVERTED_HALF_LIFE, buildWorld, regionStyle, symbolFor, worldAt} from './world-population.mjs';
 import {ASPECT, cellAt, cellId, cellArea, cellBounds, gridForViewport, parseCell, parentAt, project, unproject} from './geo.mjs';
 import {applyChanges, censusMetrics, censusRecord, confidence, featureStatus, livingPresence, metrics, presences, queryCell, ratio, snapshot, validate} from './model.mjs';
 import {footprint, territoryGeometry, validateTerritories} from './territory.mjs';
@@ -18,7 +19,7 @@ const propertyCategories = ['property','building'];
 const territoryColors = {property:'#c4a7fa',building:'#c4a7fa',city:'#c8b69a',port:'#f09e63'};
 const legacyCategories = ['Grandes concentrações','Comunidades aliadas','Núcleos intermediários','Grupos dispersos','Urbano ou transição'];
 const statusNames = {future:'Futuro na data selecionada',past:'Encerrado na data selecionada',uncertain:'Janela de data incerta',active:'Vigente na data selecionada',undated:'Sem data definida'};
-const viewNames = {canon:'SÉRIE DOCUMENTAL',legacy:'ATLAS V2 · CENÁRIO ANTERIOR',demo:'DEMONSTRAÇÃO · DADOS SINTÉTICOS'};
+const viewNames = {world:'CENÁRIO POPULACIONAL',canon:'SÉRIE DOCUMENTAL',legacy:'ATLAS V2 · CENÁRIO ANTERIOR',demo:'DEMONSTRAÇÃO · DADOS SINTÉTICOS'};
 const storageKey = 'ahv-atlas:edits:v1';
 
 function element(tag,text,className) {
@@ -61,7 +62,12 @@ async function start() {
   const [base, geography, legacy] = globalThis.ATLAS_PACKED ?? await Promise.all([
     readJson('./data/atlas.json'), readJson('./data/geography.json'), readJson('./data/atlas-v2.json')
   ]);
-  const [territoryRows, dispersed] = await Promise.all([readJson('./data/territories.json'),readJson('./data/dispersed-v2.json')]);
+  const [territoryRows, dispersed, worldData] = await Promise.all([readJson('./data/territories.json'),readJson('./data/dispersed-v2.json'),readJson('./data/world-population.json')]);
+  const world=buildWorld(worldData,base,legacy);
+  const countryNames=new Intl.DisplayNames(['pt-BR'],{type:'region'});
+  const countryName=country=>/^[A-Z]{2}$/.test(country.iso)?countryNames.of(country.iso):country.name;
+  let worldState;
+  let comparisonWorld;
   const territories=validateTerritories(territoryRows);
   const propertySelect=$('property-select');
   for (const category of propertyCategories) {
@@ -89,7 +95,7 @@ async function start() {
     storageMessage='Os ajustes armazenados não puderam ser lidos. Use a importação ou trabalhe com a base.';
   }
 
-  let view='canon';
+  let view='world';
   let mode='region';
   let selection=null;
   let date=base.milestones.find(t=>t.id==='D0').date;
@@ -130,6 +136,7 @@ async function start() {
   const highlightRenderer=L.canvas({pane:selectedPane,padding:.1});
   const gridGroup=L.layerGroup().addTo(map);
   const themeGroup=L.layerGroup().addTo(map);
+  const worldDots=L.layerGroup().addTo(map);
   const selectionGroup=L.layerGroup().addTo(map);
   const oceanGroup=L.layerGroup();
   const landOptions={pane:physicalPane,renderer:physical,interactive:false,style:{fillColor:'#253b38',fillOpacity:1,color:'#60817a',weight:.9,opacity:.85},smoothFactor:.65};
@@ -187,7 +194,10 @@ async function start() {
   }
   function drawSelection() {
     selectionGroup.clearLayers();
-    if (selection?.kind==='cell') {
+    if (selection?.kind==='world-region') {
+      const unit=world.unitById.get(selection.id);
+      L.geoJSON(unit.geometry,{pane:selectedPane,renderer:highlightRenderer,interactive:false,color:'#f5dcae',weight:2,fill:false}).addTo(selectionGroup);
+    } else if (selection?.kind==='cell') {
       L.rectangle(cellBounds(selection.id),{pane:selectedPane,renderer:highlightRenderer,interactive:false,color:'#ffd2a4',weight:2,fillOpacity:.12}).addTo(selectionGroup);
     }
   }
@@ -214,7 +224,7 @@ async function start() {
       const values=result?.metrics??{};
       const presence=livingPresence(values,Boolean(result&&!result.partial));
       L.rectangle(bounds,{...options,color:presence==='empty'?'#9cb1a3':'#6d888e',
-        opacity:result?.partial ? .52 : .29,weight:.7,fill:false,dashArray:view==='demo'&&!result?'2 4':undefined
+        opacity:result?.partial ? .52 : view==='world'?.16:.29,weight:.7,fill:false,dashArray:view==='demo'&&!result?'2 4':undefined
       }).addTo(gridGroup);
       const fill = (key,box) => {
         if (values[key]>0) L.rectangle(box,{...options,stroke:false,fillColor:metricColors[key],
@@ -246,6 +256,12 @@ async function start() {
   }
   function drawThemes() {
     themeGroup.clearLayers();
+    worldDots.clearLayers();
+    if (view==='world') {
+      drawWorld();
+      drawWorldDots();
+      return;
+    }
     if (view==='legacy') {
       const epoch=legacy.epochs[epochFor(date)];
       if (!epoch) return;
@@ -287,6 +303,115 @@ async function start() {
             dashArray:surveyed?undefined:'5 5'}}).on('click',()=>choose(next,true)).addTo(themeGroup);
       }
     }
+  }
+
+  const worldPalette={human:'#66d599',converted:'#ee6f65',mixed:'#aa91d5',sparse:'#89938f',unknown:'#72858a'};
+  function unitName(unit) {
+    return unit.id===unit.country ? countryName(world.countryById.get(unit.country)) : unit.name;
+  }
+  function drawWorld() {
+    if (!worldState || !$('world-areas').checked) return;
+    const metric=$('world-metric').value;
+    for (const unit of world.unitById.values()) {
+      const data=worldState.regions.get(unit.id);
+      const values=data && metric!=='both'?{human:metric==='human'?data.human:0,converted:metric==='converted'?data.converted:0}:data;
+      const {kind,opacity}=regionStyle(values,unit.area);
+      const color=worldPalette[kind];
+      L.geoJSON(unit.geometry,{pane:themePane,renderer:themeRenderer,bubblingMouseEvents:false,
+        style:{color,weight:.7,opacity:kind==='unknown'?.37:.69,fillColor:color,fillOpacity:opacity,
+          dashArray:kind==='unknown'?'3 4':undefined}})
+        .on('click',()=>choose({kind:'world-region',id:unit.id},true)).addTo(themeGroup);
+    }
+  }
+  function drawWorldDots() {
+    worldDots.clearLayers();
+    if (!worldState || !$('world-dots').checked) return;
+    const metric=$('world-metric').value;
+    const zoom=map.getZoom();
+    const minimum=zoom<3?1e6:zoom<5?10_000:zoom<7?100:1;
+    const bounds=map.getBounds().pad(.12);
+    const clusters=[];
+    for (const unit of world.unitById.values()) {
+      const values=worldState.regions.get(unit.id);
+      const center=[unit.anchor[1],unit.anchor[0]];
+      if (!values||!bounds.contains(center)) continue;
+      const keys=(metric==='both'?['human','converted']:[metric]).filter(key=>values[key]>=minimum);
+      if (zoom<3 && keys.length===2 && Math.min(values.human,values.converted)<.20*(values.human+values.converted)) {
+        keys.splice(values.human<values.converted?0:1,1);
+      }
+      if (keys.length) clusters.push({unit,center,values,keys});
+    }
+    clusters.sort((a,b)=>Math.max(...b.keys.map(key=>b.values[key]))-Math.max(...a.keys.map(key=>a.values[key])));
+    const visible=[];
+    for (const {unit,center,values,keys} of clusters) {
+      const radii=keys.map(key=>symbolFor(values[key]));
+      const marks=keys.map((key,index)=>{
+        const point=map.latLngToLayerPoint(center);
+        if (keys.length===2) point.x+=(index===0?-1:1)*(radii[0]+radii[1]+2)/2;
+        return {key,point,radius:radii[index]};
+      });
+      if (marks.some(mark=>visible.some(other=>mark.point.distanceTo(other.point)<mark.radius+other.radius+3))) continue;
+      for (const {key,point,radius} of marks) {
+        L.circleMarker(map.layerPointToLatLng(point),{pane:themePane,renderer:themeRenderer,
+          bubblingMouseEvents:false,radius,color:'#142322',weight:1,fillColor:worldPalette[key],fillOpacity:.87})
+          .on('click',()=>choose({kind:'world-region',id:unit.id},true)).addTo(worldDots);
+      }
+      visible.push(...marks);
+    }
+  }
+  function worldReading(panel,values,area) {
+    stat(panel,'Humanos não convertidos',number(values?.human),undefined,true);
+    stat(panel,'Convertidos ativos · simulação',number(values?.converted));
+    if (values && area) stat(panel,'Pessoas por km²',decimal.format((values.human+values.converted)/area));
+  }
+  function summaryWorld(panel) {
+    panel.append(element('h2','Distribuição mundial'));
+    if (!worldState) {
+      panel.append(element('p','O cenário começa no marco imediatamente anterior ao Dia Zero.','muted'));
+      return;
+    }
+    const anchor=worldState.anchor;
+    worldReading(panel,anchor);
+    stat(panel,'Total de pessoas no cenário',number(anchor.human+anchor.converted));
+    const source={scenario:'Meta inicial de 21,9 bilhões',documental:'Total humano da série documental',legacy:'Total humano projetado do Atlas V2'};
+    stat(panel,'Marco usado',anchor.title,source[anchor.source]);
+    if (comparing && comparisonWorld) {
+      compareStat(panel,anchor.human,comparisonWorld.anchor.human);
+    }
+    panel.append(element('p','Toque numa área ou ponto para ver a estimativa local. A cor descreve a presença estimada no recorte geográfico.','muted'));
+    const details=element('details',undefined,'world-method');
+    details.append(element('summary','Como o cenário foi calculado'),
+      element('p',`As populações de 2024 são ponderadas por crescimento continental hipotético e normalizadas para ${number(WORLD_CONTROL)}. As estimativas regionais usam área e peso dos centros urbanos do Natural Earth.`),
+      element('p',`A cada queda populacional entre marcos, o cenário atribui ${Math.round(CONVERSION_SHARE*100)}% dessa diferença a novas conversões. O estoque anterior cai à metade a cada ${CONVERTED_HALF_LIFE} anos. A série documental continua sendo a referência para os totais confirmados.`),
+      element('p','Cada ponto representa uma faixa de população do recorte. Ao aproximar, aparecem pontos menores e regiões próximas ganham espaço.'));
+    const links=element('p');
+    for (const [label,url] of [['Banco Mundial','https://data.worldbank.org/indicator/SP.POP.TOTL'],['Natural Earth','https://www.naturalearthdata.com/']]) {
+      const link=element('a',label);
+      link.href=url;
+      link.target='_blank';
+      link.rel='noopener noreferrer';
+      links.append(link,document.createTextNode('  '));
+    }
+    details.append(links);
+    panel.append(details);
+  }
+  function showWorldRegion(panel,id) {
+    const unit=world.unitById.get(id);
+    const country=world.countryById.get(unit.country);
+    panel.append(element('h2',unitName(unit)));
+    if (unit.id!==country.id) panel.append(element('p',countryName(country),'muted'));
+    const values=worldState?.regions.get(id);
+    worldReading(panel,values,unit.area);
+    stat(panel,'Área de referência',`${number(unit.area)} km²`);
+    if (worldState) stat(panel,'Marco usado',worldState.anchor.title);
+    if (comparing && values && comparisonWorld?.regions.has(id)) {
+      compareStat(panel,values.human,comparisonWorld.regions.get(id).human);
+    }
+    if (unit.id!==country.id) {
+      stat(panel,'Humanos estimados no país',number(worldState?.countries.get(country.id)?.human));
+    }
+    const source=country.source==='wb2024'?'Banco Mundial, população nacional de 2024':country.source==='ne'?'Natural Earth, estimativa nacional de referência':'Sem população de referência para alocação';
+    panel.append(element('p',source,'source-note'));
   }
 
   function geographicFootprint(record) {
@@ -529,9 +654,12 @@ async function start() {
     const record=selection?.kind==='territory'?territories.find(row=>row.id===id):null;
     propertySelect.value=record&&propertyCategories.includes(record.category)?id:'';
     if (!selection) {
+      if (view==='world') summaryWorld(panel);
       if (view==='canon') summaryCanon(panel);
       if (view==='legacy') summaryLegacy(panel);
       if (view==='demo') summaryDemo(panel);
+    } else if (selection.kind==='world-region') {
+      showWorldRegion(panel,id);
     } else if (selection.kind==='territory') {
       showTerritory(panel,record);
     } else if (selection.kind==='dispersed') {
@@ -594,6 +722,8 @@ async function start() {
   }
 
   function refresh() {
+    worldState=view==='world'?worldAt(world,date):null;
+    comparisonWorld=view==='world'&&comparing?worldAt(world,$('compare-date').value):null;
     if (view==='demo') {
       state=snapshot(data,date,owners,$('policy').value);
       referenceState=comparing?snapshot(data,$('compare-date').value,owners,$('policy').value):null;
@@ -631,6 +761,7 @@ async function start() {
   }
   function setView(next) {
     view=next;
+    document.querySelector('main').dataset.atlasView=next;
     selection=null;
     $('search').value='';
     $('results').hidden=true;
@@ -640,7 +771,11 @@ async function start() {
   function focusItem(item) {
     let location;
     let targetZoom=9;
-    if (item.kind==='territory') {
+    if (item.kind==='world-region') {
+      const unit=world.unitById.get(item.id);
+      location=[unit.anchor[1],unit.anchor[0]];
+      targetZoom=4;
+    } else if (item.kind==='territory') {
       const record=territories.find(row=>row.id===item.id);
       if (view!=='canon') setView('canon');
       const geometry=geographicFootprint(record);
@@ -698,7 +833,10 @@ async function start() {
     results.replaceChildren();
     if (!value) {results.hidden=true;return;}
     let candidates=[];
-    if (view==='legacy') {
+    if (view==='world') {
+      candidates=[...world.unitById.values()].map(unit=>[unitName(unit),{kind:'world-region',id:unit.id}]);
+      candidates.push(...territories.map(record=>[record.title,{kind:'territory',id:record.id}]));
+    } else if (view==='legacy') {
       candidates=Object.entries(legacy.regions).map(([id,row])=>[row[0],{kind:'legacy-region',id}]);
       candidates.push(...legacy.records.map((r,index)=>[`${r.title} · ${r.epoch}`,{kind:'legacy-record',id:index}]));
     } else {
@@ -780,7 +918,7 @@ async function start() {
     $('layer-options').append(label);
   }
   $('show-borders').addEventListener('change',()=>{if ($('show-borders').checked) borders.addTo(map);else map.removeLayer(borders);});
-  for (const id of ['show-grid','metric','policy','show-uncertain','show-legacy-records','show-territories','show-cities','show-ports','show-schematic','show-dispersed']) $(id).addEventListener('change',refresh);
+  for (const id of ['show-grid','metric','policy','show-uncertain','show-legacy-records','show-territories','show-cities','show-ports','show-schematic','show-dispersed','world-areas','world-dots','world-metric']) $(id).addEventListener('change',refresh);
   $('help-open').addEventListener('click',()=>$('help-dialog').showModal());
   $('layers-open').addEventListener('click',()=>$('layers-dialog').showModal());
 
@@ -953,6 +1091,7 @@ async function start() {
     switchLand();
     drawGrid();
     if (view==='canon') drawThemes();
+    if (view==='world' && worldState) drawWorldDots();
   });
   map.on('click',e=>{
     if (!$('show-grid').checked || Math.abs(e.latlng.lat)>90 || Math.abs(e.latlng.lng)>180) return;

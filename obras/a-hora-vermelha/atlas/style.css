@@ -172,3 +172,17 @@ button[aria-pressed=true],button.primary{background:#3e3525;border-color:#a48758
 .territory-table th,.territory-table td{vertical-align:top;text-align:left;padding:.42rem .28rem;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
 .territory-table th{width:42%;color:var(--muted);font-weight:500}
 .territory-table td{color:#f1f1e9}
+
+
+main[data-atlas-view="world"] .base-legend,main:not([data-atlas-view="world"]) .world-legend{display:none}
+.legend-key .legend-world-mixed{background:#aa91d5}
+.legend-key .legend-world-sparse{background:#566365}
+.world-symbols{flex-basis:100%;display:flex;align-items:center;gap:.62rem;flex-wrap:wrap;padding-top:.3rem;border-top:1px solid var(--line);color:var(--muted)}
+.world-symbols span{display:inline-flex;align-items:center;gap:.24rem}
+.world-symbols i{display:inline-block;width:var(--diameter);height:var(--diameter);border:1px solid #dddfce;border-radius:50%;background:#718883}
+.world-options{display:grid;gap:.3rem;margin-bottom:.8rem;border:1px solid var(--line);border-radius:6px}
+.world-options label{font-size:.85rem}
+.world-method summary{cursor:pointer;color:var(--accent);font-size:.86rem}
+.world-method p{margin:.55rem 0;font-size:.8rem}
+.world-method a{margin-right:.5rem}
+@media(max-width:790px){.segmented{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.segmented button{font-size:.76rem}}

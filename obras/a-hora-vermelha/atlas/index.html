@@ -7,7 +7,7 @@
   <meta name="description" content="Explore a geografia, os censos e a cronologia de A Hora Vermelha.">
   <title>Atlas de A Hora Vermelha · Arquivo Vermelho</title>
   <link rel="stylesheet" href="./vendor/leaflet.css">
-  <link rel="stylesheet" href="./style.css?v=selecao-1">
+  <link rel="stylesheet" href="./style.css?v=distribuicao-1">
 </head>
 <body>
   <header class="masthead">
@@ -17,10 +17,11 @@
     </div>
     <div class="top-actions"><a class="quiet" href="../">Voltar para a obra</a><button id="help-open" type="button">Como usar</button></div>
   </header>
-  <main>
+  <main data-atlas-view="world">
     <div class="toolbar">
       <div class="segmented" role="group" aria-label="Conjunto de dados">
-        <button data-view="canon" aria-pressed="true">Documental</button>
+        <button data-view="world" aria-pressed="true">Distribuição</button>
+        <button data-view="canon" aria-pressed="false">Documental</button>
         <button data-view="legacy" aria-pressed="false">Atlas V2</button>
         <button data-view="demo" aria-pressed="false">Demonstração</button>
       </div>
@@ -42,7 +43,21 @@
         </div>
         <div class="map-bottom"><button id="mode" type="button" aria-pressed="false">Grade regional</button><span>Terra · projeção Behrmann</span></div>
       </section>
-      <aside class="map-legend" aria-label="Legenda do mapa">
+      <aside class="map-legend world-legend" aria-label="Legenda da distribuição">
+        <span class="legend-key"><i aria-hidden="true" class="legend-human"></i> Predomínio humano</span>
+        <span class="legend-key"><i aria-hidden="true" class="legend-converted"></i> Predomínio de convertidos</span>
+        <span class="legend-key"><i aria-hidden="true" class="legend-world-mixed"></i> Misto</span>
+        <span class="legend-key"><i aria-hidden="true" class="legend-world-sparse"></i> Baixa densidade</span>
+        <span class="legend-key"><i aria-hidden="true" class="legend-unknown"></i> Sem base</span>
+        <span class="world-symbols" aria-label="Classes dos pontos em pessoas">
+          <span>Pessoas por ponto</span>
+          <span><i style="--diameter:5px"></i>100+</span>
+          <span><i style="--diameter:7px"></i>1 mil+</span>
+          <span><i style="--diameter:12px"></i>100 mil+</span>
+          <span><i style="--diameter:19.2px"></i>10 mi+</span>
+        </span>
+      </aside>
+      <aside class="map-legend base-legend" aria-label="Legenda do mapa">
         <span class="legend-key"><i aria-hidden="true" class="legend-human"></i> Humanos</span>
         <span class="legend-key"><i aria-hidden="true" class="legend-converted"></i> Convertidos</span>
         <span class="legend-key"><i aria-hidden="true" class="legend-mixed"></i> Ambos</span>
@@ -54,7 +69,7 @@
         <span class="legend-key"><i aria-hidden="true" class="legend-unknown"></i> Sem dados</span>
       </aside>
       <section class="inspector" id="inspector" aria-label="Painel de informações">
-        <div class="inspector-head"><p class="eyebrow" id="panel-tag">SÉRIE DOCUMENTAL</p><button type="button" id="summary">Resumo</button></div>
+        <div class="inspector-head"><p class="eyebrow" id="panel-tag">CENÁRIO POPULACIONAL</p><button type="button" id="summary">Resumo</button></div>
         <label class="property-picker">Selecionar propriedade ou prédio
           <select id="property-select"><option value="">Escolher propriedade ou prédio</option></select>
         </label>
@@ -90,6 +105,12 @@
   <dialog id="layers-dialog" aria-labelledby="layers-title">
     <div class="dialog-head"><h2 id="layers-title">Camadas do atlas</h2><form method="dialog"><button aria-label="Fechar camadas">×</button></form></div>
     <div class="dialog-content">
+      <fieldset class="world-options">
+        <legend>Distribuição mundial</legend>
+        <label><input id="world-areas" type="checkbox" checked> Contornos por recorte</label>
+        <label><input id="world-dots" type="checkbox" checked> Pontos por faixa de população</label>
+        <label>Mostrar <select id="world-metric"><option value="both">Humanos e convertidos</option><option value="human">Humanos</option><option value="converted">Convertidos</option></select></label>
+      </fieldset>
       <div class="control-grid">
         <label><input id="show-territories" type="checkbox" checked> Propriedades e infraestrutura</label>
         <label><input id="show-cities" type="checkbox" checked> Cidades</label>
@@ -139,6 +160,6 @@
   </dialog>
   <div id="fatal" hidden role="alert"></div>
   <script src="./vendor/leaflet.js"></script>
-  <script type="module" src="./app.mjs?v=selecao-1"></script>
+  <script type="module" src="./app.mjs?v=distribuicao-1"></script>
 </body>
 </html>
